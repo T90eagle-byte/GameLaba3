@@ -94,7 +94,21 @@ This smoke-test validates the crossbreeding block:
 - `rename_creature` updates offspring name;
 - negative case for same parent ids raises expected error.
 
-## 9) Inspect compile errors via USER_ERRORS
+## 9) Run mutations/experiments smoke-test
+
+```sql
+@database/tests/05_mutations_experiments_smoke_test.sql
+```
+
+This smoke-test validates the mutations and experiments block end-to-end:
+- mutation shop cursor (`show_mutation_shop`);
+- buy/apply mutation flow with stock and wallet checks (`buy_mutation`, `apply_mutation`);
+- mutagen flow with new creature creation (`apply_mutagen`);
+- orchestrated experiment flow (`make_experiment`) for `CROSS` and `MUTATION` branches;
+- experiment history cursor (`get_experiment_history`);
+- negative cases with expected SQL error codes.
+
+## 10) Inspect compile errors via USER_ERRORS
 
 ```sql
 select

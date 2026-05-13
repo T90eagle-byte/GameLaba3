@@ -41,6 +41,39 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20020, 'Active session not found.');
     end get_active_session;
 
+    procedure assign_starting_tasks(
+        p_lab_id in number
+    ) is
+    begin
+        insert into lab_tasks (
+            lab_task_id,
+            lab_id,
+            task_id,
+            task_status,
+            assigned_at,
+            completed_at
+        )
+        select
+            lab_tasks_seq.nextval,
+            p_lab_id,
+            seeded_tasks.task_id,
+            'ACTIVE',
+            systimestamp,
+            null
+          from (
+                select t.task_id
+                  from tasks t
+                 order by t.task_id
+          ) seeded_tasks
+         where rownum <= 3
+           and not exists (
+                select 1
+                  from lab_tasks lt
+                 where lt.lab_id = p_lab_id
+                   and lt.task_id = seeded_tasks.task_id
+           );
+    end assign_starting_tasks;
+
     function pick_random_allele_side
     return pls_integer is
     begin
@@ -203,8 +236,14 @@ create or replace package body pkg_genetics_game as
         p_session_token in varchar2,
         p_lab_id        out number
     ) is
-        v_session_id number;
-        v_user_id    number;
+        v_session_id           number;
+        v_user_id              number;
+        v_wallet               number;
+        v_rating               number;
+        v_creature_count       number;
+        v_active_task_count    number;
+        v_completed_task_count number;
+        v_experiment_count     number;
     begin
         get_active_session(
             p_session_token => p_session_token,
@@ -238,6 +277,20 @@ create or replace package body pkg_genetics_game as
             0,
             systimestamp,
             systimestamp
+        );
+
+        assign_starting_tasks(
+            p_lab_id => p_lab_id
+        );
+
+        get_lab_stats(
+            p_lab_id               => p_lab_id,
+            p_wallet               => v_wallet,
+            p_rating               => v_rating,
+            p_creature_count       => v_creature_count,
+            p_active_task_count    => v_active_task_count,
+            p_completed_task_count => v_completed_task_count,
+            p_experiment_count     => v_experiment_count
         );
     end start_new_lab;
 
@@ -1410,9 +1463,42 @@ create or replace package body pkg_genetics_game as
     function get_tasks_cursor(
         p_lab_id          in number
     ) return sys_refcursor is
+        v_cursor       sys_refcursor;
+        v_exists_count number;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
-        return null;
+        select count(*)
+          into v_exists_count
+          from labs l
+         where l.lab_id = p_lab_id;
+
+        if v_exists_count = 0 then
+            raise_application_error(-20057, 'Lab not found.');
+        end if;
+
+        open v_cursor for
+            select
+                lt.lab_task_id,
+                lt.task_id,
+                t.task_name,
+                t.description,
+                t.money_reward as reward_money,
+                t.rating_reward as reward_rating,
+                lt.task_status,
+                lt.assigned_at as created_at,
+                lt.completed_at
+              from lab_tasks lt
+              join tasks t
+                on t.task_id = lt.task_id
+             where lt.lab_id = p_lab_id
+             order by
+                case lt.task_status
+                    when 'ACTIVE' then 0
+                    else 1
+                end,
+                lt.assigned_at,
+                lt.lab_task_id;
+
+        return v_cursor;
     end get_tasks_cursor;
 
     function check_task(
@@ -1420,9 +1506,85 @@ create or replace package body pkg_genetics_game as
         p_task_id         in number,
         p_creature_id     in number
     ) return number is
+        v_exists_count    number;
+        v_marker_total    number;
+        v_marker_matched  number;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
-        return null;
+        select count(*)
+          into v_exists_count
+          from labs l
+         where l.lab_id = p_lab_id;
+
+        if v_exists_count = 0 then
+            raise_application_error(-20057, 'Lab not found.');
+        end if;
+
+        select count(*)
+          into v_exists_count
+          from tasks t
+         where t.task_id = p_task_id;
+
+        if v_exists_count = 0 then
+            raise_application_error(-20058, 'Task not found.');
+        end if;
+
+        select count(*)
+          into v_exists_count
+          from creatures c
+         where c.creature_id = p_creature_id;
+
+        if v_exists_count = 0 then
+            raise_application_error(-20059, 'Creature not found.');
+        end if;
+
+        select count(*)
+          into v_exists_count
+          from creatures c
+         where c.creature_id = p_creature_id
+           and c.lab_id = p_lab_id;
+
+        if v_exists_count = 0 then
+            raise_application_error(-20060, 'Creature does not belong to the selected lab.');
+        end if;
+
+        select count(*)
+          into v_exists_count
+          from lab_tasks lt
+         where lt.lab_id = p_lab_id
+           and lt.task_id = p_task_id;
+
+        if v_exists_count = 0 then
+            raise_application_error(-20061, 'Task is not assigned to the selected lab.');
+        end if;
+
+        select count(*)
+          into v_marker_total
+          from task_markers tm
+         where tm.task_id = p_task_id;
+
+        if v_marker_total = 0 then
+            raise_application_error(-20062, 'Task has no markers defined.');
+        end if;
+
+        select count(*)
+          into v_marker_matched
+          from task_markers tm
+         where tm.task_id = p_task_id
+           and exists (
+                select 1
+                  from genotypes g
+                 where g.creature_id = p_creature_id
+                   and (
+                        g.allele1_id = tm.allele_id
+                        or g.allele2_id = tm.allele_id
+                   )
+           );
+
+        if v_marker_matched = v_marker_total then
+            return 1;
+        end if;
+
+        return 0;
     end check_task;
 
     procedure complete_task(
@@ -1433,8 +1595,82 @@ create or replace package body pkg_genetics_game as
         p_wallet_after    out number,
         p_rating_after    out number
     ) is
+        v_check_result         number;
+        v_task_status          lab_tasks.task_status%type;
+        v_money_reward         tasks.money_reward%type;
+        v_rating_reward        tasks.rating_reward%type;
+        v_creature_count       number;
+        v_active_task_count    number;
+        v_completed_task_count number;
+        v_experiment_count     number;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
+        p_is_completed := 0;
+        p_wallet_after := null;
+        p_rating_after := null;
+
+        v_check_result := check_task(
+            p_lab_id      => p_lab_id,
+            p_task_id     => p_task_id,
+            p_creature_id => p_creature_id
+        );
+
+        if v_check_result = 0 then
+            raise_application_error(-20063, 'Task requirements are not met for the selected creature.');
+        end if;
+
+        begin
+            select lt.task_status
+              into v_task_status
+              from lab_tasks lt
+             where lt.lab_id = p_lab_id
+               and lt.task_id = p_task_id
+             for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20061, 'Task is not assigned to the selected lab.');
+        end;
+
+        if v_task_status = 'COMPLETED' then
+            raise_application_error(-20064, 'Task is already completed for this lab.');
+        end if;
+
+        select t.money_reward, t.rating_reward
+          into v_money_reward, v_rating_reward
+          from tasks t
+         where t.task_id = p_task_id;
+
+        update lab_tasks lt
+           set lt.task_status = 'COMPLETED',
+               lt.completed_at = systimestamp
+         where lt.lab_id = p_lab_id
+           and lt.task_id = p_task_id
+           and lt.task_status = 'ACTIVE';
+
+        if sql%rowcount = 0 then
+            raise_application_error(-20065, 'Failed to complete task.');
+        end if;
+
+        update labs l
+           set l.wallet = l.wallet + nvl(v_money_reward, 0),
+               l.rating = l.rating + nvl(v_rating_reward, 0),
+               l.updated_at = systimestamp
+         where l.lab_id = p_lab_id;
+
+        if sql%rowcount = 0 then
+            raise_application_error(-20057, 'Lab not found.');
+        end if;
+
+        get_lab_stats(
+            p_lab_id               => p_lab_id,
+            p_wallet               => p_wallet_after,
+            p_rating               => p_rating_after,
+            p_creature_count       => v_creature_count,
+            p_active_task_count    => v_active_task_count,
+            p_completed_task_count => v_completed_task_count,
+            p_experiment_count     => v_experiment_count
+        );
+
+        p_is_completed := 1;
     end complete_task;
 
     procedure generate_starting_creatures(
