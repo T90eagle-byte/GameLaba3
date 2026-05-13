@@ -67,7 +67,21 @@ This smoke-test validates that core game seed data is loaded and linked correctl
 - valid `task_markers`;
 - presence of universal genes and all `species_type` values from 1 to 6.
 
-## 7) Inspect compile errors via USER_ERRORS
+## 7) Run creature generation smoke-test
+
+```sql
+@database/tests/03_creature_generation_smoke_test.sql
+```
+
+This smoke-test validates the first creature-generation vertical slice:
+- user/session/lab flow for isolated test data;
+- generation of exactly 30 starting creatures (6 species x 5);
+- presence of all `species_type` values 1..6 in the created lab;
+- genotype and phenotype summary population for created creatures;
+- cursor APIs `get_creatures_cursor` and `get_genotype_cursor`;
+- `get_lab_stats` aggregate consistency for `creature_count`.
+
+## 8) Inspect compile errors via USER_ERRORS
 
 ```sql
 select
