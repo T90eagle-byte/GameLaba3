@@ -14,6 +14,7 @@ create sequence labs_seq start with 1 increment by 1 nocache nocycle;
 create sequence genes_seq start with 1 increment by 1 nocache nocycle;
 create sequence alleles_seq start with 1 increment by 1 nocache nocycle;
 create sequence mutations_seq start with 1 increment by 1 nocache nocycle;
+create sequence mutation_rules_seq start with 1 increment by 1 nocache nocycle;
 create sequence tasks_seq start with 1 increment by 1 nocache nocycle;
 create sequence creatures_seq start with 1 increment by 1 nocache nocycle;
 create sequence genotypes_seq start with 1 increment by 1 nocache nocycle;
@@ -53,6 +54,7 @@ create table sessions (
     ended_at         timestamp null,
     constraint pk_sessions primary key (session_id),
     constraint uq_sessions_token unique (session_token),
+    constraint uq_sessions_session_user unique (session_id, user_id),
     constraint fk_sessions_user_id foreign key (user_id) references users (user_id),
     constraint ck_sessions_status check (status in ('ACTIVE', 'CLOSED')),
     constraint ck_sessions_ended_after_start check (ended_at is null or ended_at >= started_at),
@@ -86,6 +88,7 @@ create table labs (
     constraint pk_labs primary key (lab_id),
     constraint fk_labs_user_id foreign key (user_id) references users (user_id),
     constraint fk_labs_session_id foreign key (session_id) references sessions (session_id),
+    constraint fk_labs_session_user foreign key (session_id, user_id) references sessions (session_id, user_id),
     constraint ck_labs_wallet_nonnegative check (wallet >= 0),
     constraint ck_labs_creature_count check (creature_count >= 0),
     constraint ck_labs_active_task_count check (active_task_count >= 0),
@@ -126,6 +129,7 @@ create table alleles (
     trait_value         number(10, 2) not null,
     created_at          timestamp default systimestamp not null,
     constraint pk_alleles primary key (allele_id),
+    constraint uq_alleles_allele_gene unique (allele_id, gene_id),
     constraint fk_alleles_gene_id foreign key (gene_id) references genes (gene_id),
     constraint ck_alleles_dominance_nonnegative check (dominance >= 0)
 );
@@ -149,6 +153,25 @@ create table mutations (
 
 comment on table mutations is 'Mutation catalog for lab shop and experiments.';
 comment on column mutations.mutation_id is 'Primary key.';
+
+create table mutation_rules (
+    mutation_rule_id    number not null,
+    mutation_id         number not null,
+    gene_id             number not null,
+    target_allele_id    number not null,
+    target_slot         varchar2(3 char) not null,
+    created_at          timestamp default systimestamp not null,
+    constraint pk_mutation_rules primary key (mutation_rule_id),
+    constraint fk_mutation_rules_mutation_id foreign key (mutation_id) references mutations (mutation_id),
+    constraint fk_mutation_rules_gene_id foreign key (gene_id) references genes (gene_id),
+    constraint fk_mutation_rules_target_allele foreign key (target_allele_id, gene_id) references alleles (allele_id, gene_id),
+    constraint ck_mutation_rules_target_slot check (target_slot in ('1', '2', 'ANY'))
+);
+
+comment on table mutation_rules is 'Rules describing how mutations affect genotype alleles.';
+comment on column mutation_rules.mutation_rule_id is 'Primary key.';
+comment on column mutation_rules.target_allele_id is 'Target allele that should be applied for the gene.';
+comment on column mutation_rules.target_slot is 'Genotype slot: 1, 2, or ANY.';
 
 create table tasks (
     task_id             number not null,
@@ -202,8 +225,8 @@ create table genotypes (
     constraint pk_genotypes primary key (genotype_id),
     constraint fk_genotypes_creature_id foreign key (creature_id) references creatures (creature_id),
     constraint fk_genotypes_gene_id foreign key (gene_id) references genes (gene_id),
-    constraint fk_genotypes_allele1_id foreign key (allele1_id) references alleles (allele_id),
-    constraint fk_genotypes_allele2_id foreign key (allele2_id) references alleles (allele_id),
+    constraint fk_genotypes_allele1_gene foreign key (allele1_id, gene_id) references alleles (allele_id, gene_id),
+    constraint fk_genotypes_allele2_gene foreign key (allele2_id, gene_id) references alleles (allele_id, gene_id),
     constraint uq_genotypes_creature_gene unique (creature_id, gene_id)
 );
 
@@ -231,7 +254,7 @@ create table experiments (
     constraint ck_experiments_parents_different check (parent2_id is null or parent1_id <> parent2_id),
     constraint ck_experiments_cross_requires_parent2 check (
         (experiment_type = 'CROSS' and parent2_id is not null) or
-        (experiment_type in ('MUTATION', 'MUTAGEN'))
+        (experiment_type in ('MUTATION', 'MUTAGEN') and parent2_id is null)
     )
 );
 
@@ -260,23 +283,23 @@ create table lab_tasks (
     lab_task_id         number not null,
     lab_id              number not null,
     task_id             number not null,
-    status              varchar2(20 char) default 'ACTIVE' not null,
+    task_status         varchar2(20 char) default 'ACTIVE' not null,
     assigned_at         timestamp default systimestamp not null,
     completed_at        timestamp null,
     constraint pk_lab_tasks primary key (lab_task_id),
     constraint fk_lab_tasks_lab_id foreign key (lab_id) references labs (lab_id),
     constraint fk_lab_tasks_task_id foreign key (task_id) references tasks (task_id),
     constraint uq_lab_tasks_lab_task unique (lab_id, task_id),
-    constraint ck_lab_tasks_status check (status in ('ACTIVE', 'COMPLETED')),
+    constraint ck_lab_tasks_status check (task_status in ('ACTIVE', 'COMPLETED')),
     constraint ck_lab_tasks_dates check (
-        (status = 'ACTIVE' and completed_at is null) or
-        (status = 'COMPLETED' and completed_at is not null)
+        (task_status = 'ACTIVE' and completed_at is null) or
+        (task_status = 'COMPLETED' and completed_at is not null)
     )
 );
 
 comment on table lab_tasks is 'Task status for each lab.';
 comment on column lab_tasks.lab_task_id is 'Primary key.';
-comment on column lab_tasks.status is 'ACTIVE or COMPLETED.';
+comment on column lab_tasks.task_status is 'ACTIVE or COMPLETED.';
 
 create table task_markers (
     task_marker_id      number not null,
@@ -290,4 +313,3 @@ create table task_markers (
 
 comment on table task_markers is 'Required alleles for task completion checks.';
 comment on column task_markers.task_marker_id is 'Primary key.';
-
