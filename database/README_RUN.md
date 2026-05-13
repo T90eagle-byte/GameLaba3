@@ -16,7 +16,13 @@ From repository root:
 @database/ddl/01_create_tables.sql
 ```
 
-## 2) Run package specification
+## 2) Run core seed data
+
+```sql
+@database/seeds/01_seed_core_game_data.sql
+```
+
+## 3) Run package specification
 
 ```sql
 @database/packages/spec/pkg_genetics_game.pks
@@ -28,7 +34,7 @@ Check compile output:
 show errors package pkg_genetics_game
 ```
 
-## 3) Run package body
+## 4) Run package body
 
 ```sql
 @database/packages/body/pkg_genetics_game.pkb
@@ -40,7 +46,7 @@ Check compile output:
 show errors package body pkg_genetics_game
 ```
 
-## 4) Run smoke-test
+## 5) Run auth/labs smoke-test
 
 ```sql
 @database/tests/01_auth_labs_smoke_test.sql
@@ -48,7 +54,20 @@ show errors package body pkg_genetics_game
 
 The script uses anonymous PL/SQL blocks and `dbms_output` only for test reporting.
 
-## 5) Inspect compile errors via USER_ERRORS
+## 6) Run seed data smoke-test
+
+```sql
+@database/tests/02_seed_data_smoke_test.sql
+```
+
+This smoke-test validates that core game seed data is loaded and linked correctly:
+- minimum counts for genes, alleles, mutations, tasks;
+- at least 2 alleles per gene;
+- valid `mutation_rules` links and gene-to-allele consistency;
+- valid `task_markers`;
+- presence of universal genes and all `species_type` values from 1 to 6.
+
+## 7) Inspect compile errors via USER_ERRORS
 
 ```sql
 select
