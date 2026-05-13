@@ -384,25 +384,165 @@ create or replace package body pkg_genetics_game as
     function get_creatures_cursor(
         p_lab_id         in number
     ) return sys_refcursor is
+        v_cursor sys_refcursor;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
-        return null;
+        open v_cursor for
+            select
+                c.creature_id,
+                c.lab_id,
+                c.species_type,
+                c.creature_name,
+                c.phenotype_color,
+                c.phenotype_size,
+                c.phenotype_has_wings,
+                c.phenotype_nutrition_type,
+                c.phenotype_summary,
+                c.created_at,
+                c.updated_at
+              from creatures c
+             where c.lab_id = p_lab_id
+             order by c.creature_id;
+
+        return v_cursor;
     end get_creatures_cursor;
 
     function get_genotype_cursor(
         p_creature_id    in number
     ) return sys_refcursor is
+        v_cursor sys_refcursor;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
-        return null;
+        open v_cursor for
+            select
+                gt.genotype_id,
+                gt.creature_id,
+                g.gene_id,
+                g.gene_name,
+                g.gene_type,
+                g.dominance_type,
+                a1.allele_id as allele1_id,
+                a1.description as allele1_description,
+                a1.dominance as allele1_dominance,
+                a1.trait_value as allele1_trait_value,
+                a2.allele_id as allele2_id,
+                a2.description as allele2_description,
+                a2.dominance as allele2_dominance,
+                a2.trait_value as allele2_trait_value
+              from genotypes gt
+              join genes g
+                on g.gene_id = gt.gene_id
+              join alleles a1
+                on a1.allele_id = gt.allele1_id
+              join alleles a2
+                on a2.allele_id = gt.allele2_id
+             where gt.creature_id = p_creature_id
+             order by g.species_type, g.gene_name, g.gene_id;
+
+        return v_cursor;
     end get_genotype_cursor;
 
     function get_phenotype(
         p_creature_id    in number
     ) return varchar2 is
+        v_summary                 varchar2(1000);
+        v_trait_text              varchar2(400);
+        v_effective_desc          varchar2(255);
+        v_mid_desc                varchar2(255);
+        v_mid_value               number;
+
+        v_color                   varchar2(100);
+        v_size                    varchar2(100);
+        v_has_wings               char(1);
+        v_nutrition_type          varchar2(100);
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
-        return null;
+        for rec in (
+            select
+                gt.gene_id,
+                lower(g.gene_name) as gene_name,
+                g.dominance_type,
+                a1.description as allele1_desc,
+                a1.dominance as allele1_dom,
+                a1.trait_value as allele1_val,
+                a2.description as allele2_desc,
+                a2.dominance as allele2_dom,
+                a2.trait_value as allele2_val
+              from genotypes gt
+              join genes g
+                on g.gene_id = gt.gene_id
+              join alleles a1
+                on a1.allele_id = gt.allele1_id
+              join alleles a2
+                on a2.allele_id = gt.allele2_id
+             where gt.creature_id = p_creature_id
+             order by g.species_type, g.gene_name, g.gene_id
+        ) loop
+            if rec.allele1_dom > rec.allele2_dom then
+                v_effective_desc := rec.allele1_desc;
+            elsif rec.allele2_dom > rec.allele1_dom then
+                v_effective_desc := rec.allele2_desc;
+            else
+                if rec.dominance_type = 'INCOMPLETE' then
+                    v_mid_value := (rec.allele1_val + rec.allele2_val) / 2;
+                    begin
+                        select a.description
+                          into v_mid_desc
+                          from alleles a
+                         where a.gene_id = rec.gene_id
+                           and a.trait_value = v_mid_value
+                           and rownum = 1;
+                        v_effective_desc := v_mid_desc;
+                    exception
+                        when no_data_found then
+                            v_effective_desc := 'intermediate(' || rec.allele1_desc || '/' || rec.allele2_desc || ')';
+                    end;
+                elsif rec.dominance_type = 'CODOMINANT' then
+                    v_effective_desc := rec.allele1_desc || '/' || rec.allele2_desc;
+                else
+                    v_effective_desc := rec.allele1_desc;
+                end if;
+            end if;
+
+            if rec.gene_name = 'color' then
+                v_color := v_effective_desc;
+            elsif rec.gene_name = 'size' then
+                v_size := v_effective_desc;
+            elsif rec.gene_name = 'nutrition_type' then
+                v_nutrition_type := v_effective_desc;
+            elsif rec.gene_name = 'has_wings' then
+                if instr(lower(v_effective_desc), 'no_wings') > 0 or rec.allele1_val = 0 and rec.allele2_val = 0 then
+                    v_has_wings := 'N';
+                else
+                    v_has_wings := 'Y';
+                end if;
+            end if;
+
+            v_trait_text := rec.gene_name || '=' || v_effective_desc;
+            if v_summary is null then
+                v_summary := v_trait_text;
+            elsif length(v_summary) + length(v_trait_text) + 2 <= 1000 then
+                v_summary := v_summary || '; ' || v_trait_text;
+            else
+                v_summary := substr(v_summary, 1, 997) || '...';
+                exit;
+            end if;
+        end loop;
+
+        update creatures c
+           set c.phenotype_color = v_color,
+               c.phenotype_size = v_size,
+               c.phenotype_has_wings = v_has_wings,
+               c.phenotype_nutrition_type = v_nutrition_type,
+               c.phenotype_summary = v_summary,
+               c.updated_at = systimestamp
+         where c.creature_id = p_creature_id;
+
+        if sql%rowcount = 0 then
+            raise_application_error(-20026, 'Creature not found.');
+        end if;
+
+        return v_summary;
+    exception
+        when others then
+            raise;
     end get_phenotype;
 
     function calculate_punnett_probabilities(
@@ -521,8 +661,36 @@ create or replace package body pkg_genetics_game as
     procedure generate_starting_creatures(
         p_lab_id          in number
     ) is
+        v_species_type          number;
+        v_variant               number;
+        v_creature_id           number;
+        v_wallet                number;
+        v_rating                number;
+        v_creature_count        number;
+        v_active_task_count     number;
+        v_completed_task_count  number;
+        v_experiment_count      number;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
+        for v_species_type in 1 .. 6 loop
+            for v_variant in 1 .. 5 loop
+                create_creature_of_type(
+                    p_lab_id       => p_lab_id,
+                    p_species_type => v_species_type,
+                    p_variant      => v_variant,
+                    p_creature_id  => v_creature_id
+                );
+            end loop;
+        end loop;
+
+        get_lab_stats(
+            p_lab_id               => p_lab_id,
+            p_wallet               => v_wallet,
+            p_rating               => v_rating,
+            p_creature_count       => v_creature_count,
+            p_active_task_count    => v_active_task_count,
+            p_completed_task_count => v_completed_task_count,
+            p_experiment_count     => v_experiment_count
+        );
     end generate_starting_creatures;
 
     procedure create_creature_of_type(
@@ -531,8 +699,113 @@ create or replace package body pkg_genetics_game as
         p_variant         in number,
         p_creature_id     out number
     ) is
+        v_lab_count        number;
+        v_creature_name    varchar2(255);
+        v_allele1_id       number;
+        v_allele2_id       number;
+        v_summary          varchar2(1000);
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
+        if p_species_type < 1 or p_species_type > 6 then
+            raise_application_error(-20027, 'Invalid species_type. Expected value from 1 to 6.');
+        end if;
+
+        select count(*)
+          into v_lab_count
+          from labs l
+         where l.lab_id = p_lab_id;
+
+        if v_lab_count = 0 then
+            raise_application_error(-20028, 'Lab not found.');
+        end if;
+
+        v_creature_name :=
+            case p_species_type
+                when 1 then 'cartilaginous_fish'
+                when 2 then 'bony_fish'
+                when 3 then 'crustacean'
+                when 4 then 'mollusk'
+                when 5 then 'turtle'
+                when 6 then 'mammal'
+            end
+            || ' #' || to_char(nvl(p_variant, 1));
+
+        p_creature_id := creatures_seq.nextval;
+
+        insert into creatures (
+            creature_id,
+            lab_id,
+            species_type,
+            creature_name,
+            phenotype_color,
+            phenotype_size,
+            phenotype_has_wings,
+            phenotype_nutrition_type,
+            phenotype_summary,
+            created_at,
+            updated_at
+        ) values (
+            p_creature_id,
+            p_lab_id,
+            p_species_type,
+            v_creature_name,
+            null,
+            null,
+            null,
+            null,
+            null,
+            systimestamp,
+            systimestamp
+        );
+
+        for g in (
+            select gene_id
+              from genes
+             where species_type in (0, p_species_type)
+             order by gene_id
+        ) loop
+            begin
+                select allele_id
+                  into v_allele1_id
+                  from (
+                        select a.allele_id
+                          from alleles a
+                         where a.gene_id = g.gene_id
+                         order by dbms_random.value
+                       )
+                 where rownum = 1;
+
+                select allele_id
+                  into v_allele2_id
+                  from (
+                        select a.allele_id
+                          from alleles a
+                         where a.gene_id = g.gene_id
+                         order by dbms_random.value
+                       )
+                 where rownum = 1;
+            exception
+                when no_data_found then
+                    raise_application_error(-20029, 'No alleles found for gene_id=' || g.gene_id);
+            end;
+
+            insert into genotypes (
+                genotype_id,
+                creature_id,
+                gene_id,
+                allele1_id,
+                allele2_id,
+                created_at
+            ) values (
+                genotypes_seq.nextval,
+                p_creature_id,
+                g.gene_id,
+                v_allele1_id,
+                v_allele2_id,
+                systimestamp
+            );
+        end loop;
+
+        v_summary := get_phenotype(p_creature_id => p_creature_id);
     end create_creature_of_type;
 end pkg_genetics_game;
 /
