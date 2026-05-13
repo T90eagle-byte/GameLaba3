@@ -1,71 +1,114 @@
 # Current tasks
 
-## Уже сделано
+## Текущий статус проекта (checkpoint)
 
-- Проанализированы `ПСБД_ЛР1.pdf` и `ПСБД_ЛР2.pdf`.
-- Зафиксирована базовая архитектура: Oracle PL/SQL как источник бизнес-логики, Python как GUI-клиент.
-- Создан стартовый каркас каталогов проекта.
-- Созданы markdown-файлы документации в `docs`.
+Зафиксировано на текущем состоянии репозитория:
 
-## Текущий статус проекта
+- DDL готов и исправлен: `database/ddl/01_create_tables.sql`.
+- Seed data готов: `database/seeds/01_seed_core_game_data.sql`.
+- Package specification готов: `database/packages/spec/pkg_genetics_game.pks`.
+- Package body создан: `database/packages/body/pkg_genetics_game.pkb`.
+- Реализован vertical slice `auth/session/labs`.
+- Реализован блок стартовых существ:
+  - `create_creature_of_type`
+  - `generate_starting_creatures`
+  - `get_phenotype`
+  - `get_creatures_cursor`
+  - `get_genotype_cursor`
+- Smoke-tests:
+  - `database/tests/01_auth_labs_smoke_test.sql` (auth/labs)
+  - `database/tests/02_seed_data_smoke_test.sql` (seed data)
+  - `database/tests/03_creature_generation_smoke_test.sql` (стартовые существа)
+- Run guide обновлен: `database/README_RUN.md` включает запуск `03` smoke-test.
 
-Проект завершил первичный аналитический этап и подготовлен к проектированию Oracle DDL. Реализация PL/SQL, GUI и SQL migration scripts еще не создавались.
+## Что уже работает логически
 
-## Принятые решения MVP
+- регистрация пользователя;
+- вход с выдачей `session_token`;
+- logout;
+- создание/загрузка/переключение/удаление лаборатории;
+- пересчет статистики лаборатории;
+- загрузка стартовых справочников (`genes/alleles/mutations/tasks`);
+- генерация существ по `species_type`;
+- создание `genotypes`-записей;
+- вычисление и кеширование `phenotype_summary`;
+- cursor API для GUI (`get_creatures_cursor`, `get_genotype_cursor`).
 
-- Используем 6 типов существ из ЛР2: хрящевые рыбы, костные рыбы, ракообразные, моллюски, черепахи, млекопитающие.
-- Игровая авторизация реализуется через таблицу `users`.
-- Oracle-роли и grants остаются механизмом доступа приложения к схеме БД, а не моделью отдельного Oracle-пользователя для каждого игрока.
-- В `genes` предусматриваются `species_type`, `dominance_type`, `linkage_group`.
-- В `creatures` предусматриваются отдельные поля только для часто отображаемых признаков; полный фенотип возвращается через `get_phenotype`.
-- Python-клиент не использует `dbms_output`; GUI-данные идут через OUT-параметры, `sys_refcursor` и функции с простыми типами.
+## Что пока stub (не реализовано)
 
-## Ближайшие задачи
+- `calculate_punnett_probabilities`
+- `crossbreed`
+- `rename_creature`
+- `show_mutation_shop`
+- `buy_mutation`
+- `apply_mutation`
+- `apply_mutagen`
+- `make_experiment`
+- `get_experiment_history`
+- `get_tasks_cursor`
+- `check_task`
+- `complete_task`
 
-1. Спроектировать Oracle DDL для таблиц в `snake_case`.
-2. Уточнить оставшиеся DDL-детали:
-   - нужен ли отдельный `session_token`, или токеном будет `session_id`;
-   - точный формат `password_hash`;
-   - точный набор кешируемых фенотипических полей в `creatures`;
-   - стратегия удаления лаборатории и связанных данных.
-3. Подготовить финальный контракт `pkg_genetics_game` без реализации тела.
-4. Добавить GUI-friendly контракты там, где в PDF описан только `dbms_output`.
-5. Определить минимальный набор справочных данных:
-   - гены;
-   - аллели;
-   - мутации;
-   - стартовые задания;
-   - маркеры заданий.
-6. После утверждения контракта перейти к DDL и package specification.
+## Последний реализованный блок
 
-## Что пока не делать
+`Creature generation vertical slice`:
+- создание стартовых существ;
+- генерация генотипа;
+- расчет и кэш фенотипа;
+- выдача данных для GUI курсорами.
 
-- Не писать `package body`.
-- Не писать GUI.
-- Не создавать migration scripts.
-- Не переносить генетику, задания и экономику в Python.
-- Не менять PDF-документы.
+## Следующий конкретный шаг
 
-## Риски
+1. Выполнить полный прогон в Oracle и зафиксировать фактический результат компиляции/выполнения:
+   - `@database/ddl/01_create_tables.sql`
+   - `@database/seeds/01_seed_core_game_data.sql`
+   - `@database/packages/spec/pkg_genetics_game.pks`
+   - `@database/packages/body/pkg_genetics_game.pkb`
+   - `@database/tests/01_auth_labs_smoke_test.sql`
+   - `@database/tests/02_seed_data_smoke_test.sql`
+   - `@database/tests/03_creature_generation_smoke_test.sql`
+2. Если все green — перейти к блоку скрещивания:
+   - `calculate_punnett_probabilities`
+   - `crossbreed`
+   - `rename_creature`
+3. После этого перейти к блоку мутаций и заданий.
 
-- Если Python начнет считать генетику самостоятельно, логика разъедется с PL/SQL.
-- Если не заложить и не заполнить `linkage_group` в справочных данных, сцепленное наследование будет формально описано, но не проявится в игре.
-- Если использовать русские quoted identifiers в Oracle, разработка и интеграция с Python будут менее удобными.
-- Если оставить только `dbms_output` для списков, GUI будет сложнее интегрировать; поэтому для GUI нужен курсорный/OUT-контракт.
+## С чего начинать следующую сессию
 
-## Решения по умолчанию
+### Файлы
 
-- Основной пакет: `pkg_genetics_game`.
-- Физические имена будущих объектов: `snake_case`, без quoted identifiers.
-- Python-слой обращается к БД через один модуль-адаптер и не содержит бизнес-правил.
-- Все игровые изменения выполняются хранимыми процедурами.
+- `database/packages/spec/pkg_genetics_game.pks`
+- `database/packages/body/pkg_genetics_game.pkb`
+- `database/tests/03_creature_generation_smoke_test.sql`
+- `database/README_RUN.md`
+- `docs/gameplay_rules.md`
 
-Текущий статус:
-- структура проекта создана
-- PDF проанализированы
-- roadmap и AI context созданы
-- архитектурные развилки MVP зафиксированы
+### Команды проверки
 
-Следующий этап:
-- проектирование Oracle DDL
-- users/sessions/auth subsystem
+```sql
+show errors package pkg_genetics_game
+show errors package body pkg_genetics_game
+
+select name, type, line, position, text
+from user_errors
+where upper(name) = 'PKG_GENETICS_GAME'
+order by sequence;
+```
+
+## Важные риски
+
+1. Права в схеме:
+   - нужен `EXECUTE` на `DBMS_CRYPTO`;
+   - нужен `EXECUTE` на `UTL_I18N`;
+   - для генерации аллелей используется `DBMS_RANDOM`.
+2. Нужна проверка компиляции именно в Oracle (статическая проверка не эквивалентна runtime).
+3. Возможны ошибки, не видимые без запуска:
+   - данные seed/ограничения DDL;
+   - runtime-ветки package body;
+   - поведение курсоров и обработка исключений.
+
+## Примечание по задачам из предыдущего плана
+
+- Задача "создать `03_creature_generation_smoke_test.sql`" — выполнена.
+- Задача "обновить `database/README_RUN.md` под `03` smoke-test" — выполнена.
+
