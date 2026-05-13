@@ -41,6 +41,16 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20020, 'Active session not found.');
     end get_active_session;
 
+    function pick_random_allele_side
+    return pls_integer is
+    begin
+        if dbms_random.value(0, 1) < 0.5 then
+            return 1;
+        end if;
+
+        return 2;
+    end pick_random_allele_side;
+
     procedure register_user(
         p_username      in varchar2,
         p_login         in varchar2,
@@ -550,9 +560,71 @@ create or replace package body pkg_genetics_game as
         p_parent2_id     in number,
         p_gene_id        in number
     ) return sys_refcursor is
+        v_cursor                sys_refcursor;
+        v_parent1_allele1_id    number;
+        v_parent1_allele2_id    number;
+        v_parent2_allele1_id    number;
+        v_parent2_allele2_id    number;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
-        return null;
+        select gt.allele1_id, gt.allele2_id
+          into v_parent1_allele1_id, v_parent1_allele2_id
+          from genotypes gt
+         where gt.creature_id = p_parent1_id
+           and gt.gene_id = p_gene_id;
+
+        select gt.allele1_id, gt.allele2_id
+          into v_parent2_allele1_id, v_parent2_allele2_id
+          from genotypes gt
+         where gt.creature_id = p_parent2_id
+           and gt.gene_id = p_gene_id;
+
+        open v_cursor for
+            with combinations as (
+                select
+                    least(v_parent1_allele1_id, v_parent2_allele1_id) as allele1_id,
+                    greatest(v_parent1_allele1_id, v_parent2_allele1_id) as allele2_id
+                  from dual
+                union all
+                select
+                    least(v_parent1_allele1_id, v_parent2_allele2_id) as allele1_id,
+                    greatest(v_parent1_allele1_id, v_parent2_allele2_id) as allele2_id
+                  from dual
+                union all
+                select
+                    least(v_parent1_allele2_id, v_parent2_allele1_id) as allele1_id,
+                    greatest(v_parent1_allele2_id, v_parent2_allele1_id) as allele2_id
+                  from dual
+                union all
+                select
+                    least(v_parent1_allele2_id, v_parent2_allele2_id) as allele1_id,
+                    greatest(v_parent1_allele2_id, v_parent2_allele2_id) as allele2_id
+                  from dual
+            ),
+            grouped_combinations as (
+                select
+                    c.allele1_id,
+                    c.allele2_id,
+                    count(*) / 4 as probability
+                  from combinations c
+                 group by c.allele1_id, c.allele2_id
+            )
+            select
+                gc.allele1_id,
+                gc.allele2_id,
+                gc.probability,
+                a1.description as allele1_description,
+                a2.description as allele2_description
+              from grouped_combinations gc
+              join alleles a1
+                on a1.allele_id = gc.allele1_id
+              join alleles a2
+                on a2.allele_id = gc.allele2_id
+             order by gc.probability desc, gc.allele1_id, gc.allele2_id;
+
+        return v_cursor;
+    exception
+        when no_data_found then
+            raise_application_error(-20030, 'Genotype for selected gene is missing in one or both parents.');
     end calculate_punnett_probabilities;
 
     procedure crossbreed(
@@ -562,8 +634,209 @@ create or replace package body pkg_genetics_game as
         p_offspring_name  in varchar2,
         p_offspring_id    out number
     ) is
+        type t_link_side_map is table of pls_integer index by varchar2(40);
+
+        v_parent1_link_side_map   t_link_side_map;
+        v_parent2_link_side_map   t_link_side_map;
+
+        v_parent1_species_type    number;
+        v_parent2_species_type    number;
+        v_link_key                varchar2(40);
+        v_parent1_side            pls_integer;
+        v_parent2_side            pls_integer;
+        v_selected_allele1_id     number;
+        v_selected_allele2_id     number;
+        v_gene_count              number;
+        v_experiment_id           number;
+        v_summary                 varchar2(1000);
+
+        v_wallet                  number;
+        v_rating                  number;
+        v_creature_count          number;
+        v_active_task_count       number;
+        v_completed_task_count    number;
+        v_experiment_count        number;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
+        if p_parent1_id is null or p_parent2_id is null then
+            raise_application_error(-20031, 'Both parent ids are required.');
+        end if;
+
+        if p_parent1_id = p_parent2_id then
+            raise_application_error(-20032, 'Parent ids must be different.');
+        end if;
+
+        if p_offspring_name is null or trim(p_offspring_name) is null then
+            raise_application_error(-20033, 'Offspring name cannot be empty.');
+        end if;
+
+        begin
+            select c.species_type
+              into v_parent1_species_type
+              from creatures c
+             where c.creature_id = p_parent1_id
+               and c.lab_id = p_lab_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20034, 'Parent1 does not exist in the selected lab.');
+        end;
+
+        begin
+            select c.species_type
+              into v_parent2_species_type
+              from creatures c
+             where c.creature_id = p_parent2_id
+               and c.lab_id = p_lab_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20035, 'Parent2 does not exist in the selected lab.');
+        end;
+
+        if v_parent1_species_type <> v_parent2_species_type then
+            raise_application_error(-20036, 'Crossbreeding is allowed only for parents of the same species_type in MVP.');
+        end if;
+
+        select count(*)
+          into v_gene_count
+          from genotypes gp1
+          join genotypes gp2
+            on gp2.gene_id = gp1.gene_id
+           and gp2.creature_id = p_parent2_id
+         where gp1.creature_id = p_parent1_id;
+
+        if v_gene_count = 0 then
+            raise_application_error(-20037, 'Parents have no common genes for crossbreeding.');
+        end if;
+
+        p_offspring_id := creatures_seq.nextval;
+
+        insert into creatures (
+            creature_id,
+            lab_id,
+            species_type,
+            creature_name,
+            phenotype_color,
+            phenotype_size,
+            phenotype_has_wings,
+            phenotype_nutrition_type,
+            phenotype_summary,
+            created_at,
+            updated_at
+        ) values (
+            p_offspring_id,
+            p_lab_id,
+            v_parent1_species_type,
+            trim(p_offspring_name),
+            null,
+            null,
+            null,
+            null,
+            null,
+            systimestamp,
+            systimestamp
+        );
+
+        for rec in (
+            select
+                gp1.gene_id,
+                g.linkage_group,
+                gp1.allele1_id as parent1_allele1_id,
+                gp1.allele2_id as parent1_allele2_id,
+                gp2.allele1_id as parent2_allele1_id,
+                gp2.allele2_id as parent2_allele2_id
+              from genotypes gp1
+              join genotypes gp2
+                on gp2.gene_id = gp1.gene_id
+               and gp2.creature_id = p_parent2_id
+              join genes g
+                on g.gene_id = gp1.gene_id
+             where gp1.creature_id = p_parent1_id
+             order by
+                case when g.linkage_group is null then 0 else 1 end,
+                g.linkage_group,
+                gp1.gene_id
+        ) loop
+            if rec.linkage_group is null then
+                v_parent1_side := pick_random_allele_side();
+                v_parent2_side := pick_random_allele_side();
+            else
+                v_link_key := to_char(rec.linkage_group);
+
+                if not v_parent1_link_side_map.exists(v_link_key) then
+                    v_parent1_link_side_map(v_link_key) := pick_random_allele_side();
+                end if;
+
+                if not v_parent2_link_side_map.exists(v_link_key) then
+                    v_parent2_link_side_map(v_link_key) := pick_random_allele_side();
+                end if;
+
+                v_parent1_side := v_parent1_link_side_map(v_link_key);
+                v_parent2_side := v_parent2_link_side_map(v_link_key);
+            end if;
+
+            if v_parent1_side = 1 then
+                v_selected_allele1_id := rec.parent1_allele1_id;
+            else
+                v_selected_allele1_id := rec.parent1_allele2_id;
+            end if;
+
+            if v_parent2_side = 1 then
+                v_selected_allele2_id := rec.parent2_allele1_id;
+            else
+                v_selected_allele2_id := rec.parent2_allele2_id;
+            end if;
+
+            insert into genotypes (
+                genotype_id,
+                creature_id,
+                gene_id,
+                allele1_id,
+                allele2_id,
+                created_at
+            ) values (
+                genotypes_seq.nextval,
+                p_offspring_id,
+                rec.gene_id,
+                v_selected_allele1_id,
+                v_selected_allele2_id,
+                systimestamp
+            );
+        end loop;
+
+        v_summary := get_phenotype(
+            p_creature_id => p_offspring_id
+        );
+
+        v_experiment_id := experiments_seq.nextval;
+
+        insert into experiments (
+            experiment_id,
+            lab_id,
+            parent1_id,
+            parent2_id,
+            mutation_id,
+            offspring_id,
+            experiment_type,
+            created_at
+        ) values (
+            v_experiment_id,
+            p_lab_id,
+            p_parent1_id,
+            p_parent2_id,
+            null,
+            p_offspring_id,
+            'CROSS',
+            systimestamp
+        );
+
+        get_lab_stats(
+            p_lab_id               => p_lab_id,
+            p_wallet               => v_wallet,
+            p_rating               => v_rating,
+            p_creature_count       => v_creature_count,
+            p_active_task_count    => v_active_task_count,
+            p_completed_task_count => v_completed_task_count,
+            p_experiment_count     => v_experiment_count
+        );
     end crossbreed;
 
     procedure rename_creature(
@@ -571,7 +844,18 @@ create or replace package body pkg_genetics_game as
         p_new_name        in varchar2
     ) is
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
+        if p_new_name is null or trim(p_new_name) is null then
+            raise_application_error(-20038, 'New creature name cannot be empty.');
+        end if;
+
+        update creatures c
+           set c.creature_name = trim(p_new_name),
+               c.updated_at = systimestamp
+         where c.creature_id = p_creature_id;
+
+        if sql%rowcount = 0 then
+            raise_application_error(-20039, 'Creature not found.');
+        end if;
     end rename_creature;
 
     function show_mutation_shop
