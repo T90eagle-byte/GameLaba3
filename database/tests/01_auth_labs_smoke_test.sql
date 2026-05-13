@@ -66,7 +66,7 @@ declare
         end if;
     end assert_true;
 begin
-    v_login := lower(substr('u' || to_char(systimestamp, 'HH24MISSFF3'), 1, 20));
+    v_login := 'u' || lower(substr(rawtohex(sys_guid()), 1, 19));
     v_username := 'smoke_user_' || substr(v_login, 2, 6);
 
     dbms_output.put_line('Smoke-test login: ' || v_login);
@@ -95,7 +95,14 @@ begin
         fail_test('register_user duplicate login', 'duplicate login was accepted');
     exception
         when others then
-            pass_test('register_user duplicate login');
+            if sqlcode in (-20005, -1) then
+                pass_test('register_user duplicate login');
+            else
+                fail_test(
+                    'register_user duplicate login',
+                    'unexpected error code=' || to_char(sqlcode) || ' message=' || sqlerrm
+                );
+            end if;
     end;
 
     begin
@@ -288,6 +295,23 @@ begin
             fail_test('logout_user second session', sqlerrm);
     end;
 
+    begin
+        delete from sessions s
+         where s.user_id = v_user_id
+            or s.user_id in (
+                select u.user_id
+                  from users u
+                 where u.login = v_login
+            );
+
+        delete from users u
+         where (u.user_id = v_user_id or u.login = v_login)
+           and u.login = v_login;
+    exception
+        when others then
+            dbms_output.put_line('[WARN] Cleanup skipped: ' || sqlcode || ' / ' || sqlerrm);
+    end;
+
     dbms_output.put_line('--- SUMMARY ---');
     dbms_output.put_line('Passed: ' || v_passed_tests);
     dbms_output.put_line('Failed: ' || v_failed_tests);
@@ -295,5 +319,9 @@ begin
     if v_failed_tests > 0 then
         raise_application_error(-20100, 'Smoke-test failed. See DBMS_OUTPUT for details.');
     end if;
+exception
+    when others then
+        dbms_output.put_line('[ERROR] Unhandled exception in smoke-test block: ' || sqlcode || ' / ' || sqlerrm);
+        raise;
 end;
 /

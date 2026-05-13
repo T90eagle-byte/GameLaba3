@@ -2,6 +2,12 @@
 
 This guide is for Oracle SQL Developer, SQLcl, or SQL*Plus.
 
+## Prerequisites
+
+- The schema must have `EXECUTE` on `DBMS_CRYPTO`.
+- If `UTL_I18N` is used (for password hashing input encoding), the schema must also have `EXECUTE` on `UTL_I18N`.
+- Without these grants, package body compilation can fail.
+
 ## 1) Run DDL
 
 From repository root:
@@ -19,7 +25,7 @@ From repository root:
 Check compile output:
 
 ```sql
-show errors package pkg_genetics_game;
+show errors package pkg_genetics_game
 ```
 
 ## 3) Run package body
@@ -31,7 +37,7 @@ show errors package pkg_genetics_game;
 Check compile output:
 
 ```sql
-show errors package body pkg_genetics_game;
+show errors package body pkg_genetics_game
 ```
 
 ## 4) Run smoke-test
