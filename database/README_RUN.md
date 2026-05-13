@@ -81,7 +81,20 @@ This smoke-test validates the first creature-generation vertical slice:
 - cursor APIs `get_creatures_cursor` and `get_genotype_cursor`;
 - `get_lab_stats` aggregate consistency for `creature_count`.
 
-## 8) Inspect compile errors via USER_ERRORS
+## 8) Run crossbreed smoke-test
+
+```sql
+@database/tests/04_crossbreed_smoke_test.sql
+```
+
+This smoke-test validates the crossbreeding block:
+- `calculate_punnett_probabilities` returns rows and probability sum is close to 1;
+- `crossbreed` creates offspring with genotype, phenotype summary, and `CROSS` experiment row;
+- lab stats reflect new creature and experiment counters;
+- `rename_creature` updates offspring name;
+- negative case for same parent ids raises expected error.
+
+## 9) Inspect compile errors via USER_ERRORS
 
 ```sql
 select

@@ -860,26 +860,236 @@ create or replace package body pkg_genetics_game as
 
     function show_mutation_shop
     return sys_refcursor is
+        v_cursor sys_refcursor;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
-        return null;
+        open v_cursor for
+            select
+                m.mutation_id,
+                m.mutation_name,
+                m.mutation_type,
+                m.description,
+                m.cost as price,
+                m.rating_effect
+              from mutations m
+             order by m.cost, m.mutation_id;
+
+        return v_cursor;
     end show_mutation_shop;
 
     function buy_mutation(
         p_lab_id          in number,
         p_mutation_id     in number
     ) return number is
+        v_lab_wallet      number(12, 2);
+        v_mutation_cost   number(12, 2);
+        v_exists_count    number;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
-        return null;
+        select count(*)
+          into v_exists_count
+          from labs l
+         where l.lab_id = p_lab_id;
+
+        if v_exists_count = 0 then
+            raise_application_error(-20040, 'Lab not found.');
+        end if;
+
+        begin
+            select m.cost
+              into v_mutation_cost
+              from mutations m
+             where m.mutation_id = p_mutation_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20041, 'Mutation not found.');
+        end;
+
+        select l.wallet
+          into v_lab_wallet
+          from labs l
+         where l.lab_id = p_lab_id
+         for update;
+
+        if v_lab_wallet < v_mutation_cost then
+            return 0;
+        end if;
+
+        update labs l
+           set l.wallet = l.wallet - v_mutation_cost,
+               l.updated_at = systimestamp
+         where l.lab_id = p_lab_id;
+
+        update lab_mutations lm
+           set lm.quantity = lm.quantity + 1,
+               lm.updated_at = systimestamp
+         where lm.lab_id = p_lab_id
+           and lm.mutation_id = p_mutation_id;
+
+        if sql%rowcount = 0 then
+            insert into lab_mutations (
+                lab_mutation_id,
+                lab_id,
+                mutation_id,
+                quantity,
+                created_at,
+                updated_at
+            ) values (
+                lab_mutations_seq.nextval,
+                p_lab_id,
+                p_mutation_id,
+                1,
+                systimestamp,
+                systimestamp
+            );
+        end if;
+
+        return 1;
     end buy_mutation;
 
     procedure apply_mutation(
         p_creature_id     in number,
         p_mutation_id     in number
     ) is
+        v_lab_id                number;
+        v_mutation_exists       number;
+        v_mutation_stock        number;
+        v_rule_count            number := 0;
+        v_selected_slot         pls_integer;
+        v_summary               varchar2(1000);
+        v_experiment_id         number;
+
+        v_wallet                number;
+        v_rating                number;
+        v_creature_count        number;
+        v_active_task_count     number;
+        v_completed_task_count  number;
+        v_experiment_count      number;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
+        begin
+            select c.lab_id
+              into v_lab_id
+              from creatures c
+             where c.creature_id = p_creature_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20042, 'Creature not found.');
+        end;
+
+        select count(*)
+          into v_mutation_exists
+          from mutations m
+         where m.mutation_id = p_mutation_id;
+
+        if v_mutation_exists = 0 then
+            raise_application_error(-20056, 'Mutation not found.');
+        end if;
+
+        begin
+            select lm.quantity
+              into v_mutation_stock
+              from lab_mutations lm
+             where lm.lab_id = v_lab_id
+               and lm.mutation_id = p_mutation_id
+             for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20043, 'Mutation is not available in lab inventory.');
+        end;
+
+        if v_mutation_stock <= 0 then
+            raise_application_error(-20044, 'Mutation quantity is zero.');
+        end if;
+
+        for rule_rec in (
+            select
+                mr.gene_id,
+                mr.target_allele_id,
+                mr.target_slot
+              from mutation_rules mr
+             where mr.mutation_id = p_mutation_id
+             order by mr.mutation_rule_id
+        ) loop
+            v_rule_count := v_rule_count + 1;
+
+            if rule_rec.target_slot = '1' then
+                update genotypes g
+                   set g.allele1_id = rule_rec.target_allele_id
+                 where g.creature_id = p_creature_id
+                   and g.gene_id = rule_rec.gene_id;
+            elsif rule_rec.target_slot = '2' then
+                update genotypes g
+                   set g.allele2_id = rule_rec.target_allele_id
+                 where g.creature_id = p_creature_id
+                   and g.gene_id = rule_rec.gene_id;
+            else
+                v_selected_slot := pick_random_allele_side();
+                if v_selected_slot = 1 then
+                    update genotypes g
+                       set g.allele1_id = rule_rec.target_allele_id
+                     where g.creature_id = p_creature_id
+                       and g.gene_id = rule_rec.gene_id;
+                else
+                    update genotypes g
+                       set g.allele2_id = rule_rec.target_allele_id
+                     where g.creature_id = p_creature_id
+                       and g.gene_id = rule_rec.gene_id;
+                end if;
+            end if;
+
+            if sql%rowcount = 0 then
+                raise_application_error(-20045, 'Creature has no genotype row for mutation rule gene_id=' || rule_rec.gene_id);
+            end if;
+        end loop;
+
+        if v_rule_count = 0 then
+            raise_application_error(-20046, 'No mutation rules found for mutation_id=' || p_mutation_id);
+        end if;
+
+        v_summary := get_phenotype(
+            p_creature_id => p_creature_id
+        );
+
+        update lab_mutations lm
+           set lm.quantity = lm.quantity - 1,
+               lm.updated_at = systimestamp
+         where lm.lab_id = v_lab_id
+           and lm.mutation_id = p_mutation_id
+           and lm.quantity > 0;
+
+        if sql%rowcount = 0 then
+            raise_application_error(-20047, 'Failed to decrease mutation quantity.');
+        end if;
+
+        v_experiment_id := experiments_seq.nextval;
+
+        insert into experiments (
+            experiment_id,
+            lab_id,
+            parent1_id,
+            parent2_id,
+            mutation_id,
+            offspring_id,
+            experiment_type,
+            created_at
+        ) values (
+            v_experiment_id,
+            v_lab_id,
+            p_creature_id,
+            null,
+            p_mutation_id,
+            p_creature_id,
+            'MUTATION',
+            systimestamp
+        );
+
+        get_lab_stats(
+            p_lab_id               => v_lab_id,
+            p_wallet               => v_wallet,
+            p_rating               => v_rating,
+            p_creature_count       => v_creature_count,
+            p_active_task_count    => v_active_task_count,
+            p_completed_task_count => v_completed_task_count,
+            p_experiment_count     => v_experiment_count
+        );
     end apply_mutation;
 
     procedure apply_mutagen(
@@ -887,8 +1097,216 @@ create or replace package body pkg_genetics_game as
         p_mutagen_type     in varchar2,
         p_new_creature_id  out number
     ) is
+        v_lab_id                number;
+        v_species_type          number;
+        v_source_name           varchar2(255);
+        v_new_name              varchar2(255);
+        v_target_gene_id        number;
+        v_current_allele1_id    number;
+        v_current_allele2_id    number;
+        v_new_allele_id         number;
+        v_selected_slot         pls_integer;
+        v_summary               varchar2(1000);
+        v_experiment_id         number;
+
+        v_wallet                number;
+        v_rating                number;
+        v_creature_count        number;
+        v_active_task_count     number;
+        v_completed_task_count  number;
+        v_experiment_count      number;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
+        if p_mutagen_type is null or trim(p_mutagen_type) is null then
+            raise_application_error(-20048, 'Mutagen type cannot be empty.');
+        end if;
+
+        begin
+            select
+                c.lab_id,
+                c.species_type,
+                c.creature_name
+              into
+                v_lab_id,
+                v_species_type,
+                v_source_name
+              from creatures c
+             where c.creature_id = p_creature_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20049, 'Source creature not found.');
+        end;
+
+        v_new_name := substr(v_source_name || '_mutagen_' || lower(substr(rawtohex(sys_guid()), 1, 8)), 1, 255);
+        p_new_creature_id := creatures_seq.nextval;
+
+        insert into creatures (
+            creature_id,
+            lab_id,
+            species_type,
+            creature_name,
+            phenotype_color,
+            phenotype_size,
+            phenotype_has_wings,
+            phenotype_nutrition_type,
+            phenotype_summary,
+            created_at,
+            updated_at
+        ) values (
+            p_new_creature_id,
+            v_lab_id,
+            v_species_type,
+            v_new_name,
+            null,
+            null,
+            null,
+            null,
+            null,
+            systimestamp,
+            systimestamp
+        );
+
+        insert into genotypes (
+            genotype_id,
+            creature_id,
+            gene_id,
+            allele1_id,
+            allele2_id,
+            created_at
+        )
+        select
+            genotypes_seq.nextval,
+            p_new_creature_id,
+            g.gene_id,
+            g.allele1_id,
+            g.allele2_id,
+            systimestamp
+          from genotypes g
+         where g.creature_id = p_creature_id;
+
+        if sql%rowcount = 0 then
+            raise_application_error(-20050, 'Source creature has no genotype rows.');
+        end if;
+
+        begin
+            select
+                gt.gene_id,
+                gt.allele1_id,
+                gt.allele2_id
+              into
+                v_target_gene_id,
+                v_current_allele1_id,
+                v_current_allele2_id
+              from (
+                    select
+                        g.gene_id,
+                        g.allele1_id,
+                        g.allele2_id
+                      from genotypes g
+                     where g.creature_id = p_new_creature_id
+                     order by dbms_random.value
+              ) gt
+             where rownum = 1;
+        exception
+            when no_data_found then
+                raise_application_error(-20051, 'Unable to select genotype row for mutagen.');
+        end;
+
+        v_selected_slot := pick_random_allele_side();
+        if v_selected_slot = 1 then
+            begin
+                select a.allele_id
+                  into v_new_allele_id
+                  from (
+                        select a.allele_id
+                          from alleles a
+                         where a.gene_id = v_target_gene_id
+                           and a.allele_id <> v_current_allele1_id
+                         order by dbms_random.value
+                  ) a
+                 where rownum = 1;
+            exception
+                when no_data_found then
+                    select a.allele_id
+                      into v_new_allele_id
+                      from (
+                            select a.allele_id
+                              from alleles a
+                             where a.gene_id = v_target_gene_id
+                             order by dbms_random.value
+                      ) a
+                     where rownum = 1;
+            end;
+
+            update genotypes g
+               set g.allele1_id = v_new_allele_id
+             where g.creature_id = p_new_creature_id
+               and g.gene_id = v_target_gene_id;
+        else
+            begin
+                select a.allele_id
+                  into v_new_allele_id
+                  from (
+                        select a.allele_id
+                          from alleles a
+                         where a.gene_id = v_target_gene_id
+                           and a.allele_id <> v_current_allele2_id
+                         order by dbms_random.value
+                  ) a
+                 where rownum = 1;
+            exception
+                when no_data_found then
+                    select a.allele_id
+                      into v_new_allele_id
+                      from (
+                            select a.allele_id
+                              from alleles a
+                             where a.gene_id = v_target_gene_id
+                             order by dbms_random.value
+                      ) a
+                     where rownum = 1;
+            end;
+
+            update genotypes g
+               set g.allele2_id = v_new_allele_id
+             where g.creature_id = p_new_creature_id
+               and g.gene_id = v_target_gene_id;
+        end if;
+
+        v_summary := get_phenotype(
+            p_creature_id => p_new_creature_id
+        );
+
+        v_experiment_id := experiments_seq.nextval;
+
+        insert into experiments (
+            experiment_id,
+            lab_id,
+            parent1_id,
+            parent2_id,
+            mutation_id,
+            offspring_id,
+            experiment_type,
+            created_at
+        ) values (
+            v_experiment_id,
+            v_lab_id,
+            p_creature_id,
+            null,
+            null,
+            p_new_creature_id,
+            'MUTAGEN',
+            systimestamp
+        );
+
+        get_lab_stats(
+            p_lab_id               => v_lab_id,
+            p_wallet               => v_wallet,
+            p_rating               => v_rating,
+            p_creature_count       => v_creature_count,
+            p_active_task_count    => v_active_task_count,
+            p_completed_task_count => v_completed_task_count,
+            p_experiment_count     => v_experiment_count
+        );
     end apply_mutagen;
 
     procedure make_experiment(
@@ -899,17 +1317,94 @@ create or replace package body pkg_genetics_game as
         p_offspring_name  in varchar2,
         p_offspring_id    out number
     ) is
+        v_parent1_lab_match number;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
+        if p_parent1_id is null then
+            raise_application_error(-20052, 'Parent1 id is required.');
+        end if;
+
+        if p_parent2_id is not null then
+            crossbreed(
+                p_lab_id         => p_lab_id,
+                p_parent1_id     => p_parent1_id,
+                p_parent2_id     => p_parent2_id,
+                p_offspring_name => p_offspring_name,
+                p_offspring_id   => p_offspring_id
+            );
+
+            if p_mutation_id is not null then
+                apply_mutation(
+                    p_creature_id => p_offspring_id,
+                    p_mutation_id => p_mutation_id
+                );
+            end if;
+        elsif p_mutation_id is not null then
+            select count(*)
+              into v_parent1_lab_match
+              from creatures c
+             where c.creature_id = p_parent1_id
+               and c.lab_id = p_lab_id;
+
+            if v_parent1_lab_match = 0 then
+                raise_application_error(-20053, 'Parent1 creature does not belong to the selected lab.');
+            end if;
+
+            apply_mutation(
+                p_creature_id => p_parent1_id,
+                p_mutation_id => p_mutation_id
+            );
+            p_offspring_id := p_parent1_id;
+        else
+            raise_application_error(-20054, 'Invalid experiment input. Provide parent2_id for CROSS or mutation_id for MUTATION.');
+        end if;
     end make_experiment;
 
     function get_experiment_history(
         p_lab_id           in number,
         p_experiment_type  in varchar2 default null
     ) return sys_refcursor is
+        v_cursor       sys_refcursor;
+        v_exists_count number;
     begin
-        raise_application_error(c_err_not_implemented, 'Not implemented yet');
-        return null;
+        select count(*)
+          into v_exists_count
+          from labs l
+         where l.lab_id = p_lab_id;
+
+        if v_exists_count = 0 then
+            raise_application_error(-20055, 'Lab not found.');
+        end if;
+
+        open v_cursor for
+            select
+                e.experiment_id,
+                e.experiment_type,
+                e.parent1_id,
+                p1.creature_name as parent1_name,
+                e.parent2_id,
+                p2.creature_name as parent2_name,
+                e.offspring_id,
+                o.creature_name as offspring_name,
+                e.mutation_id,
+                m.mutation_name,
+                e.created_at
+              from experiments e
+              left join creatures p1
+                on p1.creature_id = e.parent1_id
+              left join creatures p2
+                on p2.creature_id = e.parent2_id
+              left join creatures o
+                on o.creature_id = e.offspring_id
+              left join mutations m
+                on m.mutation_id = e.mutation_id
+             where e.lab_id = p_lab_id
+               and (
+                    p_experiment_type is null
+                    or upper(e.experiment_type) = upper(p_experiment_type)
+               )
+             order by e.created_at desc, e.experiment_id desc;
+
+        return v_cursor;
     end get_experiment_history;
 
     function get_tasks_cursor(
