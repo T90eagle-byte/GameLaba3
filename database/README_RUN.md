@@ -108,7 +108,22 @@ This smoke-test validates the mutations and experiments block end-to-end:
 - experiment history cursor (`get_experiment_history`);
 - negative cases with expected SQL error codes.
 
-## 10) Inspect compile errors via USER_ERRORS
+## 10) Run tasks smoke-test
+
+```sql
+@database/tests/06_tasks_smoke_test.sql
+```
+
+This smoke-test validates the tasks block end-to-end:
+- `start_new_lab` assigns starter `ACTIVE` tasks;
+- task cursor API (`get_tasks_cursor`);
+- marker-based validation (`check_task`);
+- completion and rewards (`complete_task`) with lab stats update;
+- repeat completion protection (`-20064`) and negative checks for invalid IDs/lab ownership.
+
+After successful `01..06` smoke-tests, the full PL/SQL backend MVP is covered by baseline smoke checks.
+
+## 11) Inspect compile errors via USER_ERRORS
 
 ```sql
 select

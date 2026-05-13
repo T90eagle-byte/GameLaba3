@@ -1,74 +1,91 @@
-# Gameplay rules
+# Gameplay Rules
 
-## Цель игры
+## 1) Общая модель
 
-Игрок управляет лабораторией, получает коллекцию существ, работает с генетикой и выполняет задания клиентов.
+Игрок управляет лабораторией, создает и модифицирует существ, проводит эксперименты и выполняет задания.
 
-Бизнес-решения принимает Oracle PL/SQL (`pkg_genetics_game`), Python GUI только вызывает API и отображает результаты.
+Критично:
+- вся игровая логика на Oracle PL/SQL;
+- Python только клиент GUI;
+- backend API централизован в `pkg_genetics_game`.
 
-## Реально реализованный игровой блок (текущий)
+## 2) Типы существ (MVP)
 
-### 1) Пользователь и сессия
+Используются 6 типов:
+1. хрящевые рыбы
+2. костные рыбы
+3. ракообразные
+4. моллюски
+5. черепахи
+6. млекопитающие
+
+## 3) Реализованные игровые блоки в PL/SQL
+
+### Auth/session
 - `register_user`
-- `login_user` (возвращает `session_token`)
+- `login_user`
 - `logout_user`
 - `update_user_profile`
 
-### 2) Лаборатория
-- `start_new_lab` (создает лабораторию, стартовые счетчики и экономику)
+### Labs
+- `start_new_lab`
 - `load_lab`
 - `switch_lab`
 - `list_user_labs`
 - `get_lab_stats`
 - `delete_lab`
 
-### 3) Стартовые существа
-- `generate_starting_creatures` создает 30 существ (6 типов × 5);
-- `create_creature_of_type`:
-  - берет гены `species_type = 0` и `species_type = p_species_type`;
-  - случайно выбирает по 2 аллеля на ген;
-  - создает `genotypes`;
-  - вызывает `get_phenotype`.
+`start_new_lab` назначает стартовые `ACTIVE` задания в `lab_tasks`.
 
-### 4) Фенотип и отображение
-- `get_phenotype` вычисляет фенотип по `dominance_type`:
-  - `FULL`
-  - `INCOMPLETE`
-  - `CODOMINANT`
-- кэширует результат в `creatures` (`phenotype_*`, `phenotype_summary`);
-- `get_creatures_cursor` и `get_genotype_cursor` отдают GUI-готовые курсоры.
+### Creatures/genetics
+- `create_creature_of_type`
+- `generate_starting_creatures`
+- `get_phenotype`
+- `get_creatures_cursor`
+- `get_genotype_cursor`
 
-## Стартовые данные MVP
+`generate_starting_creatures` формирует 30 существ (6x5).
 
-Из `database/seeds/01_seed_core_game_data.sql`:
-- универсальные гены: `color`, `size`, `nutrition_type`, `has_wings`;
-- видоспецифичные гены (плавники, панцирь, клешни, шерсть, форма клюва/носа, скорость);
-- мутации и `mutation_rules`;
-- задания и `task_markers`.
+### Crossbreed
+- `calculate_punnett_probabilities`
+- `crossbreed`
+- `rename_creature`
 
-## Что пока не реализовано в геймплее
+### Mutations/experiments
+- `show_mutation_shop`
+- `buy_mutation`
+- `apply_mutation`
+- `apply_mutagen`
+- `make_experiment`
+- `get_experiment_history`
 
-- расчет решетки Пеннета;
-- скрещивание (`crossbreed`);
-- переименование существа (`rename_creature`);
-- покупка/применение мутаций и мутагенов;
-- история экспериментов;
-- логика заданий (`get_tasks_cursor`, `check_task`, `complete_task`).
+### Tasks
+- `get_tasks_cursor`
+- `check_task`
+- `complete_task`
 
-Эти части пока оставлены stubs в `pkg_genetics_game.pkb`.
+## 4) Правила задач
 
-## Правила интеграции GUI
+- Задание считается выполненным, если для выбранного существа найдены все `task_markers.allele_id`.
+- Проверка выполняется в `check_task` без изменения состояния БД.
+- `complete_task`:
+  - завершает `lab_tasks.task_status = 'COMPLETED'`
+  - фиксирует `completed_at`
+  - начисляет награды (`money_reward`, `rating_reward`) в `labs`
+  - повторное завершение того же задания запрещено (ошибка `-20064`)
 
-- не использовать `dbms_output` как источник данных;
-- получать данные через `sys_refcursor`, OUT-параметры и простые return-значения;
-- не переносить генетические вычисления, экономику, задания и мутации в Python.
+## 5) Данные для GUI
 
-## Следующий игровой этап
+GUI получает данные только через:
+- `SYS_REFCURSOR`
+- OUT-параметры
+- простые RETURN-типы
 
-После полного прогона SQL-цепочки в Oracle:
-1. реализовать блок скрещивания:
-   - `calculate_punnett_probabilities`
-   - `crossbreed`
-   - `rename_creature`
-2. затем реализовать блок мутаций и заданий.
+`dbms_output` не используется в runtime-интеграции GUI.
+
+## 6) Текущее состояние реализации
+
+- PL/SQL backend MVP реализован полностью.
+- В `pkg_genetics_game.pkb` stubs отсутствуют.
+- Проверки покрыты smoke-тестами `01..06`.
 
