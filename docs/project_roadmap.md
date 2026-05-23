@@ -1,13 +1,12 @@
-# Project Roadmap
+﻿# Project Roadmap
 
 ## 1) Текущий checkpoint
 
-Backend MVP на Oracle PL/SQL завершен:
-- DDL готов и стабилизирован
-- seed data готов
-- package spec готов
-- package body реализован полностью (без stubs)
-- smoke-tests `01..06` подготовлены
+Backend MVP на Oracle PL/SQL завершен и подтвержден реальным прогоном:
+- DDL создан и выполнен
+- seed data загружен
+- package spec/body компилируются без ошибок
+- smoke-tests `01..06` завершены успешно (`Failed: 0`)
 
 Реализованы все группы API:
 - auth/session
@@ -17,79 +16,35 @@ Backend MVP на Oracle PL/SQL завершен:
 - mutations/experiments
 - tasks
 
-## 2) Что уже закрыто
+## 2) Что зафиксировано после Oracle-прогона
 
-### Data layer
-- `database/ddl/01_create_tables.sql`
-- `database/seeds/01_seed_core_game_data.sql`
+- `pkg_genetics_game` стабильно компилируется в целевой среде Oracle.
+- Smoke-контур полностью зеленый (`01..06`).
+- `01_auth_labs_smoke_test.sql` синхронизирован с актуальной логикой `start_new_lab`:
+  лаборатория стартует с 3 задачами в статусе `ACTIVE`.
 
-### PL/SQL API
-- `database/packages/spec/pkg_genetics_game.pks`
-- `database/packages/body/pkg_genetics_game.pkb`
+## 3) Следующий этап проекта
 
-### Smoke coverage
-- `database/tests/01_auth_labs_smoke_test.sql`
-- `database/tests/02_seed_data_smoke_test.sql`
-- `database/tests/03_creature_generation_smoke_test.sql`
-- `database/tests/04_crossbreed_smoke_test.sql`
-- `database/tests/05_mutations_experiments_smoke_test.sql`
-- `database/tests/06_tasks_smoke_test.sql`
+### Этап A: фиксируем результат backend в Git
 
-### Run guide
-- `database/README_RUN.md` содержит порядок запуска:
-  - DDL
-  - seed
-  - package spec/body
-  - smoke-tests `01..06`
-  - `user_errors`
+1. Зафиксировать успешный прогон Oracle в репозитории.
+2. Сохранить как baseline для GUI-этапа.
 
-## 3) Ближайший следующий этап
+### Этап B: Python GUI-клиент
 
-### Этап A: реальный прогон на Oracle (обязательный)
+1. Подключение к Oracle.
+2. Окно авторизации.
+3. Выбор/создание лаборатории.
+4. Просмотр существ.
+5. Просмотр генотипа/фенотипа.
+6. Скрещивание.
+7. Мутации.
+8. Задания.
+9. История экспериментов.
 
-Запустить:
-1. `database/ddl/01_create_tables.sql`
-2. `database/seeds/01_seed_core_game_data.sql`
-3. `database/packages/spec/pkg_genetics_game.pks`
-4. `database/packages/body/pkg_genetics_game.pkb`
-5. `database/tests/01_auth_labs_smoke_test.sql`
-6. `database/tests/02_seed_data_smoke_test.sql`
-7. `database/tests/03_creature_generation_smoke_test.sql`
-8. `database/tests/04_crossbreed_smoke_test.sql`
-9. `database/tests/05_mutations_experiments_smoke_test.sql`
-10. `database/tests/06_tasks_smoke_test.sql`
+## 4) Архитектурные ограничения на GUI-этапе
 
-Проверить компиляцию:
-- `show errors package pkg_genetics_game`
-- `show errors package body pkg_genetics_game`
-- `select * from user_errors where upper(name) = 'PKG_GENETICS_GAME'`
-
-### Этап B: архитектурное ревью PL/SQL backend
-
-До GUI-этапа провести ревью:
-- согласованность кодов ошибок
-- стабильность cursor-контрактов для клиента
-- повторяемость smoke-тестов
-
-### Этап C: Python GUI
-
-Стартовать только после успешного Этапа A:
-- подключение к Oracle
-- auth window
-- lab selection/creation
-- creatures view
-- genotype/phenotype view
-- crossbreed screen
-- mutations screen
-- tasks screen
-- experiment history screen
-
-## 4) Риски
-
-- package body еще не подтвержден реальным запуском в Oracle;
-- возможны runtime/компиляционные ошибки, не видимые при статическом ревью;
-- нужны права `EXECUTE` на `DBMS_CRYPTO`;
-- возможно нужны права на `UTL_I18N` и `DBMS_RANDOM`;
-- возможны расхождения фактических `sqlcode` после запуска;
-- возможны особенности `SYS_REFCURSOR` fetch в SQL Developer/SQLcl.
-
+- Python остается только клиентским слоем и не содержит backend-логики.
+- Генетика, скрещивание, мутации, экономика, задания и статистика считаются только в PL/SQL.
+- Данные для GUI поступают через `SYS_REFCURSOR`, OUT-параметры и простые RETURN-типы.
+- `dbms_output` не используется как канал данных для GUI.
