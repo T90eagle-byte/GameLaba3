@@ -187,22 +187,14 @@ begin
               from creatures c
              where c.lab_id = v_lab_id;
 
-            if v_initial_creature_count = 0 then
-                pkg_genetics_game.generate_starting_creatures(
-                    p_lab_id => v_lab_id
-                );
-                pass_test('generate_starting_creatures called explicitly');
-            elsif v_initial_creature_count = 30 then
-                pass_test('start_new_lab already generated 30 creatures');
-            else
-                fail_test(
-                    'initial creature count',
-                    'expected 0 or 30, actual=' || v_initial_creature_count
-                );
-            end if;
+            assert_true(
+                v_initial_creature_count = 30,
+                'start_new_lab generated 30 creatures',
+                'actual=' || v_initial_creature_count
+            );
         exception
             when others then
-                fail_test('generate_starting_creatures flow', sqlerrm);
+                fail_test('start_new_lab generated 30 creatures', sqlerrm);
         end;
 
         begin
@@ -406,3 +398,4 @@ exception
         raise;
 end;
 /
+

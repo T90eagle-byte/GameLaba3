@@ -258,21 +258,14 @@ begin
               from creatures c
              where c.lab_id = v_lab_id;
 
-            if v_creature_count_before = 0 then
-                pkg_genetics_game.generate_starting_creatures(
-                    p_lab_id => v_lab_id
-                );
-                pass_test('generate_starting_creatures called explicitly');
-            else
-                pass_test('start_new_lab already has creatures');
-            end if;
+            assert_true(v_creature_count_before = 30, 'start_new_lab generated 30 creatures', 'count=' || v_creature_count_before);
 
             select count(*)
               into v_creature_count_after
               from creatures c
              where c.lab_id = v_lab_id;
 
-            assert_true(v_creature_count_after > 0, 'lab has creatures for task checks', 'count=' || v_creature_count_after);
+            assert_true(v_creature_count_after = 30, 'lab has 30 creatures for task checks', 'count=' || v_creature_count_after);
 
             select min(c.creature_id)
               into v_probe_creature_id
@@ -572,3 +565,4 @@ exception
         raise;
 end;
 /
+

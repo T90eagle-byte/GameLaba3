@@ -1,6 +1,102 @@
 create or replace package body pkg_genetics_game as
     c_err_not_implemented constant number := -20999;
+    g_current_user_id       number;
+    g_current_session_id    number;
+    g_current_session_token varchar2(128);
 
+    procedure clear_current_session_context is
+    begin
+        g_current_user_id := null;
+        g_current_session_id := null;
+        g_current_session_token := null;
+    end clear_current_session_context;
+
+    procedure set_current_session_context(
+        p_user_id       in number,
+        p_session_id    in number,
+        p_session_token in varchar2
+    ) is
+    begin
+        g_current_user_id := p_user_id;
+        g_current_session_id := p_session_id;
+        g_current_session_token := p_session_token;
+    end set_current_session_context;
+    procedure require_current_session is
+        v_active_session_count number;
+    begin
+        if g_current_user_id is null
+           or g_current_session_id is null
+           or g_current_session_token is null then
+            raise_application_error(-20066, 'Session context is not initialized. Call login_user first.');
+        end if;
+
+        select count(*)
+          into v_active_session_count
+          from sessions s
+         where s.session_id = g_current_session_id
+           and s.user_id = g_current_user_id
+           and s.session_token = g_current_session_token
+           and s.status = 'ACTIVE';
+
+        if v_active_session_count = 0 then
+            clear_current_session_context();
+            raise_application_error(-20067, 'Session context is not active. Please login again.');
+        end if;
+    end require_current_session;
+
+    procedure assert_lab_access(
+        p_lab_id in number
+    ) is
+        v_lab_user_id number;
+    begin
+        require_current_session();
+
+        begin
+            select l.user_id
+              into v_lab_user_id
+              from labs l
+             where l.lab_id = p_lab_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20057, 'Lab not found.');
+        end;
+
+        if v_lab_user_id <> g_current_user_id then
+            raise_application_error(-20068, 'Access denied for selected lab.');
+        end if;
+    end assert_lab_access;
+
+    function assert_creature_access(
+        p_creature_id     in number,
+        p_expected_lab_id in number default null
+    ) return number is
+        v_lab_id      number;
+        v_lab_user_id number;
+    begin
+        require_current_session();
+
+        begin
+            select c.lab_id, l.user_id
+              into v_lab_id, v_lab_user_id
+              from creatures c
+              join labs l
+                on l.lab_id = c.lab_id
+             where c.creature_id = p_creature_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20059, 'Creature not found.');
+        end;
+
+        if v_lab_user_id <> g_current_user_id then
+            raise_application_error(-20069, 'Access denied for selected creature.');
+        end if;
+
+        if p_expected_lab_id is not null and v_lab_id <> p_expected_lab_id then
+            raise_application_error(-20060, 'Creature does not belong to the selected lab.');
+        end if;
+
+        return v_lab_id;
+    end assert_creature_access;
     function hash_password_sha256(
         p_password in varchar2
     ) return varchar2 is
@@ -178,6 +274,12 @@ create or replace package body pkg_genetics_game as
             null
         );
 
+        set_current_session_context(
+            p_user_id       => v_user_id,
+            p_session_id    => v_session_id,
+            p_session_token => v_session_token
+        );
+
         return v_session_token;
     exception
         when no_data_found then
@@ -198,6 +300,10 @@ create or replace package body pkg_genetics_game as
 
         if sql%rowcount = 0 then
             raise_application_error(-20021, 'Active session not found.');
+        end if;
+
+        if g_current_session_token = p_session_token then
+            clear_current_session_context();
         end if;
     end logout_user;
 
@@ -258,6 +364,12 @@ create or replace package body pkg_genetics_game as
             p_user_id       => v_user_id
         );
 
+        set_current_session_context(
+            p_user_id       => v_user_id,
+            p_session_id    => v_session_id,
+            p_session_token => p_session_token
+        );
+
         p_lab_id := labs_seq.nextval;
 
         insert into labs (
@@ -290,6 +402,10 @@ create or replace package body pkg_genetics_game as
             p_lab_id => p_lab_id
         );
 
+        generate_starting_creatures(
+            p_lab_id => p_lab_id
+        );
+
         get_lab_stats(
             p_lab_id               => p_lab_id,
             p_wallet               => v_wallet,
@@ -312,6 +428,12 @@ create or replace package body pkg_genetics_game as
             p_session_token => p_session_token,
             p_session_id    => v_session_id,
             p_user_id       => v_user_id
+        );
+
+        set_current_session_context(
+            p_user_id       => v_user_id,
+            p_session_id    => v_session_id,
+            p_session_token => p_session_token
         );
 
         update labs l
@@ -371,6 +493,8 @@ create or replace package body pkg_genetics_game as
         p_experiment_count      out number
     ) is
     begin
+        assert_lab_access(p_lab_id => p_lab_id);
+
         select l.wallet, l.rating
           into p_wallet, p_rating
           from labs l
@@ -423,6 +547,12 @@ create or replace package body pkg_genetics_game as
             p_user_id       => v_user_id
         );
 
+        set_current_session_context(
+            p_user_id       => v_user_id,
+            p_session_id    => v_session_id,
+            p_session_token => p_session_token
+        );
+
         delete from genotypes g
          where g.creature_id in (
              select c.creature_id
@@ -456,6 +586,8 @@ create or replace package body pkg_genetics_game as
     ) return sys_refcursor is
         v_cursor sys_refcursor;
     begin
+        assert_lab_access(p_lab_id => p_lab_id);
+
         open v_cursor for
             select
                 c.creature_id,
@@ -480,7 +612,12 @@ create or replace package body pkg_genetics_game as
         p_creature_id    in number
     ) return sys_refcursor is
         v_cursor sys_refcursor;
+        v_lab_id number;
     begin
+        v_lab_id := assert_creature_access(
+            p_creature_id => p_creature_id
+        );
+
         open v_cursor for
             select
                 gt.genotype_id,
@@ -513,7 +650,8 @@ create or replace package body pkg_genetics_game as
     function get_phenotype(
         p_creature_id    in number
     ) return varchar2 is
-        v_summary                 varchar2(1000);
+        v_lab_id                 number;
+        v_summary                varchar2(1000);
         v_trait_text              varchar2(400);
         v_effective_desc          varchar2(255);
         v_mid_desc                varchar2(255);
@@ -524,9 +662,15 @@ create or replace package body pkg_genetics_game as
         v_has_wings               char(1);
         v_nutrition_type          varchar2(100);
     begin
+        v_lab_id := assert_creature_access(
+            p_creature_id => p_creature_id
+        );
+
         for rec in (
             select
                 gt.gene_id,
+                gt.allele1_id,
+                gt.allele2_id,
                 lower(g.gene_name) as gene_name,
                 g.dominance_type,
                 a1.description as allele1_desc,
@@ -545,30 +689,30 @@ create or replace package body pkg_genetics_game as
              where gt.creature_id = p_creature_id
              order by g.species_type, g.gene_name, g.gene_id
         ) loop
-            if rec.allele1_dom > rec.allele2_dom then
+            if rec.allele1_id = rec.allele2_id then
+                v_effective_desc := rec.allele1_desc;
+            elsif rec.dominance_type = 'INCOMPLETE' then
+                v_mid_value := (rec.allele1_val + rec.allele2_val) / 2;
+                begin
+                    select a.description
+                      into v_mid_desc
+                      from alleles a
+                     where a.gene_id = rec.gene_id
+                       and a.trait_value = v_mid_value
+                       and rownum = 1;
+                    v_effective_desc := v_mid_desc;
+                exception
+                    when no_data_found then
+                        v_effective_desc := 'intermediate(' || rec.allele1_desc || '/' || rec.allele2_desc || ')';
+                end;
+            elsif rec.dominance_type = 'CODOMINANT' then
+                v_effective_desc := rec.allele1_desc || '/' || rec.allele2_desc;
+            elsif rec.allele1_dom > rec.allele2_dom then
                 v_effective_desc := rec.allele1_desc;
             elsif rec.allele2_dom > rec.allele1_dom then
                 v_effective_desc := rec.allele2_desc;
             else
-                if rec.dominance_type = 'INCOMPLETE' then
-                    v_mid_value := (rec.allele1_val + rec.allele2_val) / 2;
-                    begin
-                        select a.description
-                          into v_mid_desc
-                          from alleles a
-                         where a.gene_id = rec.gene_id
-                           and a.trait_value = v_mid_value
-                           and rownum = 1;
-                        v_effective_desc := v_mid_desc;
-                    exception
-                        when no_data_found then
-                            v_effective_desc := 'intermediate(' || rec.allele1_desc || '/' || rec.allele2_desc || ')';
-                    end;
-                elsif rec.dominance_type = 'CODOMINANT' then
-                    v_effective_desc := rec.allele1_desc || '/' || rec.allele2_desc;
-                else
-                    v_effective_desc := rec.allele1_desc;
-                end if;
+                v_effective_desc := rec.allele1_desc;
             end if;
 
             if rec.gene_name = 'color' then
@@ -625,7 +769,21 @@ create or replace package body pkg_genetics_game as
         v_parent1_allele2_id    number;
         v_parent2_allele1_id    number;
         v_parent2_allele2_id    number;
+        v_parent1_lab_id        number;
+        v_parent2_lab_id        number;
     begin
+        v_parent1_lab_id := assert_creature_access(
+            p_creature_id => p_parent1_id
+        );
+
+        v_parent2_lab_id := assert_creature_access(
+            p_creature_id => p_parent2_id
+        );
+
+        if v_parent1_lab_id <> v_parent2_lab_id then
+            raise_application_error(-20060, 'Parents must belong to the same lab.');
+        end if;
+
         select gt.allele1_id, gt.allele2_id
           into v_parent1_allele1_id, v_parent1_allele2_id
           from genotypes gt
@@ -687,6 +845,47 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20030, 'Genotype for selected gene is missing in one or both parents.');
     end calculate_punnett_probabilities;
 
+    procedure auto_complete_matching_tasks(
+        p_lab_id      in number,
+        p_creature_id in number
+    ) is
+        v_is_completed number;
+        v_wallet_after number;
+        v_rating_after number;
+    begin
+        for task_rec in (
+            select lt.task_id
+              from lab_tasks lt
+             where lt.lab_id = p_lab_id
+               and lt.task_status = 'ACTIVE'
+             order by lt.lab_task_id
+        ) loop
+            begin
+                if check_task(
+                    p_lab_id      => p_lab_id,
+                    p_task_id     => task_rec.task_id,
+                    p_creature_id => p_creature_id
+                ) = 1 then
+                    complete_task(
+                        p_lab_id       => p_lab_id,
+                        p_task_id      => task_rec.task_id,
+                        p_creature_id  => p_creature_id,
+                        p_is_completed => v_is_completed,
+                        p_wallet_after => v_wallet_after,
+                        p_rating_after => v_rating_after
+                    );
+                end if;
+            exception
+                when others then
+                    if sqlcode in (-20063, -20064) then
+                        null;
+                    else
+                        raise;
+                    end if;
+            end;
+        end loop;
+    end auto_complete_matching_tasks;
+
     procedure crossbreed(
         p_lab_id          in number,
         p_parent1_id      in number,
@@ -727,6 +926,22 @@ create or replace package body pkg_genetics_game as
 
         if p_offspring_name is null or trim(p_offspring_name) is null then
             raise_application_error(-20033, 'Offspring name cannot be empty.');
+        end if;
+
+        assert_lab_access(p_lab_id => p_lab_id);
+
+        if assert_creature_access(
+            p_creature_id     => p_parent1_id,
+            p_expected_lab_id => p_lab_id
+        ) is null then
+            null;
+        end if;
+
+        if assert_creature_access(
+            p_creature_id     => p_parent2_id,
+            p_expected_lab_id => p_lab_id
+        ) is null then
+            null;
         end if;
 
         begin
@@ -888,6 +1103,11 @@ create or replace package body pkg_genetics_game as
             systimestamp
         );
 
+        auto_complete_matching_tasks(
+            p_lab_id      => p_lab_id,
+            p_creature_id => p_offspring_id
+        );
+
         get_lab_stats(
             p_lab_id               => p_lab_id,
             p_wallet               => v_wallet,
@@ -903,10 +1123,15 @@ create or replace package body pkg_genetics_game as
         p_creature_id     in number,
         p_new_name        in varchar2
     ) is
+        v_lab_id number;
     begin
         if p_new_name is null or trim(p_new_name) is null then
             raise_application_error(-20038, 'New creature name cannot be empty.');
         end if;
+
+        v_lab_id := assert_creature_access(
+            p_creature_id => p_creature_id
+        );
 
         update creatures c
            set c.creature_name = trim(p_new_name),
@@ -944,14 +1169,7 @@ create or replace package body pkg_genetics_game as
         v_mutation_cost   number(12, 2);
         v_exists_count    number;
     begin
-        select count(*)
-          into v_exists_count
-          from labs l
-         where l.lab_id = p_lab_id;
-
-        if v_exists_count = 0 then
-            raise_application_error(-20040, 'Lab not found.');
-        end if;
+        assert_lab_access(p_lab_id => p_lab_id);
 
         begin
             select m.cost
@@ -1024,15 +1242,9 @@ create or replace package body pkg_genetics_game as
         v_completed_task_count  number;
         v_experiment_count      number;
     begin
-        begin
-            select c.lab_id
-              into v_lab_id
-              from creatures c
-             where c.creature_id = p_creature_id;
-        exception
-            when no_data_found then
-                raise_application_error(-20042, 'Creature not found.');
-        end;
+        v_lab_id := assert_creature_access(
+            p_creature_id => p_creature_id
+        );
 
         select count(*)
           into v_mutation_exists
@@ -1141,6 +1353,11 @@ create or replace package body pkg_genetics_game as
             systimestamp
         );
 
+        auto_complete_matching_tasks(
+            p_lab_id      => v_lab_id,
+            p_creature_id => p_creature_id
+        );
+
         get_lab_stats(
             p_lab_id               => v_lab_id,
             p_wallet               => v_wallet,
@@ -1161,11 +1378,13 @@ create or replace package body pkg_genetics_game as
         v_species_type          number;
         v_source_name           varchar2(255);
         v_new_name              varchar2(255);
+        v_mutagen_mode          varchar2(20);
         v_target_gene_id        number;
         v_current_allele1_id    number;
         v_current_allele2_id    number;
         v_new_allele_id         number;
         v_selected_slot         pls_integer;
+        v_mutation_rounds       pls_integer := 1;
         v_summary               varchar2(1000);
         v_experiment_id         number;
 
@@ -1180,15 +1399,19 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20048, 'Mutagen type cannot be empty.');
         end if;
 
+        v_mutagen_mode := upper(trim(p_mutagen_type));
+
+        if v_mutagen_mode not in ('RADIATION', 'CHEMICAL') then
+            raise_application_error(-20070, 'Unsupported mutagen type. Use RADIATION or CHEMICAL.');
+        end if;
+
+        v_lab_id := assert_creature_access(
+            p_creature_id => p_creature_id
+        );
+
         begin
-            select
-                c.lab_id,
-                c.species_type,
-                c.creature_name
-              into
-                v_lab_id,
-                v_species_type,
-                v_source_name
+            select c.species_type, c.creature_name
+              into v_species_type, v_source_name
               from creatures c
              where c.creature_id = p_creature_id;
         exception
@@ -1247,90 +1470,132 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20050, 'Source creature has no genotype rows.');
         end if;
 
-        begin
-            select
-                gt.gene_id,
-                gt.allele1_id,
-                gt.allele2_id
-              into
-                v_target_gene_id,
-                v_current_allele1_id,
-                v_current_allele2_id
-              from (
-                    select
-                        g.gene_id,
-                        g.allele1_id,
-                        g.allele2_id
-                      from genotypes g
-                     where g.creature_id = p_new_creature_id
-                     order by dbms_random.value
-              ) gt
-             where rownum = 1;
-        exception
-            when no_data_found then
-                raise_application_error(-20051, 'Unable to select genotype row for mutagen.');
-        end;
-
-        v_selected_slot := pick_random_allele_side();
-        if v_selected_slot = 1 then
-            begin
-                select a.allele_id
-                  into v_new_allele_id
-                  from (
-                        select a.allele_id
-                          from alleles a
-                         where a.gene_id = v_target_gene_id
-                           and a.allele_id <> v_current_allele1_id
-                         order by dbms_random.value
-                  ) a
-                 where rownum = 1;
-            exception
-                when no_data_found then
-                    select a.allele_id
-                      into v_new_allele_id
-                      from (
-                            select a.allele_id
-                              from alleles a
-                             where a.gene_id = v_target_gene_id
-                             order by dbms_random.value
-                      ) a
-                     where rownum = 1;
-            end;
-
-            update genotypes g
-               set g.allele1_id = v_new_allele_id
-             where g.creature_id = p_new_creature_id
-               and g.gene_id = v_target_gene_id;
-        else
-            begin
-                select a.allele_id
-                  into v_new_allele_id
-                  from (
-                        select a.allele_id
-                          from alleles a
-                         where a.gene_id = v_target_gene_id
-                           and a.allele_id <> v_current_allele2_id
-                         order by dbms_random.value
-                  ) a
-                 where rownum = 1;
-            exception
-                when no_data_found then
-                    select a.allele_id
-                      into v_new_allele_id
-                      from (
-                            select a.allele_id
-                              from alleles a
-                             where a.gene_id = v_target_gene_id
-                             order by dbms_random.value
-                      ) a
-                     where rownum = 1;
-            end;
-
-            update genotypes g
-               set g.allele2_id = v_new_allele_id
-             where g.creature_id = p_new_creature_id
-               and g.gene_id = v_target_gene_id;
+        if v_mutagen_mode = 'RADIATION' and dbms_random.value(0, 1) < 0.45 then
+            v_mutation_rounds := 2;
         end if;
+
+        for mutation_round in 1 .. v_mutation_rounds loop
+            if v_mutagen_mode = 'CHEMICAL' then
+                begin
+                    select
+                        gt.gene_id,
+                        gt.allele1_id,
+                        gt.allele2_id
+                      into
+                        v_target_gene_id,
+                        v_current_allele1_id,
+                        v_current_allele2_id
+                      from (
+                            select
+                                g.gene_id,
+                                g.allele1_id,
+                                g.allele2_id
+                              from genotypes g
+                              join genes ge
+                                on ge.gene_id = g.gene_id
+                             where g.creature_id = p_new_creature_id
+                             order by
+                                 case
+                                     when ge.species_type = v_species_type then 0
+                                     else 1
+                                 end,
+                                 ge.gene_id
+                      ) gt
+                     where rownum = 1;
+                exception
+                    when no_data_found then
+                        raise_application_error(-20051, 'Unable to select genotype row for chemical mutagen.');
+                end;
+
+                v_selected_slot := 1;
+            else
+                begin
+                    select
+                        gt.gene_id,
+                        gt.allele1_id,
+                        gt.allele2_id
+                      into
+                        v_target_gene_id,
+                        v_current_allele1_id,
+                        v_current_allele2_id
+                      from (
+                            select
+                                g.gene_id,
+                                g.allele1_id,
+                                g.allele2_id
+                              from genotypes g
+                             where g.creature_id = p_new_creature_id
+                             order by dbms_random.value
+                      ) gt
+                     where rownum = 1;
+                exception
+                    when no_data_found then
+                        raise_application_error(-20051, 'Unable to select genotype row for radiation mutagen.');
+                end;
+
+                v_selected_slot := pick_random_allele_side();
+            end if;
+
+            if v_selected_slot = 1 then
+                begin
+                    select a.allele_id
+                      into v_new_allele_id
+                      from (
+                            select a.allele_id
+                              from alleles a
+                             where a.gene_id = v_target_gene_id
+                               and a.allele_id <> v_current_allele1_id
+                             order by dbms_random.value
+                      ) a
+                     where rownum = 1;
+                exception
+                    when no_data_found then
+                        select a.allele_id
+                          into v_new_allele_id
+                          from (
+                                select a.allele_id
+                                  from alleles a
+                                 where a.gene_id = v_target_gene_id
+                                 order by dbms_random.value
+                          ) a
+                         where rownum = 1;
+                end;
+
+                update genotypes g
+                   set g.allele1_id = v_new_allele_id
+                 where g.creature_id = p_new_creature_id
+                   and g.gene_id = v_target_gene_id;
+            else
+                begin
+                    select a.allele_id
+                      into v_new_allele_id
+                      from (
+                            select a.allele_id
+                              from alleles a
+                             where a.gene_id = v_target_gene_id
+                               and a.allele_id <> v_current_allele2_id
+                             order by dbms_random.value
+                      ) a
+                     where rownum = 1;
+                exception
+                    when no_data_found then
+                        select a.allele_id
+                          into v_new_allele_id
+                          from (
+                                select a.allele_id
+                                  from alleles a
+                                 where a.gene_id = v_target_gene_id
+                                 order by dbms_random.value
+                          ) a
+                         where rownum = 1;
+                end;
+
+                update genotypes g
+                   set g.allele2_id = v_new_allele_id
+                 where g.creature_id = p_new_creature_id
+                   and g.gene_id = v_target_gene_id;
+            end if;
+        end loop;
 
         v_summary := get_phenotype(
             p_creature_id => p_new_creature_id
@@ -1358,6 +1623,11 @@ create or replace package body pkg_genetics_game as
             systimestamp
         );
 
+        auto_complete_matching_tasks(
+            p_lab_id      => v_lab_id,
+            p_creature_id => p_new_creature_id
+        );
+
         get_lab_stats(
             p_lab_id               => v_lab_id,
             p_wallet               => v_wallet,
@@ -1377,13 +1647,28 @@ create or replace package body pkg_genetics_game as
         p_offspring_name  in varchar2,
         p_offspring_id    out number
     ) is
-        v_parent1_lab_match number;
     begin
+        assert_lab_access(p_lab_id => p_lab_id);
+
         if p_parent1_id is null then
             raise_application_error(-20052, 'Parent1 id is required.');
         end if;
 
+        if assert_creature_access(
+            p_creature_id     => p_parent1_id,
+            p_expected_lab_id => p_lab_id
+        ) is null then
+            null;
+        end if;
+
         if p_parent2_id is not null then
+            if assert_creature_access(
+                p_creature_id     => p_parent2_id,
+                p_expected_lab_id => p_lab_id
+            ) is null then
+                null;
+            end if;
+
             crossbreed(
                 p_lab_id         => p_lab_id,
                 p_parent1_id     => p_parent1_id,
@@ -1399,16 +1684,6 @@ create or replace package body pkg_genetics_game as
                 );
             end if;
         elsif p_mutation_id is not null then
-            select count(*)
-              into v_parent1_lab_match
-              from creatures c
-             where c.creature_id = p_parent1_id
-               and c.lab_id = p_lab_id;
-
-            if v_parent1_lab_match = 0 then
-                raise_application_error(-20053, 'Parent1 creature does not belong to the selected lab.');
-            end if;
-
             apply_mutation(
                 p_creature_id => p_parent1_id,
                 p_mutation_id => p_mutation_id
@@ -1424,16 +1699,8 @@ create or replace package body pkg_genetics_game as
         p_experiment_type  in varchar2 default null
     ) return sys_refcursor is
         v_cursor       sys_refcursor;
-        v_exists_count number;
     begin
-        select count(*)
-          into v_exists_count
-          from labs l
-         where l.lab_id = p_lab_id;
-
-        if v_exists_count = 0 then
-            raise_application_error(-20055, 'Lab not found.');
-        end if;
+        assert_lab_access(p_lab_id => p_lab_id);
 
         open v_cursor for
             select
@@ -1471,16 +1738,8 @@ create or replace package body pkg_genetics_game as
         p_lab_id          in number
     ) return sys_refcursor is
         v_cursor       sys_refcursor;
-        v_exists_count number;
     begin
-        select count(*)
-          into v_exists_count
-          from labs l
-         where l.lab_id = p_lab_id;
-
-        if v_exists_count = 0 then
-            raise_application_error(-20057, 'Lab not found.');
-        end if;
+        assert_lab_access(p_lab_id => p_lab_id);
 
         open v_cursor for
             select
@@ -1517,14 +1776,7 @@ create or replace package body pkg_genetics_game as
         v_marker_total    number;
         v_marker_matched  number;
     begin
-        select count(*)
-          into v_exists_count
-          from labs l
-         where l.lab_id = p_lab_id;
-
-        if v_exists_count = 0 then
-            raise_application_error(-20057, 'Lab not found.');
-        end if;
+        assert_lab_access(p_lab_id => p_lab_id);
 
         select count(*)
           into v_exists_count
@@ -1535,23 +1787,11 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20058, 'Task not found.');
         end if;
 
-        select count(*)
-          into v_exists_count
-          from creatures c
-         where c.creature_id = p_creature_id;
-
-        if v_exists_count = 0 then
-            raise_application_error(-20059, 'Creature not found.');
-        end if;
-
-        select count(*)
-          into v_exists_count
-          from creatures c
-         where c.creature_id = p_creature_id
-           and c.lab_id = p_lab_id;
-
-        if v_exists_count = 0 then
-            raise_application_error(-20060, 'Creature does not belong to the selected lab.');
+        if assert_creature_access(
+            p_creature_id     => p_creature_id,
+            p_expected_lab_id => p_lab_id
+        ) is null then
+            null;
         end if;
 
         select count(*)
@@ -1614,6 +1854,8 @@ create or replace package body pkg_genetics_game as
         p_is_completed := 0;
         p_wallet_after := null;
         p_rating_after := null;
+
+        assert_lab_access(p_lab_id => p_lab_id);
 
         v_check_result := check_task(
             p_lab_id      => p_lab_id,
@@ -1686,6 +1928,7 @@ create or replace package body pkg_genetics_game as
         v_species_type          number;
         v_variant               number;
         v_creature_id           number;
+        v_existing_creatures    number;
         v_wallet                number;
         v_rating                number;
         v_creature_count        number;
@@ -1693,6 +1936,26 @@ create or replace package body pkg_genetics_game as
         v_completed_task_count  number;
         v_experiment_count      number;
     begin
+        assert_lab_access(p_lab_id => p_lab_id);
+
+        select count(*)
+          into v_existing_creatures
+          from creatures c
+         where c.lab_id = p_lab_id;
+
+        if v_existing_creatures > 0 then
+            get_lab_stats(
+                p_lab_id               => p_lab_id,
+                p_wallet               => v_wallet,
+                p_rating               => v_rating,
+                p_creature_count       => v_creature_count,
+                p_active_task_count    => v_active_task_count,
+                p_completed_task_count => v_completed_task_count,
+                p_experiment_count     => v_experiment_count
+            );
+            return;
+        end if;
+
         for v_species_type in 1 .. 6 loop
             for v_variant in 1 .. 5 loop
                 create_creature_of_type(
@@ -1721,7 +1984,6 @@ create or replace package body pkg_genetics_game as
         p_variant         in number,
         p_creature_id     out number
     ) is
-        v_lab_count        number;
         v_creature_name    varchar2(255);
         v_allele1_id       number;
         v_allele2_id       number;
@@ -1731,14 +1993,7 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20027, 'Invalid species_type. Expected value from 1 to 6.');
         end if;
 
-        select count(*)
-          into v_lab_count
-          from labs l
-         where l.lab_id = p_lab_id;
-
-        if v_lab_count = 0 then
-            raise_application_error(-20028, 'Lab not found.');
-        end if;
+        assert_lab_access(p_lab_id => p_lab_id);
 
         v_creature_name :=
             case p_species_type
@@ -1831,3 +2086,42 @@ create or replace package body pkg_genetics_game as
     end create_creature_of_type;
 end pkg_genetics_game;
 /
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

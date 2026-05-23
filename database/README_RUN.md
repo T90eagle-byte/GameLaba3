@@ -129,7 +129,20 @@ This smoke-test validates the tasks block end-to-end:
 
 After successful `01..06` smoke-tests, the full PL/SQL backend MVP is covered by baseline smoke checks.
 
-## 11) Inspect compile errors via USER_ERRORS
+## 11) Run strict compliance smoke-test
+
+```sql
+@database/tests/07_strict_compliance_smoke_test.sql
+```
+
+This smoke-test validates strict-compliance behavior on top of MVP:
+- `start_new_lab` immediately creates a full starter lab (`30` creatures + `3` ACTIVE tasks);
+- gameplay access control blocks foreign lab/creature access via package session context;
+- `INCOMPLETE` and `CODOMINANT` phenotype semantics are not treated like `FULL`;
+- `RADIATION` and `CHEMICAL` mutagen flows are different and invalid mutagen type is rejected;
+- auto task-check after experiment flow can complete matching ACTIVE tasks.
+
+## 12) Inspect compile errors via USER_ERRORS
 
 ```sql
 select

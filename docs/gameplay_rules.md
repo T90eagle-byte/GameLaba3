@@ -1,91 +1,86 @@
 # Gameplay Rules
 
-## 1) Общая модель
+## 1) Core model
 
-Игрок управляет лабораторией, создает и модифицирует существ, проводит эксперименты и выполняет задания.
+The player operates a lab, creates/modifies creatures, runs experiments, and completes tasks.
 
-Критично:
-- вся игровая логика на Oracle PL/SQL;
-- Python только клиент GUI;
-- backend API централизован в `pkg_genetics_game`.
+Critical architecture rules:
+- backend logic is Oracle PL/SQL only;
+- Python is GUI client only;
+- central backend API is `pkg_genetics_game`.
 
-## 2) Типы существ (MVP)
+## 2) Species model
 
-Используются 6 типов:
-1. хрящевые рыбы
-2. костные рыбы
-3. ракообразные
-4. моллюски
-5. черепахи
-6. млекопитающие
+The game uses 6 species types (`species_type`):
+1. cartilaginous fish
+2. bony fish
+3. crustaceans
+4. mollusks
+5. turtles
+6. mammals
 
-## 3) Реализованные игровые блоки в PL/SQL
+## 3) Lab startup
 
-### Auth/session
-- `register_user`
-- `login_user`
-- `logout_user`
-- `update_user_profile`
+`start_new_lab` must immediately prepare a playable lab:
+- create lab record;
+- assign 3 starter `ACTIVE` tasks;
+- generate 30 starter creatures (`6 x 5`).
 
-### Labs
-- `start_new_lab`
-- `load_lab`
-- `switch_lab`
-- `list_user_labs`
-- `get_lab_stats`
-- `delete_lab`
+Expected right after `start_new_lab`:
+- `creature_count = 30`;
+- `active_task_count = 3`.
 
-`start_new_lab` назначает стартовые `ACTIVE` задания в `lab_tasks`.
+## 4) Genetics and phenotype
 
-### Creatures/genetics
-- `create_creature_of_type`
-- `generate_starting_creatures`
-- `get_phenotype`
-- `get_creatures_cursor`
-- `get_genotype_cursor`
+- Genotype is stored in `genotypes` (two alleles per gene).
+- Full phenotype is computed in `get_phenotype`.
+- Cached phenotype fields and `phenotype_summary` are stored in `creatures`.
 
-`generate_starting_creatures` формирует 30 существ (6x5).
+`dominance_type` semantics:
+- `FULL`: dominance by numeric `dominance` value.
+- `INCOMPLETE`: for different alleles, return intermediate phenotype.
+- `CODOMINANT`: for different alleles, return both traits as `trait1/trait2`.
+- Same-allele pairs always return the regular allele description.
 
-### Crossbreed
-- `calculate_punnett_probabilities`
-- `crossbreed`
-- `rename_creature`
+## 5) Access control
 
-### Mutations/experiments
-- `show_mutation_shop`
-- `buy_mutation`
-- `apply_mutation`
-- `apply_mutagen`
-- `make_experiment`
-- `get_experiment_history`
+Gameplay API is session-aware:
+- active session context is stored after `login_user`;
+- operations by `lab_id`/`creature_id` verify ownership by current user;
+- foreign lab/creature access is denied.
 
-### Tasks
-- `get_tasks_cursor`
-- `check_task`
-- `complete_task`
+## 6) Mutations and mutagens
 
-## 4) Правила задач
+- `show_mutation_shop` provides available mutations.
+- `buy_mutation` spends wallet and increases `lab_mutations` stock.
+- `apply_mutation` applies `mutation_rules` to creature genotype.
+- `apply_mutagen` creates a new mutated creature.
 
-- Задание считается выполненным, если для выбранного существа найдены все `task_markers.allele_id`.
-- Проверка выполняется в `check_task` без изменения состояния БД.
+Mutagen modes:
+- `CHEMICAL`: more controlled mutation path.
+- `RADIATION`: more random mutation path, with extra-risk behavior.
+
+## 7) Tasks
+
+- Tasks are assigned per lab in `lab_tasks`.
+- Marker check is done by `check_task` against `task_markers`.
 - `complete_task`:
-  - завершает `lab_tasks.task_status = 'COMPLETED'`
-  - фиксирует `completed_at`
-  - начисляет награды (`money_reward`, `rating_reward`) в `labs`
-  - повторное завершение того же задания запрещено (ошибка `-20064`)
+  - sets `task_status = COMPLETED`;
+  - applies money/rating rewards;
+  - blocks duplicate reward payout.
 
-## 5) Данные для GUI
+Automatic task checks run after experiment flow:
+- `crossbreed`;
+- `apply_mutation`;
+- `apply_mutagen`.
 
-GUI получает данные только через:
-- `SYS_REFCURSOR`
-- OUT-параметры
-- простые RETURN-типы
+Startup flow (`start_new_lab` and initial generation) does not auto-complete tasks.
 
-`dbms_output` не используется в runtime-интеграции GUI.
+## 8) GUI contract
 
-## 6) Текущее состояние реализации
+GUI must consume data only through:
+- `SYS_REFCURSOR`;
+- OUT parameters;
+- simple return types.
 
-- PL/SQL backend MVP реализован полностью.
-- В `pkg_genetics_game.pkb` stubs отсутствуют.
-- Проверки покрыты smoke-тестами `01..06`.
-
+`dbms_output` is not a runtime data channel for GUI.

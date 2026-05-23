@@ -1,50 +1,42 @@
-﻿# Project Roadmap
+# Project Roadmap
 
-## 1) Текущий checkpoint
+## 1) Backend baseline
 
-Backend MVP на Oracle PL/SQL завершен и подтвержден реальным прогоном:
-- DDL создан и выполнен
-- seed data загружен
-- package spec/body компилируются без ошибок
-- smoke-tests `01..06` завершены успешно (`Failed: 0`)
+- Oracle DDL, seed data, package spec/body, and smoke-tests `01..06` were completed as baseline.
+- Backend architecture remains package-oriented with `pkg_genetics_game` as the central logic entry point.
 
-Реализованы все группы API:
-- auth/session
-- labs
-- creatures/genetics
-- crossbreed
-- mutations/experiments
-- tasks
+## 2) Strict compliance pass (no DDL)
 
-## 2) Что зафиксировано после Oracle-прогона
+The following strict-alignment updates were implemented:
 
-- `pkg_genetics_game` стабильно компилируется в целевой среде Oracle.
-- Smoke-контур полностью зеленый (`01..06`).
-- `01_auth_labs_smoke_test.sql` синхронизирован с актуальной логикой `start_new_lab`:
-  лаборатория стартует с 3 задачами в статусе `ACTIVE`.
+- `start_new_lab` now initializes a full starter lab (`30` creatures + `3` ACTIVE tasks).
+- `generate_starting_creatures` is protected from duplicate re-run creation.
+- gameplay API now uses session-aware access checks without public spec changes.
+- phenotype semantics were aligned for `FULL`, `INCOMPLETE`, and `CODOMINANT`.
+- `apply_mutagen` now has explicit behavior split for `RADIATION` vs `CHEMICAL` and validates unknown type.
+- automatic task check/completion was added after experiment flow (`crossbreed`, `apply_mutation`, `apply_mutagen`).
+- smoke-tests `01`, `03`, `04`, `05`, `06` were updated.
+- new `database/tests/07_strict_compliance_smoke_test.sql` was added.
 
-## 3) Следующий этап проекта
+## 3) Oracle validation stage
 
-### Этап A: фиксируем результат backend в Git
+Required run sequence:
 
-1. Зафиксировать успешный прогон Oracle в репозитории.
-2. Сохранить как baseline для GUI-этапа.
+1. `@database/packages/body/pkg_genetics_game.pkb`
+2. smoke-tests `01..07`
+3. `USER_ERRORS` verification
 
-### Этап B: Python GUI-клиент
+Goal: confirm strict-pass behavior in real Oracle runtime with no regressions.
 
-1. Подключение к Oracle.
-2. Окно авторизации.
-3. Выбор/создание лаборатории.
-4. Просмотр существ.
-5. Просмотр генотипа/фенотипа.
-6. Скрещивание.
-7. Мутации.
-8. Задания.
-9. История экспериментов.
+## 4) Python GUI stage (after Oracle strict pass)
 
-## 4) Архитектурные ограничения на GUI-этапе
+- Oracle connection and package API calls;
+- screens: auth, labs, creatures, genotype/phenotype, crossbreed, mutations, tasks, experiment history;
+- no backend/business logic in Python.
 
-- Python остается только клиентским слоем и не содержит backend-логики.
-- Генетика, скрещивание, мутации, экономика, задания и статистика считаются только в PL/SQL.
-- Данные для GUI поступают через `SYS_REFCURSOR`, OUT-параметры и простые RETURN-типы.
-- `dbms_output` не используется как канал данных для GUI.
+## 5) Optional DDL track (separate approval)
+
+If strict LR requirements require creature generation tracking (`generation`), this should be implemented as a separate DDL change set with:
+- schema update;
+- targeted package adjustments;
+- smoke-test updates.
