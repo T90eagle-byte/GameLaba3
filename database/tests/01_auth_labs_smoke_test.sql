@@ -134,10 +134,10 @@ begin
             p_session_token => v_session_token,
             p_lab_id        => v_lab_id
         );
-        assert_true(v_lab_id is not null and v_lab_id > 0, 'start_new_lab', 'lab_id is null or <= 0');
+        assert_true(v_lab_id is not null and v_lab_id > 0, 'start_new_lab creates lab and assigns 3 ACTIVE tasks', 'lab_id is null or <= 0');
     exception
         when others then
-            fail_test('start_new_lab', sqlerrm);
+            fail_test('start_new_lab creates lab and assigns 3 ACTIVE tasks', sqlerrm);
     end;
 
     begin
@@ -192,7 +192,11 @@ begin
         assert_true(v_wallet = 1000, 'get_lab_stats wallet', 'expected 1000');
         assert_true(v_rating = 0, 'get_lab_stats rating', 'expected 0');
         assert_true(v_creature_count = 0, 'get_lab_stats creature_count', 'expected 0');
-        assert_true(v_active_task_count = 0, 'get_lab_stats active_task_count', 'expected 0');
+        assert_true(
+            v_active_task_count = 3,
+            'get_lab_stats active_task_count (start_new_lab creates lab and assigns 3 ACTIVE tasks)',
+            'expected 3'
+        );
         assert_true(v_completed_task_count = 0, 'get_lab_stats completed_task_count', 'expected 0');
         assert_true(v_experiment_count = 0, 'get_lab_stats experiment_count', 'expected 0');
     exception
