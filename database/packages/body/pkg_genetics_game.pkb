@@ -221,16 +221,12 @@ create or replace package body pkg_genetics_game as
             user_id,
             username,
             login,
-            password_hash,
-            created_at,
-            updated_at
+            password_hash
         ) values (
             p_user_id,
             p_username,
             p_login,
-            v_password_hash,
-            systimestamp,
-            systimestamp
+            v_password_hash
         );
     exception
         when dup_val_on_index then
@@ -325,18 +321,15 @@ create or replace package body pkg_genetics_game as
         if p_username is not null and p_password is not null then
             update users u
                set u.username = p_username,
-                   u.password_hash = v_password_hash,
-                   u.updated_at = systimestamp
+                   u.password_hash = v_password_hash
              where u.user_id = p_user_id;
         elsif p_username is not null then
             update users u
-               set u.username = p_username,
-                   u.updated_at = systimestamp
+               set u.username = p_username
              where u.user_id = p_user_id;
         else
             update users u
-               set u.password_hash = v_password_hash,
-                   u.updated_at = systimestamp
+               set u.password_hash = v_password_hash
              where u.user_id = p_user_id;
         end if;
 
@@ -381,9 +374,7 @@ create or replace package body pkg_genetics_game as
             creature_count,
             active_task_count,
             completed_task_count,
-            experiment_count,
-            created_at,
-            updated_at
+            experiment_count
         ) values (
             p_lab_id,
             v_user_id,
@@ -393,9 +384,7 @@ create or replace package body pkg_genetics_game as
             0,
             0,
             0,
-            0,
-            systimestamp,
-            systimestamp
+            0
         );
 
         assign_starting_tasks(
@@ -437,8 +426,7 @@ create or replace package body pkg_genetics_game as
         );
 
         update labs l
-           set l.session_id = v_session_id,
-               l.updated_at = systimestamp
+           set l.session_id = v_session_id
          where l.lab_id = p_lab_id
            and l.user_id = v_user_id;
 
@@ -474,8 +462,8 @@ create or replace package body pkg_genetics_game as
                 l.active_task_count,
                 l.completed_task_count,
                 l.experiment_count,
-                l.created_at,
-                l.updated_at
+                cast(null as timestamp) as created_at,
+                cast(null as timestamp) as updated_at
               from labs l
              where l.user_id = p_user_id
              order by l.lab_id;
@@ -526,8 +514,7 @@ create or replace package body pkg_genetics_game as
            set l.creature_count = p_creature_count,
                l.active_task_count = p_active_task_count,
                l.completed_task_count = p_completed_task_count,
-               l.experiment_count = p_experiment_count,
-               l.updated_at = systimestamp
+               l.experiment_count = p_experiment_count
          where l.lab_id = p_lab_id;
     exception
         when no_data_found then
@@ -599,8 +586,8 @@ create or replace package body pkg_genetics_game as
                 c.phenotype_has_wings,
                 c.phenotype_nutrition_type,
                 c.phenotype_summary,
-                c.created_at,
-                c.updated_at
+                cast(null as timestamp) as created_at,
+                cast(null as timestamp) as updated_at
               from creatures c
              where c.lab_id = p_lab_id
              order by c.creature_id;
@@ -745,8 +732,7 @@ create or replace package body pkg_genetics_game as
                c.phenotype_size = v_size,
                c.phenotype_has_wings = v_has_wings,
                c.phenotype_nutrition_type = v_nutrition_type,
-               c.phenotype_summary = v_summary,
-               c.updated_at = systimestamp
+               c.phenotype_summary = v_summary
          where c.creature_id = p_creature_id;
 
         if sql%rowcount = 0 then
@@ -993,9 +979,7 @@ create or replace package body pkg_genetics_game as
             phenotype_size,
             phenotype_has_wings,
             phenotype_nutrition_type,
-            phenotype_summary,
-            created_at,
-            updated_at
+            phenotype_summary
         ) values (
             p_offspring_id,
             p_lab_id,
@@ -1005,9 +989,7 @@ create or replace package body pkg_genetics_game as
             null,
             null,
             null,
-            null,
-            systimestamp,
-            systimestamp
+            null
         );
 
         for rec in (
@@ -1065,15 +1047,13 @@ create or replace package body pkg_genetics_game as
                 creature_id,
                 gene_id,
                 allele1_id,
-                allele2_id,
-                created_at
+                allele2_id
             ) values (
                 genotypes_seq.nextval,
                 p_offspring_id,
                 rec.gene_id,
                 v_selected_allele1_id,
-                v_selected_allele2_id,
-                systimestamp
+                v_selected_allele2_id
             );
         end loop;
 
@@ -1090,8 +1070,7 @@ create or replace package body pkg_genetics_game as
             parent2_id,
             mutation_id,
             offspring_id,
-            experiment_type,
-            created_at
+            experiment_type
         ) values (
             v_experiment_id,
             p_lab_id,
@@ -1099,8 +1078,7 @@ create or replace package body pkg_genetics_game as
             p_parent2_id,
             null,
             p_offspring_id,
-            'CROSS',
-            systimestamp
+            'CROSS'
         );
 
         auto_complete_matching_tasks(
@@ -1134,8 +1112,7 @@ create or replace package body pkg_genetics_game as
         );
 
         update creatures c
-           set c.creature_name = trim(p_new_name),
-               c.updated_at = systimestamp
+           set c.creature_name = trim(p_new_name)
          where c.creature_id = p_creature_id;
 
         if sql%rowcount = 0 then
@@ -1192,13 +1169,11 @@ create or replace package body pkg_genetics_game as
         end if;
 
         update labs l
-           set l.wallet = l.wallet - v_mutation_cost,
-               l.updated_at = systimestamp
+           set l.wallet = l.wallet - v_mutation_cost
          where l.lab_id = p_lab_id;
 
         update lab_mutations lm
-           set lm.quantity = lm.quantity + 1,
-               lm.updated_at = systimestamp
+           set lm.quantity = lm.quantity + 1
          where lm.lab_id = p_lab_id
            and lm.mutation_id = p_mutation_id;
 
@@ -1207,16 +1182,12 @@ create or replace package body pkg_genetics_game as
                 lab_mutation_id,
                 lab_id,
                 mutation_id,
-                quantity,
-                created_at,
-                updated_at
+                quantity
             ) values (
                 lab_mutations_seq.nextval,
                 p_lab_id,
                 p_mutation_id,
-                1,
-                systimestamp,
-                systimestamp
+                1
             );
         end if;
 
@@ -1321,8 +1292,7 @@ create or replace package body pkg_genetics_game as
         );
 
         update lab_mutations lm
-           set lm.quantity = lm.quantity - 1,
-               lm.updated_at = systimestamp
+           set lm.quantity = lm.quantity - 1
          where lm.lab_id = v_lab_id
            and lm.mutation_id = p_mutation_id
            and lm.quantity > 0;
@@ -1340,8 +1310,7 @@ create or replace package body pkg_genetics_game as
             parent2_id,
             mutation_id,
             offspring_id,
-            experiment_type,
-            created_at
+            experiment_type
         ) values (
             v_experiment_id,
             v_lab_id,
@@ -1349,8 +1318,7 @@ create or replace package body pkg_genetics_game as
             null,
             p_mutation_id,
             p_creature_id,
-            'MUTATION',
-            systimestamp
+            'MUTATION'
         );
 
         auto_complete_matching_tasks(
@@ -1431,9 +1399,7 @@ create or replace package body pkg_genetics_game as
             phenotype_size,
             phenotype_has_wings,
             phenotype_nutrition_type,
-            phenotype_summary,
-            created_at,
-            updated_at
+            phenotype_summary
         ) values (
             p_new_creature_id,
             v_lab_id,
@@ -1443,9 +1409,7 @@ create or replace package body pkg_genetics_game as
             null,
             null,
             null,
-            null,
-            systimestamp,
-            systimestamp
+            null
         );
 
         insert into genotypes (
@@ -1453,16 +1417,14 @@ create or replace package body pkg_genetics_game as
             creature_id,
             gene_id,
             allele1_id,
-            allele2_id,
-            created_at
+            allele2_id
         )
         select
             genotypes_seq.nextval,
             p_new_creature_id,
             g.gene_id,
             g.allele1_id,
-            g.allele2_id,
-            systimestamp
+            g.allele2_id
           from genotypes g
          where g.creature_id = p_creature_id;
 
@@ -1610,8 +1572,7 @@ create or replace package body pkg_genetics_game as
             parent2_id,
             mutation_id,
             offspring_id,
-            experiment_type,
-            created_at
+            experiment_type
         ) values (
             v_experiment_id,
             v_lab_id,
@@ -1619,8 +1580,7 @@ create or replace package body pkg_genetics_game as
             null,
             null,
             p_new_creature_id,
-            'MUTAGEN',
-            systimestamp
+            'MUTAGEN'
         );
 
         auto_complete_matching_tasks(
@@ -1714,7 +1674,7 @@ create or replace package body pkg_genetics_game as
                 o.creature_name as offspring_name,
                 e.mutation_id,
                 m.mutation_name,
-                e.created_at
+                cast(null as timestamp) as created_at
               from experiments e
               left join creatures p1
                 on p1.creature_id = e.parent1_id
@@ -1729,7 +1689,7 @@ create or replace package body pkg_genetics_game as
                     p_experiment_type is null
                     or upper(e.experiment_type) = upper(p_experiment_type)
                )
-             order by e.created_at desc, e.experiment_id desc;
+             order by e.experiment_id desc;
 
         return v_cursor;
     end get_experiment_history;
@@ -1901,8 +1861,7 @@ create or replace package body pkg_genetics_game as
 
         update labs l
            set l.wallet = l.wallet + nvl(v_money_reward, 0),
-               l.rating = l.rating + nvl(v_rating_reward, 0),
-               l.updated_at = systimestamp
+               l.rating = l.rating + nvl(v_rating_reward, 0)
          where l.lab_id = p_lab_id;
 
         if sql%rowcount = 0 then
@@ -2017,9 +1976,7 @@ create or replace package body pkg_genetics_game as
             phenotype_size,
             phenotype_has_wings,
             phenotype_nutrition_type,
-            phenotype_summary,
-            created_at,
-            updated_at
+            phenotype_summary
         ) values (
             p_creature_id,
             p_lab_id,
@@ -2029,9 +1986,7 @@ create or replace package body pkg_genetics_game as
             null,
             null,
             null,
-            null,
-            systimestamp,
-            systimestamp
+            null
         );
 
         for g in (
@@ -2070,15 +2025,13 @@ create or replace package body pkg_genetics_game as
                 creature_id,
                 gene_id,
                 allele1_id,
-                allele2_id,
-                created_at
+                allele2_id
             ) values (
                 genotypes_seq.nextval,
                 p_creature_id,
                 g.gene_id,
                 v_allele1_id,
-                v_allele2_id,
-                systimestamp
+                v_allele2_id
             );
         end loop;
 

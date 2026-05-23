@@ -133,11 +133,13 @@ declare
             end if;
 
             if v_inc_gene_id is not null then
+                delete from genotypes gt where gt.gene_id = v_inc_gene_id;
                 delete from alleles a where a.gene_id = v_inc_gene_id;
                 delete from genes g where g.gene_id = v_inc_gene_id;
             end if;
 
             if v_codom_gene_id is not null then
+                delete from genotypes gt where gt.gene_id = v_codom_gene_id;
                 delete from alleles a where a.gene_id = v_codom_gene_id;
                 delete from genes g where g.gene_id = v_codom_gene_id;
             end if;
@@ -269,32 +271,32 @@ begin
     assert_true(v_session1_token_relogin is not null, 'user1 relogin for own context');
 
     v_inc_gene_id := genes_seq.nextval;
-    insert into genes (gene_id, gene_name, gene_type, species_type, dominance_type, linkage_group, created_at, updated_at)
-    values (v_inc_gene_id, 'strict_inc_' || v_suffix, 'strict_test', 0, 'INCOMPLETE', null, systimestamp, systimestamp);
+    insert into genes (gene_id, gene_name, gene_type, species_type, dominance_type, linkage_group, created_at)
+    values (v_inc_gene_id, 'strict_inc_' || v_suffix, 'strict_test', 0, 'INCOMPLETE', null, systimestamp);
 
     v_inc_a_low_id := alleles_seq.nextval;
-    insert into alleles (allele_id, gene_id, allele_code, dominance, trait_value, description, created_at, updated_at)
-    values (v_inc_a_low_id, v_inc_gene_id, 'LOW_' || v_suffix, 1, 0, 'strict_inc_low_' || v_suffix, systimestamp, systimestamp);
+    insert into alleles (allele_id, gene_id, dominance, trait_value, description, created_at)
+    values (v_inc_a_low_id, v_inc_gene_id, 1, 0, 'strict_inc_low_' || v_suffix, systimestamp);
 
     v_inc_a_mid_id := alleles_seq.nextval;
-    insert into alleles (allele_id, gene_id, allele_code, dominance, trait_value, description, created_at, updated_at)
-    values (v_inc_a_mid_id, v_inc_gene_id, 'MID_' || v_suffix, 1, 1, 'strict_inc_mid_' || v_suffix, systimestamp, systimestamp);
+    insert into alleles (allele_id, gene_id, dominance, trait_value, description, created_at)
+    values (v_inc_a_mid_id, v_inc_gene_id, 1, 1, 'strict_inc_mid_' || v_suffix, systimestamp);
 
     v_inc_a_high_id := alleles_seq.nextval;
-    insert into alleles (allele_id, gene_id, allele_code, dominance, trait_value, description, created_at, updated_at)
-    values (v_inc_a_high_id, v_inc_gene_id, 'HIGH_' || v_suffix, 1, 2, 'strict_inc_high_' || v_suffix, systimestamp, systimestamp);
+    insert into alleles (allele_id, gene_id, dominance, trait_value, description, created_at)
+    values (v_inc_a_high_id, v_inc_gene_id, 1, 2, 'strict_inc_high_' || v_suffix, systimestamp);
 
     v_codom_gene_id := genes_seq.nextval;
-    insert into genes (gene_id, gene_name, gene_type, species_type, dominance_type, linkage_group, created_at, updated_at)
-    values (v_codom_gene_id, 'strict_codom_' || v_suffix, 'strict_test', 0, 'CODOMINANT', null, systimestamp, systimestamp);
+    insert into genes (gene_id, gene_name, gene_type, species_type, dominance_type, linkage_group, created_at)
+    values (v_codom_gene_id, 'strict_codom_' || v_suffix, 'strict_test', 0, 'CODOMINANT', null, systimestamp);
 
     v_codom_a_id := alleles_seq.nextval;
-    insert into alleles (allele_id, gene_id, allele_code, dominance, trait_value, description, created_at, updated_at)
-    values (v_codom_a_id, v_codom_gene_id, 'A_' || v_suffix, 5, 10, 'strict_cod_a_' || v_suffix, systimestamp, systimestamp);
+    insert into alleles (allele_id, gene_id, dominance, trait_value, description, created_at)
+    values (v_codom_a_id, v_codom_gene_id, 5, 10, 'strict_cod_a_' || v_suffix, systimestamp);
 
     v_codom_b_id := alleles_seq.nextval;
-    insert into alleles (allele_id, gene_id, allele_code, dominance, trait_value, description, created_at, updated_at)
-    values (v_codom_b_id, v_codom_gene_id, 'B_' || v_suffix, 1, 20, 'strict_cod_b_' || v_suffix, systimestamp, systimestamp);
+    insert into alleles (allele_id, gene_id, dominance, trait_value, description, created_at)
+    values (v_codom_b_id, v_codom_gene_id, 1, 20, 'strict_cod_b_' || v_suffix, systimestamp);
 
     insert into genotypes (genotype_id, creature_id, gene_id, allele1_id, allele2_id, created_at)
     values (genotypes_seq.nextval, v_lab1_creature_id, v_inc_gene_id, v_inc_a_low_id, v_inc_a_high_id, systimestamp);
@@ -387,14 +389,13 @@ begin
 
         v_custom_task_id := tasks_seq.nextval;
         insert into tasks (
-            task_id, task_name, description, money_reward, rating_reward, created_at, updated_at
+            task_id, task_name, description, money_reward, rating_reward, created_at
         ) values (
             v_custom_task_id,
             'strict_auto_task_' || v_suffix,
             'Auto-complete task for strict test ' || v_suffix,
             11,
             5,
-            systimestamp,
             systimestamp
         );
 
@@ -411,12 +412,11 @@ begin
         );
 
         insert into task_markers (
-            task_marker_id, task_id, allele_id, created_at
+            task_marker_id, task_id, allele_id
         ) values (
             task_markers_seq.nextval,
             v_custom_task_id,
-            v_marker_allele_id,
-            systimestamp
+            v_marker_allele_id
         );
 
         v_buy_result := pkg_genetics_game.buy_mutation(v_lab1_id, v_mutation_id);
