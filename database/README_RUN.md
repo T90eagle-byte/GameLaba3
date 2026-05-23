@@ -6,7 +6,13 @@ This guide is for Oracle SQL Developer, SQLcl, or SQL*Plus.
 
 - The schema must have `EXECUTE` on `DBMS_CRYPTO`.
 - If `UTL_I18N` is used (for password hashing input encoding), the schema must also have `EXECUTE` on `UTL_I18N`.
+- The schema must have access to `DBMS_RANDOM`, because the package body uses it for random allele/mutation-related selection.
 - Without these grants, package body compilation can fail.
+
+Practical notes:
+
+- The DDL does not contain `DROP` blocks, so the first full run is best done in a clean schema.
+- If the project path contains spaces or Cyrillic characters, run SQL Developer/SQLcl from the project root or use quoted absolute paths to the `.sql` files.
 
 ## 1) Run DDL
 

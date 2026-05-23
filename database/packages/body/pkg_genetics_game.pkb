@@ -90,7 +90,8 @@ create or replace package body pkg_genetics_game as
         p_password      in varchar2,
         p_user_id       out number
     ) is
-        v_login_count number;
+        v_login_count    number;
+        v_password_hash  varchar2(64);
     begin
         if p_username is null then
             raise_application_error(-20001, 'Username cannot be null.');
@@ -117,6 +118,7 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20005, 'Login already exists.');
         end if;
 
+        v_password_hash := hash_password_sha256(p_password);
         p_user_id := users_seq.nextval;
 
         insert into users (
@@ -130,7 +132,7 @@ create or replace package body pkg_genetics_game as
             p_user_id,
             p_username,
             p_login,
-            hash_password_sha256(p_password),
+            v_password_hash,
             systimestamp,
             systimestamp
         );
@@ -204,15 +206,20 @@ create or replace package body pkg_genetics_game as
         p_username      in varchar2 default null,
         p_password      in varchar2 default null
     ) is
+        v_password_hash  varchar2(64);
     begin
         if p_username is null and p_password is null then
             return;
         end if;
 
+        if p_password is not null then
+            v_password_hash := hash_password_sha256(p_password);
+        end if;
+
         if p_username is not null and p_password is not null then
             update users u
                set u.username = p_username,
-                   u.password_hash = hash_password_sha256(p_password),
+                   u.password_hash = v_password_hash,
                    u.updated_at = systimestamp
              where u.user_id = p_user_id;
         elsif p_username is not null then
@@ -222,7 +229,7 @@ create or replace package body pkg_genetics_game as
              where u.user_id = p_user_id;
         else
             update users u
-               set u.password_hash = hash_password_sha256(p_password),
+               set u.password_hash = v_password_hash,
                    u.updated_at = systimestamp
              where u.user_id = p_user_id;
         end if;
