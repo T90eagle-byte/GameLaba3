@@ -1,122 +1,49 @@
-# AI Context: БиоСборка
+﻿# AI Context: БиоСборка
 
-## 1) Назначение проекта
+## 1) Проект
 
-`БиоСборка` — игра-симулятор генетического конструктора.
+БиоСборка — игра-симулятор генетического конструктора.
 
-Технологический принцип проекта:
-- backend полностью в Oracle PL/SQL;
-- Python 3.12 только как GUI-клиент и слой вызова API;
-- центральная точка бизнес-логики: `pkg_genetics_game`.
+Архитектура:
+- backend полностью на Oracle PL/SQL;
+- центральный backend-пакет: `pkg_genetics_game`;
+- Python — только GUI-клиент (подключение к Oracle, вызовы API, отображение данных).
 
-Ключевые источники требований:
-- `docs/ПСБД_ЛР1.pdf`
-- `docs/ПСБД_ЛР2.pdf`
+## 2) Текущий статус
 
-Оперативный контекст разработки:
-- markdown-документация в `docs/`
-- SQL/PLSQL-код в `database/`
+- Backend strict-pass завершен.
+- `pkg_genetics_game` (spec/body) компилируется на Oracle.
+- `USER_ERRORS` для `PKG_GENETICS_GAME` пустой.
+- Smoke-tests `01..07` проходят с `Failed: 0`.
 
-## 2) Текущий статус (зафиксирован)
+## 3) Новый завершенный этап
 
-PL/SQL backend MVP реализован полностью.
+Реализован первый Python GUI vertical slice:
+- Auth;
+- Lab Selection;
+- Main Window Shell.
 
-Состояние артефактов:
-- DDL готов: `database/ddl/01_create_tables.sql`
-- seed data готов: `database/seeds/01_seed_core_game_data.sql`
-- package spec готов: `database/packages/spec/pkg_genetics_game.pks`
-- package body готов: `database/packages/body/pkg_genetics_game.pkb`
-- stubs / `Not implemented yet` в package body больше нет
+Технологии GUI:
+- Python 3.12;
+- PySide6;
+- `python-oracledb` thin.
 
-Реализованы группы API:
-- auth/session
-- labs
-- creatures/genetics
-- crossbreed
-- mutations/experiments
-- tasks
+Создан единый стабильный Oracle connection на GUI-сессию (без pool), чтобы корректно работал package session context.
 
-Smoke-tests созданы:
-- `database/tests/01_auth_labs_smoke_test.sql`
-- `database/tests/02_seed_data_smoke_test.sql`
-- `database/tests/03_creature_generation_smoke_test.sql`
-- `database/tests/04_crossbreed_smoke_test.sql`
-- `database/tests/05_mutations_experiments_smoke_test.sql`
-- `database/tests/06_tasks_smoke_test.sql`
+## 4) Ключевые ограничения
 
-Порядок запуска и проверки уже зафиксирован в:
-- `database/README_RUN.md`
+- Python не переносит бизнес-логику из PL/SQL.
+- Python не считает генетику, скрещивание, мутации, экономику, задания и статистику.
+- Python не использует `dbms_output`.
+- Все игровые операции идут через API `pkg_genetics_game`.
 
-## 3) Архитектурные правила (обязательные)
+## 5) Следующий шаг
 
-1. Весь backend реализуется на Oracle PL/SQL.
-2. Центральная точка backend-логики — `pkg_genetics_game`.
-3. Python не является backend-слоем.
-4. Python используется только как:
-   - GUI
-   - слой подключения к Oracle
-   - слой вызова процедур/функций `pkg_genetics_game`
-   - слой отображения данных пользователю
-5. Python не считает:
-   - генетику
-   - скрещивание
-   - мутации
-   - экономику
-   - задания
-   - статистику лаборатории
-6. Python не использует `dbms_output` как источник данных.
-7. Все GUI-данные приходят только через:
-   - `SYS_REFCURSOR`
-   - OUT-параметры
-   - простые RETURN-типы
+Ручной прогон GUI на реальной Oracle БД:
+1. создать `venv`;
+2. установить `python_client/requirements.txt`;
+3. создать `python_client/.env` из `.env.example`;
+4. запустить `python_client/main.py`;
+5. проверить сценарии register/login/create lab/open lab/main shell/logout.
 
-## 4) Реализованные API в pkg_genetics_game.pkb
-
-- `register_user`
-- `login_user`
-- `logout_user`
-- `update_user_profile`
-- `start_new_lab`
-- `load_lab`
-- `switch_lab`
-- `list_user_labs`
-- `get_lab_stats`
-- `delete_lab`
-- `create_creature_of_type`
-- `generate_starting_creatures`
-- `get_phenotype`
-- `get_creatures_cursor`
-- `get_genotype_cursor`
-- `calculate_punnett_probabilities`
-- `crossbreed`
-- `rename_creature`
-- `show_mutation_shop`
-- `buy_mutation`
-- `apply_mutation`
-- `apply_mutagen`
-- `make_experiment`
-- `get_experiment_history`
-- `get_tasks_cursor`
-- `check_task`
-- `complete_task`
-
-## 5) Что важно перед следующим этапом
-
-Следующая практическая цель — реальный прогон в Oracle всей цепочки:
-
-1. `database/ddl/01_create_tables.sql`
-2. `database/seeds/01_seed_core_game_data.sql`
-3. `database/packages/spec/pkg_genetics_game.pks`
-4. `database/packages/body/pkg_genetics_game.pkb`
-5. `database/tests/01_auth_labs_smoke_test.sql`
-6. `database/tests/02_seed_data_smoke_test.sql`
-7. `database/tests/03_creature_generation_smoke_test.sql`
-8. `database/tests/04_crossbreed_smoke_test.sql`
-9. `database/tests/05_mutations_experiments_smoke_test.sql`
-10. `database/tests/06_tasks_smoke_test.sql`
-
-Проверка компиляции:
-- `show errors package pkg_genetics_game`
-- `show errors package body pkg_genetics_game`
-- `select * from user_errors where upper(name) = 'PKG_GENETICS_GAME'`
-
+После успешной ручной проверки — этап реализации вкладки Creatures (`get_creatures_cursor`, `get_genotype_cursor`, phenotype/genotype view).

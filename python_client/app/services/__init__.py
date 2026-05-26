@@ -1,0 +1,1 @@
+"""Service-level helpers for GUI state and error mapping."""

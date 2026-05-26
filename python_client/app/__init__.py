@@ -1,0 +1,1 @@
+"""BioSborka GUI client package."""

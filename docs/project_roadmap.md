@@ -1,42 +1,52 @@
-# Project Roadmap
+﻿# Project Roadmap
 
-## 1) Backend baseline
+## 1) Backend strict-pass
 
-- Oracle DDL, seed data, package spec/body, and smoke-tests `01..06` were completed as baseline.
-- Backend architecture remains package-oriented with `pkg_genetics_game` as the central logic entry point.
+Статус: **завершен и подтвержден на реальном Oracle**.
 
-## 2) Strict compliance pass (no DDL)
+- `pkg_genetics_game` package spec/body компилируются успешно.
+- `USER_ERRORS` для `PKG_GENETICS_GAME` пустой.
+- Smoke-tests `01..07` проходят с `Failed: 0`.
+- Backend полностью остается в Oracle PL/SQL и соответствует strict-pass целям.
 
-The following strict-alignment updates were implemented:
+## 2) Python GUI Stage — Vertical Slice #1
 
-- `start_new_lab` now initializes a full starter lab (`30` creatures + `3` ACTIVE tasks).
-- `generate_starting_creatures` is protected from duplicate re-run creation.
-- gameplay API now uses session-aware access checks without public spec changes.
-- phenotype semantics were aligned for `FULL`, `INCOMPLETE`, and `CODOMINANT`.
-- `apply_mutagen` now has explicit behavior split for `RADIATION` vs `CHEMICAL` and validates unknown type.
-- automatic task check/completion was added after experiment flow (`crossbreed`, `apply_mutation`, `apply_mutagen`).
-- smoke-tests `01`, `03`, `04`, `05`, `06` were updated.
-- new `database/tests/07_strict_compliance_smoke_test.sql` was added.
+Статус: **реализован**.
 
-## 3) Oracle validation stage
+Собран первый desktop-срез на PySide6 + python-oracledb thin:
+- Auth window;
+- Lab Selection window;
+- Main Window Shell со статистикой лаборатории и вкладками-заглушками.
 
-Required run sequence:
+Принципы сохранены:
+- Python только GUI-клиент;
+- бизнес-логика не переносится из PL/SQL;
+- один стабильный Oracle connection на сессию GUI.
 
-1. `@database/packages/body/pkg_genetics_game.pkb`
-2. smoke-tests `01..07`
-3. `USER_ERRORS` verification
+## 3) Ближайший этап — ручная проверка GUI
 
-Goal: confirm strict-pass behavior in real Oracle runtime with no regressions.
+Порядок:
+1. Создать `venv`.
+2. Установить зависимости из `python_client/requirements.txt`.
+3. Создать `python_client/.env` из `.env.example`.
+4. Запустить `python_client/main.py`.
+5. Проверить сценарии: register, login, create lab, list labs, open lab, main shell, logout.
 
-## 4) Python GUI stage (after Oracle strict pass)
+## 4) Следующий coding-этап
 
-- Oracle connection and package API calls;
-- screens: auth, labs, creatures, genotype/phenotype, crossbreed, mutations, tasks, experiment history;
-- no backend/business logic in Python.
+После успешной ручной проверки перейти к вкладке **Creatures**:
+- вызов `get_creatures_cursor`;
+- вызов `get_genotype_cursor`;
+- показ `phenotype_summary`;
+- показ генотипа выбранного существа.
 
-## 5) Optional DDL track (separate approval)
+## 5) Дальнейшие GUI-этапы
 
-If strict LR requirements require creature generation tracking (`generation`), this should be implemented as a separate DDL change set with:
-- schema update;
-- targeted package adjustments;
-- smoke-test updates.
+- Crossbreed screen
+- Mutations screen
+- Tasks screen
+- Experiment history screen
+
+## 6) Отдельный DDL-трек (по решению)
+
+Поле `generation` в `creatures` остается отдельным DDL-этапом и не входит в текущий GUI-срез.

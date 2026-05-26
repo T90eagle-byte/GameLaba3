@@ -1,66 +1,72 @@
-# Current Tasks
+﻿# Current Tasks
 
-## 1) Current status
+## 1) Текущий статус проекта
 
-Strict compliance pass (no DDL changes) is implemented in code and test scripts.
+- PL/SQL backend strict-pass завершен.
+- `pkg_genetics_game` (spec/body) компилируется на Oracle.
+- `USER_ERRORS` для `PKG_GENETICS_GAME` пустой.
+- Smoke-tests `01..07` проходят с `Failed: 0`.
+- Backend полностью остается в Oracle PL/SQL.
 
-Completed:
-- `start_new_lab` now does all startup work:
-  - creates lab;
-  - assigns 3 starter `ACTIVE` tasks;
-  - calls `generate_starting_creatures`.
-- expected state right after `start_new_lab`:
-  - `creature_count = 30`;
-  - `active_task_count = 3`.
-- `generate_starting_creatures` is idempotent and does not create a second batch of 30.
-- gameplay access control is hardened via package session context:
-  - `g_current_user_id`;
-  - `g_current_session_id`;
-  - `g_current_session_token`;
-  - private helpers `require_current_session`, `assert_lab_access`, `assert_creature_access`.
-- access checks were added to gameplay API without changing public package spec.
-- `get_phenotype` dominance semantics are strict:
-  - `FULL` -> numeric dominance;
-  - `INCOMPLETE` -> intermediate phenotype for different alleles;
-  - `CODOMINANT` -> both traits for different alleles.
-- `apply_mutagen` now differentiates `RADIATION` and `CHEMICAL`; unknown type raises explicit error.
-- auto task check is triggered after:
-  - `crossbreed`;
-  - `apply_mutation`;
-  - `apply_mutagen`.
-- startup flow (`start_new_lab`, initial generation) does not auto-complete tasks.
-- smoke-tests updated for strict startup behavior:
-  - `01`, `03`, `04`, `05`, `06`.
-- new strict compliance test added:
-  - `database/tests/07_strict_compliance_smoke_test.sql`.
+## 2) Последний завершенный этап
 
-## 2) Immediate next step
+Реализован первый Python GUI vertical slice: **Auth + Lab Selection + Main Window Shell**.
 
-Run full Oracle validation after strict-pass changes:
+Создано:
+- `python_client/main.py`
+- `python_client/requirements.txt`
+- `python_client/.env.example`
+- `python_client/app/__init__.py`
+- `python_client/app/config.py`
+- `python_client/app/db/__init__.py`
+- `python_client/app/db/connection.py`
+- `python_client/app/db/pkg_api.py`
+- `python_client/app/services/__init__.py`
+- `python_client/app/services/session_state.py`
+- `python_client/app/services/oracle_errors.py`
+- `python_client/app/gui/__init__.py`
+- `python_client/app/gui/app.py`
+- `python_client/app/gui/styles.py`
+- `python_client/app/gui/auth_window.py`
+- `python_client/app/gui/lab_window.py`
+- `python_client/app/gui/main_window.py`
 
-1. `@database/packages/body/pkg_genetics_game.pkb`
-2. `@database/tests/01_auth_labs_smoke_test.sql`
-3. `@database/tests/02_seed_data_smoke_test.sql`
-4. `@database/tests/03_creature_generation_smoke_test.sql`
-5. `@database/tests/04_crossbreed_smoke_test.sql`
-6. `@database/tests/05_mutations_experiments_smoke_test.sql`
-7. `@database/tests/06_tasks_smoke_test.sql`
-8. `@database/tests/07_strict_compliance_smoke_test.sql`
+Реализовано в GUI:
+- PySide6-клиент;
+- Oracle thin connection через `python-oracledb`;
+- один стабильный Oracle connection на GUI-сессию (без pool);
+- auth flow: `register_user` / `login_user` / `logout_user`;
+- lab flow: `list_user_labs` / `start_new_lab` / `load_lab` / `switch_lab`;
+- main shell со статистикой лаборатории и вкладками-заглушками;
+- `python -m compileall python_client` проходит успешно.
 
-Compile checks:
-- `show errors package pkg_genetics_game`
-- `show errors package body pkg_genetics_game`
-- `select * from user_errors where upper(name) = 'PKG_GENETICS_GAME'`
+## 3) Ближайший следующий этап
 
-## 3) Next stage after successful strict run
+Ручная проверка GUI на реальной Oracle БД:
+1. Создать `venv`.
+2. Установить `python_client/requirements.txt`.
+3. Создать `python_client/.env` из `.env.example`.
+4. Запустить `python_client/main.py`.
+5. Проверить сценарии:
+   - register
+   - login
+   - create lab
+   - list labs
+   - open lab
+   - main shell
+   - logout
 
-Start Python GUI client (without moving business logic from PL/SQL):
-- Oracle connection;
-- auth window;
-- lab selection/creation;
-- creatures view + genotype/phenotype view;
-- crossbreed, mutations, tasks, experiment history screens.
+## 4) Следующий coding-этап после ручной проверки
 
-## 4) Open item requiring separate approval
+Вкладка **Creatures**:
+- интеграция `get_creatures_cursor`;
+- интеграция `get_genotype_cursor`;
+- отображение `phenotype_summary`;
+- показ генотипа выбранного существа.
 
-If strict LR requirements require creature generation tracking (`generation` column), it will need DDL changes and a separate approved change set.
+## 5) Архитектурные ограничения (не менять)
+
+- Python не переносит backend-логику из PL/SQL.
+- Python не использует `dbms_output`.
+- Все игровые операции идут через `pkg_genetics_game`.
+- Один connection должен жить от `login_user` до `logout_user` (package session context).

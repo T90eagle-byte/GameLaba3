@@ -1,0 +1,1 @@
+"""Qt GUI layer for BioSborka."""
