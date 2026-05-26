@@ -24,12 +24,12 @@ from app.db.pkg_api import PkgApi
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
 from app.services.display_names import (
-    creature_name_label,
+    display_creature_name,
+    display_gene_name,
+    display_trait_value,
     display_value,
-    gene_label,
-    phenotype_summary_label,
+    format_phenotype_summary,
     species_label,
-    trait_label,
 )
 
 
@@ -242,7 +242,7 @@ class CrossbreedTab(QWidget):
             if creature_id is None:
                 continue
 
-            name = creature_name_label(creature.get("creature_name"))
+            name = display_creature_name(creature.get("creature_name"))
             species_text = self._species_text(creature.get("species_type"))
             combo.addItem(f"{creature_id} | {name} | {species_text}", creature_id)
 
@@ -269,9 +269,9 @@ class CrossbreedTab(QWidget):
             return
 
         fields["creature_id"].setText(self._display(creature.get("creature_id")))
-        fields["creature_name"].setText(creature_name_label(creature.get("creature_name")))
+        fields["creature_name"].setText(display_creature_name(creature.get("creature_name")))
         fields["species_type"].setText(species_label(creature.get("species_type")))
-        fields["phenotype_summary"].setText(phenotype_summary_label(creature.get("phenotype_summary")))
+        fields["phenotype_summary"].setText(format_phenotype_summary(creature.get("phenotype_summary")))
 
     def _selected_creature(self, creature_id: Any) -> dict[str, Any] | None:
         cid = self._to_int(creature_id)
@@ -298,12 +298,12 @@ class CrossbreedTab(QWidget):
             return
 
         map_a = {
-            self._to_int(row.get("gene_id")): gene_label(row.get("gene_name"))
+            self._to_int(row.get("gene_id")): display_gene_name(row.get("gene_name"))
             for row in genes_a
             if self._to_int(row.get("gene_id")) is not None
         }
         map_b = {
-            self._to_int(row.get("gene_id")): gene_label(row.get("gene_name"))
+            self._to_int(row.get("gene_id")): display_gene_name(row.get("gene_name"))
             for row in genes_b
             if self._to_int(row.get("gene_id")) is not None
         }
@@ -343,8 +343,8 @@ class CrossbreedTab(QWidget):
             self._set_table_item(row_idx, 0, row.get("allele1_id"), center=True)
             self._set_table_item(row_idx, 1, row.get("allele2_id"), center=True)
             self._set_table_item(row_idx, 2, self._format_probability(row.get("probability")), center=True)
-            self._set_table_item(row_idx, 3, trait_label(row.get("allele1_description")), tooltip=True)
-            self._set_table_item(row_idx, 4, trait_label(row.get("allele2_description")), tooltip=True)
+            self._set_table_item(row_idx, 3, display_trait_value(row.get("allele1_description")), tooltip=True)
+            self._set_table_item(row_idx, 4, display_trait_value(row.get("allele2_description")), tooltip=True)
 
         if self.probabilities_table.rowCount() == 0:
             QMessageBox.information(self, "Генетический эксперимент", "Для выбранного гена нет данных вероятностей.")

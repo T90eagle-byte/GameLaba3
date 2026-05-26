@@ -22,15 +22,16 @@ from app.db.pkg_api import PkgApi
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
 from app.services.display_names import (
-    creature_name_label,
+    display_creature_name,
+    display_gene_name,
+    display_gene_type,
+    display_mutation_name,
+    display_trait_value,
     display_value,
-    gene_label,
+    format_phenotype_summary,
     mutagen_type_label,
-    mutation_name_label,
     mutation_type_label,
-    phenotype_summary_label,
     species_label,
-    trait_label,
 )
 
 
@@ -304,7 +305,7 @@ class MutationsTab(QWidget):
         for row_idx, row in enumerate(self._shop_rows):
             self.shop_table.insertRow(row_idx)
             self._set_shop_item(row_idx, 0, row.get("mutation_id"), center=True)
-            self._set_shop_item(row_idx, 1, mutation_name_label(row.get("mutation_name")))
+            self._set_shop_item(row_idx, 1, display_mutation_name(row.get("mutation_name")))
             self._set_shop_item(row_idx, 2, self._mutation_type_display(row.get("mutation_type")), center=True)
             self._set_shop_item(row_idx, 3, row.get("description"))
             self._set_shop_item(row_idx, 4, row.get("price"), center=True)
@@ -448,7 +449,7 @@ class MutationsTab(QWidget):
         mutation_id = self._to_int(mutation.get("mutation_id"))
 
         self.selected_mutation_id_label.setText(self._display(mutation.get("mutation_id")))
-        self.selected_mutation_name_label.setText(mutation_name_label(mutation.get("mutation_name")))
+        self.selected_mutation_name_label.setText(display_mutation_name(mutation.get("mutation_name")))
         self.selected_mutation_price_label.setText(self._display(mutation.get("price")))
 
         self._load_mutation_targets_and_compatibility(mutation_id)
@@ -470,9 +471,9 @@ class MutationsTab(QWidget):
             return
 
         self.creature_id_label.setText(self._display(creature.get("creature_id")))
-        self.creature_name_label.setText(creature_name_label(creature.get("creature_name")))
+        self.creature_name_label.setText(display_creature_name(creature.get("creature_name")))
         self.creature_species_label.setText(species_label(creature.get("species_type")))
-        self.creature_phenotype_label.setText(phenotype_summary_label(creature.get("phenotype_summary")))
+        self.creature_phenotype_label.setText(format_phenotype_summary(creature.get("phenotype_summary")))
         self._update_apply_mutation_state()
 
     def _on_compatibility_filter_toggled(self) -> None:
@@ -511,12 +512,12 @@ class MutationsTab(QWidget):
         for row_idx, row in enumerate(rows):
             self.target_genes_table.insertRow(row_idx)
             self._set_target_item(row_idx, 0, row.get("gene_id"), center=True)
-            self._set_target_item(row_idx, 1, gene_label(row.get("gene_name")) )
-            self._set_target_item(row_idx, 2, row.get("gene_type"))
+            self._set_target_item(row_idx, 1, display_gene_name(row.get("gene_name")) )
+            self._set_target_item(row_idx, 2, display_gene_type(row.get("gene_type")))
             self._set_target_item(row_idx, 3, species_label(row.get("species_type")), center=True)
             self._set_target_item(row_idx, 4, row.get("target_slot"), center=True)
             self._set_target_item(row_idx, 5, self._trait_display(row.get("trait_value")), center=True)
-            self._set_target_item(row_idx, 6, trait_label(row.get("target_allele_description")))
+            self._set_target_item(row_idx, 6, display_trait_value(row.get("target_allele_description")))
 
     def _update_target_hint(self) -> None:
         if not self._target_genes:
@@ -525,7 +526,7 @@ class MutationsTab(QWidget):
 
         names: list[str] = []
         for row in self._target_genes:
-            gene_name = gene_label(row.get("gene_name"))
+            gene_name = display_gene_name(row.get("gene_name"))
             if gene_name != "Не указано" and gene_name not in names:
                 names.append(gene_name)
 
@@ -565,7 +566,7 @@ class MutationsTab(QWidget):
             if filter_only_compatible and not is_compatible:
                 continue
 
-            name = creature_name_label(creature.get("creature_name"))
+            name = display_creature_name(creature.get("creature_name"))
             species_text = species_label(creature.get("species_type"))
 
             if mutation_id is None:
@@ -666,4 +667,4 @@ class MutationsTab(QWidget):
 
     @staticmethod
     def _trait_display(value: Any) -> str:
-        return trait_label(value)
+        return display_trait_value(value)

@@ -23,10 +23,10 @@ from app.db.pkg_api import PkgApi
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
 from app.services.display_names import (
-    creature_name_label,
+    display_creature_name,
+    display_mutation_name,
     display_value,
     experiment_type_label,
-    mutation_name_label,
 )
 
 
@@ -184,13 +184,13 @@ class HistoryTab(QWidget):
             self._set_table_item(row_idx, 0, experiment_id, center=True)
             self._set_table_item(row_idx, 1, type_display, center=True)
             self._set_table_item(row_idx, 2, row.get("parent1_id"), center=True)
-            self._set_table_item(row_idx, 3, creature_name_label(row.get("parent1_name")))
+            self._set_table_item(row_idx, 3, display_creature_name(row.get("parent1_name")))
             self._set_table_item(row_idx, 4, row.get("parent2_id"), center=True)
-            self._set_table_item(row_idx, 5, creature_name_label(row.get("parent2_name")))
+            self._set_table_item(row_idx, 5, display_creature_name(row.get("parent2_name")))
             self._set_table_item(row_idx, 6, row.get("offspring_id"), center=True)
-            self._set_table_item(row_idx, 7, creature_name_label(row.get("offspring_name")))
+            self._set_table_item(row_idx, 7, display_creature_name(row.get("offspring_name")))
             self._set_table_item(row_idx, 8, row.get("mutation_id"), center=True)
-            self._set_table_item(row_idx, 9, mutation_name_label(row.get("mutation_name")))
+            self._set_table_item(row_idx, 9, display_mutation_name(row.get("mutation_name")))
             self._set_table_item(row_idx, 10, self._display_datetime(row.get("created_at")), center=True)
 
             if selected_experiment_id is not None and experiment_id == selected_experiment_id:
@@ -222,7 +222,7 @@ class HistoryTab(QWidget):
         self.lbl_offspring.setText(self._entity_text(row.get("offspring_id"), row.get("offspring_name")))
 
         mutation_id = self._to_int(row.get("mutation_id"))
-        mutation_name = mutation_name_label(row.get("mutation_name"))
+        mutation_name = display_mutation_name(row.get("mutation_name"))
         if mutation_id is None:
             self.lbl_mutation.setText("Без мутации")
         else:
@@ -290,7 +290,7 @@ class HistoryTab(QWidget):
 
     def _entity_text(self, entity_id: Any, entity_name: Any) -> str:
         value_id = self._to_int(entity_id)
-        value_name = creature_name_label(entity_name)
+        value_name = display_creature_name(entity_name)
 
         if value_id is None and value_name == "Не указано":
             return "Нет данных"

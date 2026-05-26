@@ -23,39 +23,15 @@ from app.db.pkg_api import PkgApi
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
 from app.services.display_names import (
-    creature_name_label,
-    gene_label,
-    gene_type_label,
-    phenotype_summary_label,
-    trait_label,
+    display_creature_name,
+    display_gene_name,
+    display_gene_type,
+    display_trait_value,
+    dominance_label,
+    format_phenotype_summary,
+    species_label,
 )
 
-
-_SPECIES_LABELS = {
-    1: "Хрящевые рыбы",
-    2: "Костные рыбы",
-    3: "Ракообразные",
-    4: "Моллюски",
-    5: "Черепахи",
-    6: "Млекопитающие",
-}
-
-_TRAIT_VALUE_LABELS = {
-    "green_color": "зелёная окраска",
-    "blue_color": "синяя окраска",
-    "compact_size": "компактный размер",
-    "large_size": "крупный размер",
-    "herbivore": "травоядный тип питания",
-    "carnivore": "хищный тип питания",
-    "no_wings": "без крыльев",
-    "wings": "есть крылья",
-}
-
-_DOMINANCE_LABELS = {
-    "FULL": "Полное доминирование",
-    "INCOMPLETE": "Неполное доминирование",
-    "CODOMINANT": "Кодоминирование",
-}
 
 
 class CreaturesTab(QWidget):
@@ -334,7 +310,7 @@ class CreaturesTab(QWidget):
                 self._gene_display(rec.get("gene_name")),
                 tooltip=True,
             )
-            self._set_table_item(self.genotype_table, row_idx, 1, gene_type_label(rec.get("gene_type")), tooltip=True)
+            self._set_table_item(self.genotype_table, row_idx, 1, display_gene_type(rec.get("gene_type")), tooltip=True)
             self._set_table_item(
                 self.genotype_table,
                 row_idx,
@@ -408,34 +384,28 @@ class CreaturesTab(QWidget):
 
     @staticmethod
     def _species_name(value: Any) -> str:
-        species_id = CreaturesTab._to_int(value)
-        if species_id is None:
-            return "Не указано"
-        return _SPECIES_LABELS.get(species_id, f"Тип {species_id}")
+        return species_label(value)
 
     @staticmethod
     def _trait_display(value: Any) -> str:
-        return trait_label(value)
+        return display_trait_value(value)
 
     @staticmethod
     def _dominance_display(value: Any) -> str:
-        code = CreaturesTab._display(value).upper()
-        label = _DOMINANCE_LABELS.get(code)
-        if label is None:
-            return CreaturesTab._display(value)
-        return f"{label} ({code})"
+        return dominance_label(value, with_code=False)
 
     @staticmethod
     def _gene_display(value: Any) -> str:
-        return gene_label(value)
+        return display_gene_name(value)
 
     @staticmethod
     def _creature_name_display(value: Any) -> str:
-        return creature_name_label(value)
+        return display_creature_name(value)
 
     @staticmethod
     def _phenotype_summary_display(value: Any) -> str:
-        return phenotype_summary_label(value)
+        return format_phenotype_summary(value)
+
     @staticmethod
     def _to_int(value: Any) -> int | None:
         if value is None:
