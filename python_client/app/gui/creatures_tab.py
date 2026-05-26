@@ -1,0 +1,297 @@
+﻿from __future__ import annotations
+
+from typing import Any
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QFormLayout,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QSplitter,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+from app.db.pkg_api import PkgApi
+from app.services.oracle_errors import map_oracle_error
+from app.services.session_state import SessionState
+
+
+_SPECIES_LABELS = {
+    1: "Cartilaginous fish",
+    2: "Bony fish",
+    3: "Crustacean",
+    4: "Mollusk",
+    5: "Turtle",
+    6: "Mammal",
+}
+
+
+class CreaturesTab(QWidget):
+    def __init__(self, pkg_api: PkgApi, state: SessionState) -> None:
+        super().__init__()
+        self.pkg_api = pkg_api
+        self.state = state
+
+        self._creatures: list[dict[str, Any]] = []
+        self._build_ui()
+
+    def _build_ui(self) -> None:
+        root = QVBoxLayout(self)
+        root.setContentsMargins(8, 8, 8, 8)
+        root.setSpacing(10)
+
+        toolbar = QHBoxLayout()
+        title = QLabel("Creature Collection")
+        title.setObjectName("title")
+        subtitle = QLabel("Lab creatures, phenotype card, and genotype details")
+        subtitle.setObjectName("subtitle")
+
+        heading = QVBoxLayout()
+        heading.addWidget(title)
+        heading.addWidget(subtitle)
+
+        self.refresh_btn = QPushButton("Refresh")
+        self.refresh_btn.setProperty("role", "secondary")
+        self.refresh_btn.clicked.connect(self.refresh_data)
+
+        toolbar.addLayout(heading)
+        toolbar.addStretch()
+        toolbar.addWidget(self.refresh_btn)
+
+        root.addLayout(toolbar)
+
+        splitter = QSplitter(Qt.Horizontal)
+
+        left_panel = QFrame()
+        left_panel.setProperty("card", "true")
+        left_layout = QVBoxLayout(left_panel)
+        left_layout.setContentsMargins(10, 10, 10, 10)
+
+        self.creatures_table = QTableWidget(0, 8)
+        self.creatures_table.setHorizontalHeaderLabels(
+            [
+                "ID",
+                "Name",
+                "Species",
+                "Color",
+                "Size",
+                "Wings",
+                "Nutrition",
+                "Phenotype summary",
+            ]
+        )
+        self.creatures_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.creatures_table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.creatures_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.creatures_table.verticalHeader().setVisible(False)
+        self.creatures_table.horizontalHeader().setStretchLastSection(True)
+        self.creatures_table.itemSelectionChanged.connect(self._on_creature_selected)
+
+        left_layout.addWidget(self.creatures_table)
+        splitter.addWidget(left_panel)
+
+        right_panel = QFrame()
+        right_panel.setProperty("card", "true")
+        right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(10, 10, 10, 10)
+        right_layout.setSpacing(10)
+
+        card_title = QLabel("Selected Creature")
+        card_title.setObjectName("subtitle")
+        right_layout.addWidget(card_title)
+
+        info_form = QFormLayout()
+        info_form.setLabelAlignment(Qt.AlignRight)
+
+        self.lbl_creature_id = QLabel("-")
+        self.lbl_creature_name = QLabel("-")
+        self.lbl_species = QLabel("-")
+        self.lbl_color = QLabel("-")
+        self.lbl_size = QLabel("-")
+        self.lbl_wings = QLabel("-")
+        self.lbl_nutrition = QLabel("-")
+
+        info_form.addRow("ID:", self.lbl_creature_id)
+        info_form.addRow("Name:", self.lbl_creature_name)
+        info_form.addRow("Species:", self.lbl_species)
+        info_form.addRow("Color:", self.lbl_color)
+        info_form.addRow("Size:", self.lbl_size)
+        info_form.addRow("Wings:", self.lbl_wings)
+        info_form.addRow("Nutrition:", self.lbl_nutrition)
+
+        right_layout.addLayout(info_form)
+
+        summary_label = QLabel("Phenotype summary")
+        summary_label.setObjectName("subtitle")
+        right_layout.addWidget(summary_label)
+
+        self.phenotype_summary = QLabel("-")
+        self.phenotype_summary.setWordWrap(True)
+        self.phenotype_summary.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.phenotype_summary.setMinimumHeight(64)
+        right_layout.addWidget(self.phenotype_summary)
+
+        genotype_label = QLabel("Genotype")
+        genotype_label.setObjectName("subtitle")
+        right_layout.addWidget(genotype_label)
+
+        self.genotype_table = QTableWidget(0, 7)
+        self.genotype_table.setHorizontalHeaderLabels(
+            [
+                "Gene",
+                "Type",
+                "Dominance",
+                "Allele 1",
+                "Trait 1",
+                "Allele 2",
+                "Trait 2",
+            ]
+        )
+        self.genotype_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.genotype_table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.genotype_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.genotype_table.verticalHeader().setVisible(False)
+        self.genotype_table.horizontalHeader().setStretchLastSection(True)
+
+        right_layout.addWidget(self.genotype_table)
+
+        splitter.addWidget(right_panel)
+        splitter.setStretchFactor(0, 3)
+        splitter.setStretchFactor(1, 2)
+
+        root.addWidget(splitter)
+
+    def refresh_data(self) -> None:
+        lab_id = self.state.selected_lab_id
+        if lab_id is None:
+            QMessageBox.warning(self, "Creatures", "Select a lab first.")
+            return
+
+        try:
+            self._creatures = self.pkg_api.get_creatures(lab_id)
+        except Exception as exc:
+            QMessageBox.critical(self, "Creatures Error", map_oracle_error(exc))
+            return
+
+        self._fill_creatures_table()
+
+    def _fill_creatures_table(self) -> None:
+        self.creatures_table.setRowCount(0)
+
+        for row_idx, creature in enumerate(self._creatures):
+            self.creatures_table.insertRow(row_idx)
+            self._set_table_item(self.creatures_table, row_idx, 0, creature.get("creature_id"), center=True)
+            self._set_table_item(self.creatures_table, row_idx, 1, creature.get("creature_name"))
+            self._set_table_item(
+                self.creatures_table,
+                row_idx,
+                2,
+                self._species_name(creature.get("species_type")),
+                center=True,
+            )
+            self._set_table_item(self.creatures_table, row_idx, 3, creature.get("phenotype_color"))
+            self._set_table_item(self.creatures_table, row_idx, 4, creature.get("phenotype_size"))
+            self._set_table_item(self.creatures_table, row_idx, 5, creature.get("phenotype_has_wings"), center=True)
+            self._set_table_item(self.creatures_table, row_idx, 6, creature.get("phenotype_nutrition_type"))
+            self._set_table_item(self.creatures_table, row_idx, 7, creature.get("phenotype_summary"))
+
+        if self.creatures_table.rowCount() > 0:
+            self.creatures_table.selectRow(0)
+        else:
+            self._clear_selected_creature_card()
+
+    def _on_creature_selected(self) -> None:
+        row = self.creatures_table.currentRow()
+        if row < 0 or row >= len(self._creatures):
+            self._clear_selected_creature_card()
+            return
+
+        creature = self._creatures[row]
+        creature_id = self._to_int(creature.get("creature_id"))
+        if creature_id is None:
+            self._clear_selected_creature_card()
+            return
+
+        self._fill_selected_creature_card(creature)
+
+        try:
+            genotype_rows = self.pkg_api.get_genotype(creature_id)
+        except Exception as exc:
+            QMessageBox.critical(self, "Genotype Error", map_oracle_error(exc))
+            self.genotype_table.setRowCount(0)
+            return
+
+        self._fill_genotype_table(genotype_rows)
+
+    def _fill_selected_creature_card(self, creature: dict[str, Any]) -> None:
+        species_text = self._species_name(creature.get("species_type"))
+
+        self.lbl_creature_id.setText(self._display(creature.get("creature_id")))
+        self.lbl_creature_name.setText(self._display(creature.get("creature_name")))
+        self.lbl_species.setText(species_text)
+        self.lbl_color.setText(self._display(creature.get("phenotype_color")))
+        self.lbl_size.setText(self._display(creature.get("phenotype_size")))
+        self.lbl_wings.setText(self._display(creature.get("phenotype_has_wings")))
+        self.lbl_nutrition.setText(self._display(creature.get("phenotype_nutrition_type")))
+        self.phenotype_summary.setText(self._display(creature.get("phenotype_summary")))
+
+    def _fill_genotype_table(self, rows: list[dict[str, Any]]) -> None:
+        self.genotype_table.setRowCount(0)
+
+        for row_idx, rec in enumerate(rows):
+            self.genotype_table.insertRow(row_idx)
+            self._set_table_item(self.genotype_table, row_idx, 0, rec.get("gene_name"))
+            self._set_table_item(self.genotype_table, row_idx, 1, rec.get("gene_type"))
+            self._set_table_item(self.genotype_table, row_idx, 2, rec.get("dominance_type"), center=True)
+            self._set_table_item(self.genotype_table, row_idx, 3, rec.get("allele1_description"))
+            self._set_table_item(self.genotype_table, row_idx, 4, rec.get("allele1_trait_value"), center=True)
+            self._set_table_item(self.genotype_table, row_idx, 5, rec.get("allele2_description"))
+            self._set_table_item(self.genotype_table, row_idx, 6, rec.get("allele2_trait_value"), center=True)
+
+    def _clear_selected_creature_card(self) -> None:
+        self.lbl_creature_id.setText("-")
+        self.lbl_creature_name.setText("-")
+        self.lbl_species.setText("-")
+        self.lbl_color.setText("-")
+        self.lbl_size.setText("-")
+        self.lbl_wings.setText("-")
+        self.lbl_nutrition.setText("-")
+        self.phenotype_summary.setText("-")
+        self.genotype_table.setRowCount(0)
+
+    @staticmethod
+    def _set_table_item(table: QTableWidget, row: int, col: int, value: Any, center: bool = False) -> None:
+        item = QTableWidgetItem(CreaturesTab._display(value))
+        if center:
+            item.setTextAlignment(Qt.AlignCenter)
+        table.setItem(row, col, item)
+
+    @staticmethod
+    def _display(value: Any) -> str:
+        if value is None:
+            return "-"
+        text = str(value)
+        return text if text.strip() else "-"
+
+    @staticmethod
+    def _species_name(value: Any) -> str:
+        species_id = CreaturesTab._to_int(value)
+        if species_id is None:
+            return "-"
+        return _SPECIES_LABELS.get(species_id, f"Type {species_id}")
+
+    @staticmethod
+    def _to_int(value: Any) -> int | None:
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from app.db.pkg_api import PkgApi
 from app.gui.auth_window import AuthWindow
@@ -57,7 +57,7 @@ class GuiController:
             state=self.state,
             on_logout=self.logout_to_auth,
         )
-        self.main_window.refresh_stats()
+        self.main_window.refresh_main_shell()
         self.main_window.show()
 
     def logout_to_auth(self) -> None:

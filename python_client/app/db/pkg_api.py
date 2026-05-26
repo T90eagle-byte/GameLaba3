@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
@@ -126,3 +126,27 @@ class PkgApi:
                 "completed_task_count": self._as_int(out_completed_task_count.getvalue()),
                 "experiment_count": self._as_int(out_experiment_count.getvalue()),
             }
+
+    def get_creatures(self, lab_id: int) -> list[dict[str, Any]]:
+        with self._connection.cursor() as cursor:
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.get_creatures_cursor",
+                oracledb.DB_TYPE_CURSOR,
+                [lab_id],
+            )
+            try:
+                return self._rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()
+
+    def get_genotype(self, creature_id: int) -> list[dict[str, Any]]:
+        with self._connection.cursor() as cursor:
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.get_genotype_cursor",
+                oracledb.DB_TYPE_CURSOR,
+                [creature_id],
+            )
+            try:
+                return self._rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()

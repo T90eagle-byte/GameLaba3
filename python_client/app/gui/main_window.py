@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.db.pkg_api import PkgApi
+from app.gui.creatures_tab import CreaturesTab
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
 
@@ -26,8 +27,9 @@ class MainWindow(QWidget):
         self.on_logout = on_logout
 
         self.stat_labels: dict[str, QLabel] = {}
+        self.creatures_tab: CreaturesTab | None = None
 
-        self.setWindowTitle("БиоСборка - Главная лаборатория")
+        self.setWindowTitle("BioSborka - Main Lab")
         self.setMinimumSize(980, 640)
         self._build_ui()
 
@@ -39,9 +41,9 @@ class MainWindow(QWidget):
         title_row = QHBoxLayout()
 
         title_col = QVBoxLayout()
-        title = QLabel("Главное окно лаборатории")
+        title = QLabel("Main Lab Window")
         title.setObjectName("title")
-        subtitle = QLabel("Backend logic выполняется в Oracle PL/SQL")
+        subtitle = QLabel("Gameplay backend is executed in Oracle PL/SQL")
         subtitle.setObjectName("subtitle")
         title_col.addWidget(title)
         title_col.addWidget(subtitle)
@@ -79,7 +81,10 @@ class MainWindow(QWidget):
         root.addWidget(stats_card)
 
         tabs = QTabWidget()
-        tabs.addTab(self._placeholder_tab("Существа"), "Существа")
+
+        self.creatures_tab = CreaturesTab(pkg_api=self.pkg_api, state=self.state)
+        tabs.addTab(self.creatures_tab, "Существа")
+
         tabs.addTab(self._placeholder_tab("Скрещивание"), "Скрещивание")
         tabs.addTab(self._placeholder_tab("Мутации"), "Мутации")
         tabs.addTab(self._placeholder_tab("Задания"), "Задания")
@@ -112,7 +117,7 @@ class MainWindow(QWidget):
         card.setProperty("card", "true")
         card_layout = QVBoxLayout(card)
 
-        label = QLabel(f"{name}: экран будет реализован на следующем этапе.")
+        label = QLabel(f"{name}: screen will be implemented in the next stage.")
         label.setAlignment(Qt.AlignCenter)
         label.setWordWrap(True)
         label.setStyleSheet("font-size: 15px; color: #374151;")
@@ -145,3 +150,8 @@ class MainWindow(QWidget):
         self.stat_labels["active_task_count"].setText(str(stats.get("active_task_count", 0)))
         self.stat_labels["completed_task_count"].setText(str(stats.get("completed_task_count", 0)))
         self.stat_labels["experiment_count"].setText(str(stats.get("experiment_count", 0)))
+
+    def refresh_main_shell(self) -> None:
+        self.refresh_stats()
+        if self.creatures_tab is not None:
+            self.creatures_tab.refresh_data()
