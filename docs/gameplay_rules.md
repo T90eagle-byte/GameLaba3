@@ -103,3 +103,10 @@ Content compliance pass extended seed data without DDL/backend API changes.
 - Tasks expanded to `12` entries with `21` task markers.
 - Task markers include universal traits and species-specific markers for all `1..6`.
 - Python GUI still consumes backend-only logic and does not implement gameplay rules locally.
+
+## 10) UI Localization Rules
+
+- В БД и PL/SQL остаются технические коды (gene_name, enum, API signatures).
+- Пользовательский интерфейс преобразует эти коды в человекочитаемые русские подписи.
+- Преобразование относится только к display-слою и не меняет бизнес-логику.
+- phenotype_summary, полученный из PL/SQL, в GUI форматируется для чтения (display-only), без пересчёта фенотипа.

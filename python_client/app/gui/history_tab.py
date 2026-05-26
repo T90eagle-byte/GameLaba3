@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Any
@@ -22,6 +22,12 @@ from PySide6.QtWidgets import (
 from app.db.pkg_api import PkgApi
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
+from app.services.display_names import (
+    creature_name_label,
+    display_value,
+    experiment_type_label,
+    mutation_name_label,
+)
 
 
 _EXPERIMENT_TYPE_LABELS = {
@@ -169,7 +175,7 @@ class HistoryTab(QWidget):
 
             experiment_id = self._to_int(row.get("experiment_id"))
             type_code = self._display(row.get("experiment_type"))
-            type_label = self._experiment_type_ru(type_code)
+            type_label = experiment_type_label(type_code, with_code=False)
             if type_code == "Не указано":
                 type_display = type_label
             else:
@@ -178,13 +184,13 @@ class HistoryTab(QWidget):
             self._set_table_item(row_idx, 0, experiment_id, center=True)
             self._set_table_item(row_idx, 1, type_display, center=True)
             self._set_table_item(row_idx, 2, row.get("parent1_id"), center=True)
-            self._set_table_item(row_idx, 3, row.get("parent1_name"))
+            self._set_table_item(row_idx, 3, creature_name_label(row.get("parent1_name")))
             self._set_table_item(row_idx, 4, row.get("parent2_id"), center=True)
-            self._set_table_item(row_idx, 5, row.get("parent2_name"))
+            self._set_table_item(row_idx, 5, creature_name_label(row.get("parent2_name")))
             self._set_table_item(row_idx, 6, row.get("offspring_id"), center=True)
-            self._set_table_item(row_idx, 7, row.get("offspring_name"))
+            self._set_table_item(row_idx, 7, creature_name_label(row.get("offspring_name")))
             self._set_table_item(row_idx, 8, row.get("mutation_id"), center=True)
-            self._set_table_item(row_idx, 9, row.get("mutation_name"))
+            self._set_table_item(row_idx, 9, mutation_name_label(row.get("mutation_name")))
             self._set_table_item(row_idx, 10, self._display_datetime(row.get("created_at")), center=True)
 
             if selected_experiment_id is not None and experiment_id == selected_experiment_id:
@@ -205,7 +211,7 @@ class HistoryTab(QWidget):
             return
 
         type_code = self._display(row.get("experiment_type"))
-        type_ru = self._experiment_type_ru(type_code)
+        type_ru = experiment_type_label(type_code, with_code=False)
         if type_code == "Не указано":
             self.lbl_type.setText(type_ru)
         else:
@@ -216,7 +222,7 @@ class HistoryTab(QWidget):
         self.lbl_offspring.setText(self._entity_text(row.get("offspring_id"), row.get("offspring_name")))
 
         mutation_id = self._to_int(row.get("mutation_id"))
-        mutation_name = self._display(row.get("mutation_name"))
+        mutation_name = mutation_name_label(row.get("mutation_name"))
         if mutation_id is None:
             self.lbl_mutation.setText("Без мутации")
         else:
@@ -256,10 +262,7 @@ class HistoryTab(QWidget):
 
     @staticmethod
     def _display(value: Any) -> str:
-        if value is None:
-            return "Не указано"
-        text = str(value).strip()
-        return text if text else "Не указано"
+        return display_value(value)
 
     @staticmethod
     def _to_int(value: Any) -> int | None:
@@ -283,12 +286,11 @@ class HistoryTab(QWidget):
 
     @staticmethod
     def _experiment_type_ru(type_code: str) -> str:
-        upper_code = (type_code or "").upper()
-        return _EXPERIMENT_TYPE_LABELS.get(upper_code, "Неизвестный тип")
+        return experiment_type_label(type_code, with_code=False)
 
     def _entity_text(self, entity_id: Any, entity_name: Any) -> str:
         value_id = self._to_int(entity_id)
-        value_name = self._display(entity_name)
+        value_name = creature_name_label(entity_name)
 
         if value_id is None and value_name == "Не указано":
             return "Нет данных"

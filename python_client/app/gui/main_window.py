@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -37,7 +38,7 @@ class MainWindow(QWidget):
         self.history_tab: HistoryTab | None = None
 
         self.setWindowTitle("БиоСборка — Лаборатория")
-        self.setMinimumSize(1020, 680)
+        self.setMinimumSize(980, 640)
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -90,31 +91,31 @@ class MainWindow(QWidget):
         tabs = QTabWidget()
 
         self.creatures_tab = CreaturesTab(pkg_api=self.pkg_api, state=self.state)
-        tabs.addTab(self.creatures_tab, "Существа")
+        tabs.addTab(self._wrap_tab(self.creatures_tab), "Существа")
 
         self.crossbreed_tab = CrossbreedTab(
             pkg_api=self.pkg_api,
             state=self.state,
             on_experiment_completed=self.refresh_main_shell,
         )
-        tabs.addTab(self.crossbreed_tab, "Генетический эксперимент")
+        tabs.addTab(self._wrap_tab(self.crossbreed_tab), "Генетический эксперимент")
 
         self.mutations_tab = MutationsTab(
             pkg_api=self.pkg_api,
             state=self.state,
             on_lab_data_changed=self.refresh_main_shell,
         )
-        tabs.addTab(self.mutations_tab, "Мутации")
+        tabs.addTab(self._wrap_tab(self.mutations_tab), "Мутации")
 
         self.tasks_tab = TasksTab(
             pkg_api=self.pkg_api,
             state=self.state,
             on_lab_data_changed=self.refresh_main_shell,
         )
-        tabs.addTab(self.tasks_tab, "Задания")
+        tabs.addTab(self._wrap_tab(self.tasks_tab), "Задания")
 
         self.history_tab = HistoryTab(pkg_api=self.pkg_api, state=self.state)
-        tabs.addTab(self.history_tab, "История экспериментов")
+        tabs.addTab(self._wrap_tab(self.history_tab), "История экспериментов")
 
         root.addWidget(tabs)
 
@@ -134,6 +135,14 @@ class MainWindow(QWidget):
         layout.addWidget(container, row, col)
 
         self.stat_labels[key] = value
+
+    @staticmethod
+    def _wrap_tab(tab_widget: QWidget) -> QScrollArea:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setWidget(tab_widget)
+        return scroll
 
     def refresh_stats(self) -> None:
         lab_id = self.state.selected_lab_id

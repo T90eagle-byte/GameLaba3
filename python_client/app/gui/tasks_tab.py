@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Callable
 
@@ -23,6 +23,14 @@ from PySide6.QtWidgets import (
 from app.db.pkg_api import PkgApi
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
+from app.services.display_names import (
+    creature_name_label,
+    display_value,
+    phenotype_summary_label,
+    species_label,
+    task_name_label,
+    task_status_label,
+)
 
 
 _SPECIES_LABELS = {
@@ -300,7 +308,7 @@ class TasksTab(QWidget):
             self.tasks_table.insertRow(row_idx)
             self._set_table_item(self.tasks_table, row_idx, 0, task.get("lab_task_id"), center=True)
             self._set_table_item(self.tasks_table, row_idx, 1, task.get("task_id"), center=True)
-            self._set_table_item(self.tasks_table, row_idx, 2, task.get("task_name"))
+            self._set_table_item(self.tasks_table, row_idx, 2, task_name_label(task.get("task_name")))
             self._set_table_item(self.tasks_table, row_idx, 3, task.get("description"))
             self._set_table_item(self.tasks_table, row_idx, 4, task.get("reward_money"), center=True)
             self._set_table_item(self.tasks_table, row_idx, 5, task.get("reward_rating"), center=True)
@@ -308,7 +316,7 @@ class TasksTab(QWidget):
                 self.tasks_table,
                 row_idx,
                 6,
-                self._status_display(task.get("task_status")),
+                task_status_label(task.get("task_status")),
                 center=True,
             )
             self._set_table_item(self.tasks_table, row_idx, 7, task.get("created_at"), center=True)
@@ -339,8 +347,8 @@ class TasksTab(QWidget):
             if creature_id is None:
                 continue
 
-            name = self._display(creature.get("creature_name"))
-            species = self._species_text(creature.get("species_type"))
+            name = creature_name_label(creature.get("creature_name"))
+            species = species_label(creature.get("species_type"))
             self.creature_combo.addItem(f"{creature_id} | {name} | {species}", creature_id)
 
             if selected_creature_id is not None and creature_id == selected_creature_id:
@@ -363,11 +371,11 @@ class TasksTab(QWidget):
             self._update_status_hint()
             return
 
-        self.task_name_label.setText(self._display(task.get("task_name")))
+        self.task_name_label.setText(task_name_label(task.get("task_name")))
         self.task_desc_label.setText(self._display(task.get("description")))
         self.task_reward_money_label.setText(self._display(task.get("reward_money")))
         self.task_reward_rating_label.setText(self._display(task.get("reward_rating")))
-        self.task_status_label.setText(self._status_display(task.get("task_status")))
+        self.task_status_label.setText(task_status_label(task.get("task_status")))
 
         self._update_status_hint()
 
@@ -386,9 +394,9 @@ class TasksTab(QWidget):
             return
 
         self.creature_id_label.setText(self._display(creature.get("creature_id")))
-        self.creature_name_label.setText(self._display(creature.get("creature_name")))
-        self.creature_species_label.setText(self._species_text(creature.get("species_type")))
-        self.creature_phenotype_label.setText(self._display(creature.get("phenotype_summary")))
+        self.creature_name_label.setText(creature_name_label(creature.get("creature_name")))
+        self.creature_species_label.setText(species_label(creature.get("species_type")))
+        self.creature_phenotype_label.setText(phenotype_summary_label(creature.get("phenotype_summary")))
 
         self._update_status_hint()
 
@@ -543,11 +551,7 @@ class TasksTab(QWidget):
 
     @staticmethod
     def _display(value: Any) -> str:
-        if value is None:
-            return "Не указано"
-
-        text = str(value).strip()
-        return text if text else "Не указано"
+        return display_value(value)
 
     @staticmethod
     def _to_int(value: Any) -> int | None:
@@ -560,20 +564,11 @@ class TasksTab(QWidget):
 
     @staticmethod
     def _species_text(species_value: Any) -> str:
-        species_id = TasksTab._to_int(species_value)
-        if species_id is None:
-            return "Не указано"
-        return _SPECIES_LABELS.get(species_id, f"Тип {species_id}")
+        return species_label(species_value)
 
     @staticmethod
     def _status_display(status_value: Any) -> str:
-        code = str(status_value).strip().upper() if status_value is not None else ""
-        if code == "":
-            return "Не указано"
-        label = _STATUS_LABELS.get(code)
-        if label is None:
-            return code
-        return f"{label} ({code})"
+        return task_status_label(status_value)
 
     @staticmethod
     def _oracle_error_code(exc: Exception) -> int | None:

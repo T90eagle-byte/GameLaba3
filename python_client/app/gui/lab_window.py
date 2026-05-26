@@ -82,6 +82,10 @@ class LabWindow(QWidget):
         self.open_btn = QPushButton("Открыть")
         self.open_btn.clicked.connect(self._open_selected_lab)
 
+        self.delete_btn = QPushButton("Удалить лабораторию")
+        self.delete_btn.setProperty("role", "secondary")
+        self.delete_btn.clicked.connect(self._delete_selected_lab)
+
         self.logout_btn = QPushButton("Выход")
         self.logout_btn.setProperty("role", "secondary")
         self.logout_btn.clicked.connect(self.on_logout)
@@ -90,6 +94,7 @@ class LabWindow(QWidget):
         actions.addStretch()
         actions.addWidget(self.create_btn)
         actions.addWidget(self.open_btn)
+        actions.addWidget(self.delete_btn)
         actions.addWidget(self.logout_btn)
 
         root.addLayout(actions)
@@ -171,3 +176,41 @@ class LabWindow(QWidget):
             self.on_open_lab(lab_id)
         except Exception as exc:
             QMessageBox.critical(self, "Ошибка открытия", map_oracle_error(exc))
+
+    def _delete_selected_lab(self) -> None:
+        token = self.state.session_token
+        if not token:
+            QMessageBox.warning(self, "Лаборатории", "Токен сессии отсутствует. Выполните вход заново.")
+            return
+
+        row = self.table.currentRow()
+        if row < 0:
+            QMessageBox.information(self, "Лаборатории", "Сначала выберите лабораторию в таблице.")
+            return
+
+        lab_id_item = self.table.item(row, 0)
+        if lab_id_item is None:
+            QMessageBox.warning(self, "Лаборатории", "Не удалось прочитать идентификатор лаборатории.")
+            return
+
+        lab_id = int(lab_id_item.text())
+
+        answer = QMessageBox.question(
+            self,
+            "Удаление лаборатории",
+            (
+                f"Вы действительно хотите удалить лабораторию {lab_id}?\n"
+                "Это действие необратимо."
+            ),
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if answer != QMessageBox.Yes:
+            return
+
+        try:
+            self.pkg_api.delete_lab(token, lab_id)
+            QMessageBox.information(self, "Лаборатории", f"Лаборатория {lab_id} удалена.")
+            self.refresh_labs()
+        except Exception as exc:
+            QMessageBox.critical(self, "Ошибка удаления", map_oracle_error(exc))

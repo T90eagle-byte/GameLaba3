@@ -116,6 +116,32 @@ QFrame[card='true'] {
     border-radius: 8px;
 }
 
+QScrollBar:vertical {
+    background: #eef2ff;
+    width: 12px;
+    margin: 0;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical {
+    background: #c7d2fe;
+    min-height: 24px;
+    border-radius: 6px;
+}
+
+QScrollBar:horizontal {
+    background: #eef2ff;
+    height: 12px;
+    margin: 0;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #c7d2fe;
+    min-width: 24px;
+    border-radius: 6px;
+}
+
 QMessageBox {
     background-color: #f8fafc;
 }

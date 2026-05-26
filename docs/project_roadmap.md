@@ -58,3 +58,19 @@ Result:
 Next:
 - confirm run on real Oracle;
 - proceed with next GUI feature slice (for example, Experiment History tab).
+
+## GUI Localization Pass (2026-05-26)
+
+Статус: выполнен (без изменений DDL и package API).
+
+Что сделано:
+- Seed-описания переведены на русский (genes/mutations/tasks).
+- Добавлен единый модуль отображения кодов: python_client/app/services/display_names.py.
+- Во вкладках GUI переведены отображаемые технические значения:
+  - gene/trait/phenotype summary;
+  - task/mutation display names;
+  - experiment/task/mutagen статусы.
+
+Архитектурный принцип сохранён:
+- backend-правила и расчёты — только Oracle PL/SQL;
+- Python — только отображение и вызов API.

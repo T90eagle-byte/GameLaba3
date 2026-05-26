@@ -338,19 +338,19 @@ begin
     -- -------------------------------------------------------------------------
     -- 1) Genes (4 universal + species-specific genes)
     -- -------------------------------------------------------------------------
-    upsert_gene('trait', 0, 'FULL', null, 'color', 'Body color trait');
-    upsert_gene('trait', 0, 'INCOMPLETE', null, 'size', 'Overall body size');
-    upsert_gene('trait', 0, 'CODOMINANT', null, 'nutrition_type', 'Feeding behavior');
-    upsert_gene('trait', 0, 'FULL', null, 'has_wings', 'Wing availability');
+    upsert_gene('trait', 0, 'FULL', null, 'color', 'Признак окраски тела');
+    upsert_gene('trait', 0, 'INCOMPLETE', null, 'size', 'Общий размер тела');
+    upsert_gene('trait', 0, 'CODOMINANT', null, 'nutrition_type', 'Тип питания');
+    upsert_gene('trait', 0, 'FULL', null, 'has_wings', 'Наличие крыльев');
 
-    upsert_gene('morphology', 1, 'FULL', 101, 'fin_shape', 'Fin shape for cartilaginous fish');
-    upsert_gene('morphology', 2, 'FULL', 201, 'fin_shape', 'Fin shape for bony fish');
-    upsert_gene('morphology', 3, 'FULL', null, 'shell_armor', 'Shell armor for crustaceans');
-    upsert_gene('morphology', 3, 'FULL', null, 'claw_form', 'Claw form for crustaceans');
-    upsert_gene('morphology', 4, 'FULL', null, 'beak_nose_shape', 'Beak or nose form for mollusks');
-    upsert_gene('morphology', 5, 'FULL', 501, 'shell_armor', 'Shell armor for turtles');
-    upsert_gene('performance', 5, 'FULL', 501, 'speed_level', 'Movement speed for turtles');
-    upsert_gene('morphology', 6, 'FULL', null, 'fur_density', 'Fur density for mammals');
+    upsert_gene('morphology', 1, 'FULL', 101, 'fin_shape', 'Форма плавника у хрящевых рыб');
+    upsert_gene('morphology', 2, 'FULL', 201, 'fin_shape', 'Форма плавника у костных рыб');
+    upsert_gene('morphology', 3, 'FULL', null, 'shell_armor', 'Панцирь у ракообразных');
+    upsert_gene('morphology', 3, 'FULL', null, 'claw_form', 'Форма клешней у ракообразных');
+    upsert_gene('morphology', 4, 'FULL', null, 'beak_nose_shape', 'Форма клюва/носа у моллюсков');
+    upsert_gene('morphology', 5, 'FULL', 501, 'shell_armor', 'Панцирь у черепах');
+    upsert_gene('performance', 5, 'FULL', 501, 'speed_level', 'Скорость передвижения у черепах');
+    upsert_gene('morphology', 6, 'FULL', null, 'fur_density', 'Плотность шерсти у млекопитающих');
 
     -- -------------------------------------------------------------------------
     -- 2) Alleles (minimum 2 per gene)
@@ -394,14 +394,14 @@ begin
     -- -------------------------------------------------------------------------
     -- 3) Mutations
     -- -------------------------------------------------------------------------
-    upsert_mutation('radiation_mutation', 1, 'Radiation-driven randomization pressure', 150, -5);
-    upsert_mutation('chemical_mutation', 2, 'Chemical transformation with controlled target', 130, -3);
-    upsert_mutation('enhanced_color_mutation', 3, 'Boost color expression toward green', 200, 2);
-    upsert_mutation('size_shift_mutation', 4, 'Shift body size toward large phenotype', 180, 1);
-    upsert_mutation('nutrition_shift_mutation', 5, 'Shift feeding strategy toward carnivore pattern', 160, 1);
-    upsert_mutation('wing_activation_mutation', 6, 'Activate wing trait expression where gene is present', 170, 1);
-    upsert_mutation('aquatic_form_mutation', 7, 'Aquatic morphology shift for fins and turtle shell profile', 190, 2);
-    upsert_mutation('morphology_refine_mutation', 8, 'Refine claws, beak/nose, and fur morphology', 210, 2);
+    upsert_mutation('radiation_mutation', 1, 'Радиационное воздействие с высоким уровнем случайности.', 150, -5);
+    upsert_mutation('chemical_mutation', 2, 'Химическое воздействие с более контролируемым результатом.', 130, -3);
+    upsert_mutation('enhanced_color_mutation', 3, 'Усиливает проявление зелёной окраски.', 200, 2);
+    upsert_mutation('size_shift_mutation', 4, 'Смещает размер в сторону крупного фенотипа.', 180, 1);
+    upsert_mutation('nutrition_shift_mutation', 5, 'Смещает тип питания в сторону хищного.', 160, 1);
+    upsert_mutation('wing_activation_mutation', 6, 'Активирует признак крыльев при наличии соответствующего гена.', 170, 1);
+    upsert_mutation('aquatic_form_mutation', 7, 'Изменяет водную морфологию плавников и черепашьего панциря.', 190, 2);
+    upsert_mutation('morphology_refine_mutation', 8, 'Тонкая корректировка клешней, клюва/носа и шерсти.', 210, 2);
 
     -- -------------------------------------------------------------------------
     -- 4) Mutation rules
@@ -427,84 +427,84 @@ begin
     -- -------------------------------------------------------------------------
     upsert_task(
         'task_green_specimen',
-        'Create a specimen with green body color.',
+        'Получите образец с зелёной окраской тела.',
         10,
         100
     );
 
     upsert_task(
         'task_winged_specimen',
-        'Create a winged specimen for visual study.',
+        'Получите образец с развитыми крыльями для визуального исследования.',
         12,
         120
     );
 
     upsert_task(
         'task_fast_turtle',
-        'Create a turtle with fast movement.',
+        'Получите черепаху с высокой скоростью передвижения.',
         15,
         150
     );
 
     upsert_task(
         'task_predator_fish_line',
-        'Create a bony fish predator with forked fin morphology.',
+        'Получите костную рыбу-хищника с раздвоенным плавником.',
         30,
         260
     );
 
     upsert_task(
         'task_armored_crustacean',
-        'Create a large armored crustacean with long claws.',
+        'Получите крупного ракообразного с прочным панцирем и длинными клешнями.',
         35,
         300
     );
 
     upsert_task(
         'task_dense_fur_mammal',
-        'Create a mammal line with dense fur and green color.',
+        'Получите линию млекопитающих с густой шерстью и зелёной окраской.',
         40,
         340
     );
 
     upsert_task(
         'task_cartilaginous_fin_line',
-        'Create a cartilaginous fish with broad_fin and carnivore nutrition.',
+        'Получите хрящевую рыбу с широким плавником и хищным типом питания.',
         28,
         250
     );
 
     upsert_task(
         'task_mollusk_sharp_profile',
-        'Create a mollusk with sharp_beak and green color.',
+        'Получите моллюска с острым клювом и зелёной окраской.',
         26,
         230
     );
 
     upsert_task(
         'task_large_specimen',
-        'Get a large specimen with the large_size trait.',
+        'Получите образец с крупным размером тела.',
         14,
         140
     );
 
     upsert_task(
         'task_herbivore_line',
-        'Build a herbivore creature line.',
+        'Сформируйте линию существ с травоядным типом питания.',
         16,
         160
     );
 
     upsert_task(
         'task_spiked_turtle',
-        'Create a turtle with spiked_shell and fast_speed.',
+        'Получите черепаху с шипастым панцирем и высокой скоростью.',
         24,
         220
     );
 
     upsert_task(
         'task_mammal_short_fur',
-        'Create a mammal with short_fur and compact_size.',
+        'Получите млекопитающее с короткой шерстью и компактным размером.',
         22,
         210
     );
@@ -548,3 +548,4 @@ end;
 /
 
 commit;
+

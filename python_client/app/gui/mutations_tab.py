@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Callable
 
@@ -21,6 +21,17 @@ from PySide6.QtWidgets import (
 from app.db.pkg_api import PkgApi
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
+from app.services.display_names import (
+    creature_name_label,
+    display_value,
+    gene_label,
+    mutagen_type_label,
+    mutation_name_label,
+    mutation_type_label,
+    phenotype_summary_label,
+    species_label,
+    trait_label,
+)
 
 
 _SPECIES_LABELS = {
@@ -35,6 +46,17 @@ _SPECIES_LABELS = {
 _MUTAGEN_TYPE_LABELS = {
     "RADIATION": "Радиационный",
     "CHEMICAL": "Химический",
+}
+
+_TRAIT_VALUE_LABELS = {
+    "green_color": "зелёная окраска",
+    "blue_color": "синяя окраска",
+    "compact_size": "компактный размер",
+    "large_size": "крупный размер",
+    "herbivore": "травоядный тип питания",
+    "carnivore": "хищный тип питания",
+    "no_wings": "без крыльев",
+    "wings": "есть крылья",
 }
 
 
@@ -282,7 +304,7 @@ class MutationsTab(QWidget):
         for row_idx, row in enumerate(self._shop_rows):
             self.shop_table.insertRow(row_idx)
             self._set_shop_item(row_idx, 0, row.get("mutation_id"), center=True)
-            self._set_shop_item(row_idx, 1, row.get("mutation_name"))
+            self._set_shop_item(row_idx, 1, mutation_name_label(row.get("mutation_name")))
             self._set_shop_item(row_idx, 2, self._mutation_type_display(row.get("mutation_type")), center=True)
             self._set_shop_item(row_idx, 3, row.get("description"))
             self._set_shop_item(row_idx, 4, row.get("price"), center=True)
@@ -401,7 +423,7 @@ class MutationsTab(QWidget):
             return
 
         self.new_creature_id_label.setText(str(new_creature_id))
-        mutagen_caption = _MUTAGEN_TYPE_LABELS.get(str(mutagen_type), str(mutagen_type))
+        mutagen_caption = mutagen_type_label(mutagen_type, with_code=False)
         QMessageBox.information(
             self,
             "Мутагены",
@@ -426,7 +448,7 @@ class MutationsTab(QWidget):
         mutation_id = self._to_int(mutation.get("mutation_id"))
 
         self.selected_mutation_id_label.setText(self._display(mutation.get("mutation_id")))
-        self.selected_mutation_name_label.setText(self._display(mutation.get("mutation_name")))
+        self.selected_mutation_name_label.setText(mutation_name_label(mutation.get("mutation_name")))
         self.selected_mutation_price_label.setText(self._display(mutation.get("price")))
 
         self._load_mutation_targets_and_compatibility(mutation_id)
@@ -448,9 +470,9 @@ class MutationsTab(QWidget):
             return
 
         self.creature_id_label.setText(self._display(creature.get("creature_id")))
-        self.creature_name_label.setText(self._display(creature.get("creature_name")))
-        self.creature_species_label.setText(self._species_text(creature.get("species_type")))
-        self.creature_phenotype_label.setText(self._display(creature.get("phenotype_summary")))
+        self.creature_name_label.setText(creature_name_label(creature.get("creature_name")))
+        self.creature_species_label.setText(species_label(creature.get("species_type")))
+        self.creature_phenotype_label.setText(phenotype_summary_label(creature.get("phenotype_summary")))
         self._update_apply_mutation_state()
 
     def _on_compatibility_filter_toggled(self) -> None:
@@ -489,12 +511,12 @@ class MutationsTab(QWidget):
         for row_idx, row in enumerate(rows):
             self.target_genes_table.insertRow(row_idx)
             self._set_target_item(row_idx, 0, row.get("gene_id"), center=True)
-            self._set_target_item(row_idx, 1, row.get("gene_name"))
+            self._set_target_item(row_idx, 1, gene_label(row.get("gene_name")) )
             self._set_target_item(row_idx, 2, row.get("gene_type"))
-            self._set_target_item(row_idx, 3, self._species_text(row.get("species_type")), center=True)
+            self._set_target_item(row_idx, 3, species_label(row.get("species_type")), center=True)
             self._set_target_item(row_idx, 4, row.get("target_slot"), center=True)
-            self._set_target_item(row_idx, 5, row.get("trait_value"), center=True)
-            self._set_target_item(row_idx, 6, row.get("target_allele_description"))
+            self._set_target_item(row_idx, 5, self._trait_display(row.get("trait_value")), center=True)
+            self._set_target_item(row_idx, 6, trait_label(row.get("target_allele_description")))
 
     def _update_target_hint(self) -> None:
         if not self._target_genes:
@@ -503,7 +525,7 @@ class MutationsTab(QWidget):
 
         names: list[str] = []
         for row in self._target_genes:
-            gene_name = self._display(row.get("gene_name"))
+            gene_name = gene_label(row.get("gene_name"))
             if gene_name != "Не указано" and gene_name not in names:
                 names.append(gene_name)
 
@@ -543,8 +565,8 @@ class MutationsTab(QWidget):
             if filter_only_compatible and not is_compatible:
                 continue
 
-            name = self._display(creature.get("creature_name"))
-            species_text = self._species_text(creature.get("species_type"))
+            name = creature_name_label(creature.get("creature_name"))
+            species_text = species_label(creature.get("species_type"))
 
             if mutation_id is None:
                 label = f"{creature_id} | {name} | {species_text}"
@@ -623,11 +645,7 @@ class MutationsTab(QWidget):
 
     @staticmethod
     def _display(value: Any) -> str:
-        if value is None:
-            return "Не указано"
-
-        text = str(value).strip()
-        return text if text else "Не указано"
+        return display_value(value)
 
     @staticmethod
     def _to_int(value: Any) -> int | None:
@@ -640,17 +658,12 @@ class MutationsTab(QWidget):
 
     @staticmethod
     def _species_text(species_value: Any) -> str:
-        species_id = MutationsTab._to_int(species_value)
-        if species_id is None:
-            return "Не указано"
-        return _SPECIES_LABELS.get(species_id, f"Тип {species_id}")
+        return species_label(species_value)
 
     @staticmethod
     def _mutation_type_display(value: Any) -> str:
-        code = str(value).strip().upper() if value is not None else ""
-        if code == "":
-            return "Не указано"
-        label = _MUTAGEN_TYPE_LABELS.get(code)
-        if label is None:
-            return code
-        return f"{code} / {label}"
+        return mutation_type_label(value)
+
+    @staticmethod
+    def _trait_display(value: Any) -> str:
+        return trait_label(value)

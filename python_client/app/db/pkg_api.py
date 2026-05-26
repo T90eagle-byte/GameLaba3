@@ -96,6 +96,10 @@ class PkgApi:
         with self._connection.cursor() as cursor:
             cursor.callproc("pkg_genetics_game.switch_lab", [session_token, lab_id])
 
+    def delete_lab(self, session_token: str, lab_id: int) -> None:
+        with self._connection.cursor() as cursor:
+            cursor.callproc("pkg_genetics_game.delete_lab", [session_token, lab_id])
+
     def get_lab_stats(self, lab_id: int) -> dict[str, Any]:
         with self._connection.cursor() as cursor:
             out_wallet = cursor.var(oracledb.DB_TYPE_NUMBER)
@@ -345,3 +349,6 @@ class PkgApi:
                 return self._rows_from_refcursor(ref_cursor)
             finally:
                 ref_cursor.close()
+
+
+

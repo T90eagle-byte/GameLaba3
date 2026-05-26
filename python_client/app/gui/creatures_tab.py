@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QFrame,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QMessageBox,
     QPushButton,
@@ -21,6 +22,13 @@ from PySide6.QtWidgets import (
 from app.db.pkg_api import PkgApi
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
+from app.services.display_names import (
+    creature_name_label,
+    gene_label,
+    gene_type_label,
+    phenotype_summary_label,
+    trait_label,
+)
 
 
 _SPECIES_LABELS = {
@@ -30,6 +38,23 @@ _SPECIES_LABELS = {
     4: "Моллюски",
     5: "Черепахи",
     6: "Млекопитающие",
+}
+
+_TRAIT_VALUE_LABELS = {
+    "green_color": "зелёная окраска",
+    "blue_color": "синяя окраска",
+    "compact_size": "компактный размер",
+    "large_size": "крупный размер",
+    "herbivore": "травоядный тип питания",
+    "carnivore": "хищный тип питания",
+    "no_wings": "без крыльев",
+    "wings": "есть крылья",
+}
+
+_DOMINANCE_LABELS = {
+    "FULL": "Полное доминирование",
+    "INCOMPLETE": "Неполное доминирование",
+    "CODOMINANT": "Кодоминирование",
 }
 
 
@@ -91,9 +116,18 @@ class CreaturesTab(QWidget):
         self.creatures_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.creatures_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.creatures_table.verticalHeader().setVisible(False)
-        self.creatures_table.horizontalHeader().setStretchLastSection(True)
         self.creatures_table.setAlternatingRowColors(True)
         self.creatures_table.itemSelectionChanged.connect(self._on_creature_selected)
+
+        header = self.creatures_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(6, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(7, QHeaderView.Stretch)
 
         left_layout.addWidget(self.creatures_table)
         splitter.addWidget(left_panel)
@@ -159,8 +193,16 @@ class CreaturesTab(QWidget):
         self.genotype_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.genotype_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.genotype_table.verticalHeader().setVisible(False)
-        self.genotype_table.horizontalHeader().setStretchLastSection(True)
         self.genotype_table.setAlternatingRowColors(True)
+
+        g_header = self.genotype_table.horizontalHeader()
+        g_header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        g_header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        g_header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        g_header.setSectionResizeMode(3, QHeaderView.Stretch)
+        g_header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        g_header.setSectionResizeMode(5, QHeaderView.Stretch)
+        g_header.setSectionResizeMode(6, QHeaderView.ResizeToContents)
 
         right_layout.addWidget(self.genotype_table)
 
@@ -190,7 +232,13 @@ class CreaturesTab(QWidget):
         for row_idx, creature in enumerate(self._creatures):
             self.creatures_table.insertRow(row_idx)
             self._set_table_item(self.creatures_table, row_idx, 0, creature.get("creature_id"), center=True)
-            self._set_table_item(self.creatures_table, row_idx, 1, creature.get("creature_name"))
+            self._set_table_item(
+                self.creatures_table,
+                row_idx,
+                1,
+                self._creature_name_display(creature.get("creature_name")),
+                tooltip=True,
+            )
             self._set_table_item(
                 self.creatures_table,
                 row_idx,
@@ -198,11 +246,41 @@ class CreaturesTab(QWidget):
                 self._species_name(creature.get("species_type")),
                 center=True,
             )
-            self._set_table_item(self.creatures_table, row_idx, 3, creature.get("phenotype_color"))
-            self._set_table_item(self.creatures_table, row_idx, 4, creature.get("phenotype_size"))
-            self._set_table_item(self.creatures_table, row_idx, 5, creature.get("phenotype_has_wings"), center=True)
-            self._set_table_item(self.creatures_table, row_idx, 6, creature.get("phenotype_nutrition_type"))
-            self._set_table_item(self.creatures_table, row_idx, 7, creature.get("phenotype_summary"))
+            self._set_table_item(
+                self.creatures_table,
+                row_idx,
+                3,
+                self._trait_display(creature.get("phenotype_color")),
+                tooltip=True,
+            )
+            self._set_table_item(
+                self.creatures_table,
+                row_idx,
+                4,
+                self._trait_display(creature.get("phenotype_size")),
+                tooltip=True,
+            )
+            self._set_table_item(
+                self.creatures_table,
+                row_idx,
+                5,
+                self._trait_display(creature.get("phenotype_has_wings")),
+                center=True,
+            )
+            self._set_table_item(
+                self.creatures_table,
+                row_idx,
+                6,
+                self._trait_display(creature.get("phenotype_nutrition_type")),
+                tooltip=True,
+            )
+            self._set_table_item(
+                self.creatures_table,
+                row_idx,
+                7,
+                self._phenotype_summary_display(creature.get("phenotype_summary")),
+                tooltip=True,
+            )
 
         if self.creatures_table.rowCount() > 0:
             self.creatures_table.selectRow(0)
@@ -236,26 +314,62 @@ class CreaturesTab(QWidget):
         species_text = self._species_name(creature.get("species_type"))
 
         self.lbl_creature_id.setText(self._display(creature.get("creature_id")))
-        self.lbl_creature_name.setText(self._display(creature.get("creature_name")))
+        self.lbl_creature_name.setText(self._creature_name_display(creature.get("creature_name")))
         self.lbl_species.setText(species_text)
-        self.lbl_color.setText(self._display(creature.get("phenotype_color")))
-        self.lbl_size.setText(self._display(creature.get("phenotype_size")))
-        self.lbl_wings.setText(self._display(creature.get("phenotype_has_wings")))
-        self.lbl_nutrition.setText(self._display(creature.get("phenotype_nutrition_type")))
-        self.phenotype_summary.setText(self._display(creature.get("phenotype_summary")))
+        self.lbl_color.setText(self._trait_display(creature.get("phenotype_color")))
+        self.lbl_size.setText(self._trait_display(creature.get("phenotype_size")))
+        self.lbl_wings.setText(self._trait_display(creature.get("phenotype_has_wings")))
+        self.lbl_nutrition.setText(self._trait_display(creature.get("phenotype_nutrition_type")))
+        self.phenotype_summary.setText(self._phenotype_summary_display(creature.get("phenotype_summary")))
 
     def _fill_genotype_table(self, rows: list[dict[str, Any]]) -> None:
         self.genotype_table.setRowCount(0)
 
         for row_idx, rec in enumerate(rows):
             self.genotype_table.insertRow(row_idx)
-            self._set_table_item(self.genotype_table, row_idx, 0, rec.get("gene_name"))
-            self._set_table_item(self.genotype_table, row_idx, 1, rec.get("gene_type"))
-            self._set_table_item(self.genotype_table, row_idx, 2, rec.get("dominance_type"), center=True)
-            self._set_table_item(self.genotype_table, row_idx, 3, rec.get("allele1_description"))
-            self._set_table_item(self.genotype_table, row_idx, 4, rec.get("allele1_trait_value"), center=True)
-            self._set_table_item(self.genotype_table, row_idx, 5, rec.get("allele2_description"))
-            self._set_table_item(self.genotype_table, row_idx, 6, rec.get("allele2_trait_value"), center=True)
+            self._set_table_item(
+                self.genotype_table,
+                row_idx,
+                0,
+                self._gene_display(rec.get("gene_name")),
+                tooltip=True,
+            )
+            self._set_table_item(self.genotype_table, row_idx, 1, gene_type_label(rec.get("gene_type")), tooltip=True)
+            self._set_table_item(
+                self.genotype_table,
+                row_idx,
+                2,
+                self._dominance_display(rec.get("dominance_type")),
+                center=True,
+            )
+            self._set_table_item(
+                self.genotype_table,
+                row_idx,
+                3,
+                self._trait_display(rec.get("allele1_description")),
+                tooltip=True,
+            )
+            self._set_table_item(
+                self.genotype_table,
+                row_idx,
+                4,
+                self._trait_display(rec.get("allele1_trait_value")),
+                tooltip=True,
+            )
+            self._set_table_item(
+                self.genotype_table,
+                row_idx,
+                5,
+                self._trait_display(rec.get("allele2_description")),
+                tooltip=True,
+            )
+            self._set_table_item(
+                self.genotype_table,
+                row_idx,
+                6,
+                self._trait_display(rec.get("allele2_trait_value")),
+                tooltip=True,
+            )
 
     def _clear_selected_creature_card(self) -> None:
         self.lbl_creature_id.setText("-")
@@ -269,10 +383,20 @@ class CreaturesTab(QWidget):
         self.genotype_table.setRowCount(0)
 
     @staticmethod
-    def _set_table_item(table: QTableWidget, row: int, col: int, value: Any, center: bool = False) -> None:
-        item = QTableWidgetItem(CreaturesTab._display(value))
+    def _set_table_item(
+        table: QTableWidget,
+        row: int,
+        col: int,
+        value: Any,
+        center: bool = False,
+        tooltip: bool = False,
+    ) -> None:
+        text = CreaturesTab._display(value)
+        item = QTableWidgetItem(text)
         if center:
             item.setTextAlignment(Qt.AlignCenter)
+        if tooltip:
+            item.setToolTip(text)
         table.setItem(row, col, item)
 
     @staticmethod
@@ -289,6 +413,29 @@ class CreaturesTab(QWidget):
             return "Не указано"
         return _SPECIES_LABELS.get(species_id, f"Тип {species_id}")
 
+    @staticmethod
+    def _trait_display(value: Any) -> str:
+        return trait_label(value)
+
+    @staticmethod
+    def _dominance_display(value: Any) -> str:
+        code = CreaturesTab._display(value).upper()
+        label = _DOMINANCE_LABELS.get(code)
+        if label is None:
+            return CreaturesTab._display(value)
+        return f"{label} ({code})"
+
+    @staticmethod
+    def _gene_display(value: Any) -> str:
+        return gene_label(value)
+
+    @staticmethod
+    def _creature_name_display(value: Any) -> str:
+        return creature_name_label(value)
+
+    @staticmethod
+    def _phenotype_summary_display(value: Any) -> str:
+        return phenotype_summary_label(value)
     @staticmethod
     def _to_int(value: Any) -> int | None:
         if value is None:

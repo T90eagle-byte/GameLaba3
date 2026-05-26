@@ -67,6 +67,9 @@ class AuthWindow(QWidget):
         form.addRow("Логин:", self.login_input)
         form.addRow("Пароль:", self.password_input)
 
+        self.login_input.returnPressed.connect(self._handle_login)
+        self.password_input.returnPressed.connect(self._handle_login)
+
         login_btn = QPushButton("Войти")
         login_btn.clicked.connect(self._handle_login)
 
@@ -105,6 +108,11 @@ class AuthWindow(QWidget):
         form.addRow("Логин:", self.reg_login_input)
         form.addRow("Пароль:", self.reg_password_input)
         form.addRow("Повтор пароля:", self.reg_password_repeat_input)
+
+        self.reg_username_input.returnPressed.connect(self._handle_register)
+        self.reg_login_input.returnPressed.connect(self._handle_register)
+        self.reg_password_input.returnPressed.connect(self._handle_register)
+        self.reg_password_repeat_input.returnPressed.connect(self._handle_register)
 
         register_btn = QPushButton("Зарегистрироваться")
         register_btn.clicked.connect(self._handle_register)
@@ -170,3 +178,5 @@ class AuthWindow(QWidget):
             self.tabs.setCurrentIndex(0)
         except Exception as exc:
             QMessageBox.critical(self, "Ошибка регистрации", map_oracle_error(exc))
+
+

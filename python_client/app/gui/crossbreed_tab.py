@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from decimal import Decimal
 from typing import Any, Callable
@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QFrame,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -22,6 +23,14 @@ from PySide6.QtWidgets import (
 from app.db.pkg_api import PkgApi
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
+from app.services.display_names import (
+    creature_name_label,
+    display_value,
+    gene_label,
+    phenotype_summary_label,
+    species_label,
+    trait_label,
+)
 
 
 _SPECIES_LABELS = {
@@ -130,8 +139,14 @@ class CrossbreedTab(QWidget):
         self.probabilities_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.probabilities_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.probabilities_table.setSelectionMode(QTableWidget.SingleSelection)
-        self.probabilities_table.horizontalHeader().setStretchLastSection(True)
         self.probabilities_table.setAlternatingRowColors(True)
+
+        header = self.probabilities_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.Stretch)
+        header.setSectionResizeMode(4, QHeaderView.Stretch)
 
         probabilities_layout.addWidget(self.probabilities_table)
         root.addWidget(probabilities_card)
@@ -227,7 +242,7 @@ class CrossbreedTab(QWidget):
             if creature_id is None:
                 continue
 
-            name = self._display(creature.get("creature_name"))
+            name = creature_name_label(creature.get("creature_name"))
             species_text = self._species_text(creature.get("species_type"))
             combo.addItem(f"{creature_id} | {name} | {species_text}", creature_id)
 
@@ -254,9 +269,9 @@ class CrossbreedTab(QWidget):
             return
 
         fields["creature_id"].setText(self._display(creature.get("creature_id")))
-        fields["creature_name"].setText(self._display(creature.get("creature_name")))
-        fields["species_type"].setText(self._species_text(creature.get("species_type")))
-        fields["phenotype_summary"].setText(self._display(creature.get("phenotype_summary")))
+        fields["creature_name"].setText(creature_name_label(creature.get("creature_name")))
+        fields["species_type"].setText(species_label(creature.get("species_type")))
+        fields["phenotype_summary"].setText(phenotype_summary_label(creature.get("phenotype_summary")))
 
     def _selected_creature(self, creature_id: Any) -> dict[str, Any] | None:
         cid = self._to_int(creature_id)
@@ -283,12 +298,12 @@ class CrossbreedTab(QWidget):
             return
 
         map_a = {
-            self._to_int(row.get("gene_id")): self._display(row.get("gene_name"))
+            self._to_int(row.get("gene_id")): gene_label(row.get("gene_name"))
             for row in genes_a
             if self._to_int(row.get("gene_id")) is not None
         }
         map_b = {
-            self._to_int(row.get("gene_id")): self._display(row.get("gene_name"))
+            self._to_int(row.get("gene_id")): gene_label(row.get("gene_name"))
             for row in genes_b
             if self._to_int(row.get("gene_id")) is not None
         }
@@ -328,8 +343,8 @@ class CrossbreedTab(QWidget):
             self._set_table_item(row_idx, 0, row.get("allele1_id"), center=True)
             self._set_table_item(row_idx, 1, row.get("allele2_id"), center=True)
             self._set_table_item(row_idx, 2, self._format_probability(row.get("probability")), center=True)
-            self._set_table_item(row_idx, 3, row.get("allele1_description"))
-            self._set_table_item(row_idx, 4, row.get("allele2_description"))
+            self._set_table_item(row_idx, 3, trait_label(row.get("allele1_description")), tooltip=True)
+            self._set_table_item(row_idx, 4, trait_label(row.get("allele2_description")), tooltip=True)
 
         if self.probabilities_table.rowCount() == 0:
             QMessageBox.information(self, "Генетический эксперимент", "Для выбранного гена нет данных вероятностей.")
@@ -371,10 +386,13 @@ class CrossbreedTab(QWidget):
         if self.on_experiment_completed is not None:
             self.on_experiment_completed()
 
-    def _set_table_item(self, row: int, col: int, value: Any, center: bool = False) -> None:
-        item = QTableWidgetItem(self._display(value))
+    def _set_table_item(self, row: int, col: int, value: Any, center: bool = False, tooltip: bool = False) -> None:
+        text = self._display(value)
+        item = QTableWidgetItem(text)
         if center:
             item.setTextAlignment(Qt.AlignCenter)
+        if tooltip:
+            item.setToolTip(text)
         self.probabilities_table.setItem(row, col, item)
 
     @staticmethod
@@ -383,20 +401,20 @@ class CrossbreedTab(QWidget):
             return "Нет данных"
 
         if isinstance(value, Decimal):
-            return f"{float(value):.2f}"
+            prob = float(value)
+        else:
+            try:
+                prob = float(value)
+            except (TypeError, ValueError):
+                return str(value)
 
-        try:
-            return f"{float(value):.2f}"
-        except (TypeError, ValueError):
-            return str(value)
+        if prob <= 1:
+            return f"{prob * 100:.0f}%"
+        return f"{prob:.0f}%"
 
     @staticmethod
     def _display(value: Any) -> str:
-        if value is None:
-            return "Не указано"
-
-        text = str(value).strip()
-        return text if text else "Не указано"
+        return display_value(value)
 
     @staticmethod
     def _to_int(value: Any) -> int | None:
@@ -410,7 +428,4 @@ class CrossbreedTab(QWidget):
 
     @staticmethod
     def _species_text(species_value: Any) -> str:
-        species_id = CrossbreedTab._to_int(species_value)
-        if species_id is None:
-            return "Не указано"
-        return _SPECIES_LABELS.get(species_id, f"Тип {species_id}")
+        return species_label(species_value)
