@@ -7,62 +7,37 @@
 - `USER_ERRORS` для `PKG_GENETICS_GAME` пустой.
 - Smoke-tests `01..07` проходят с `Failed: 0`.
 - Backend полностью остается в Oracle PL/SQL.
+- Backend на этом этапе **не менялся**.
 
-## 2) Последний завершенный этап
+## 2) Последний завершенный GUI-этап
 
-Реализован первый Python GUI vertical slice: **Auth + Lab Selection + Main Window Shell**.
+Реализована и улучшена вкладка **«Мутации»**.
 
-Создано:
-- `python_client/main.py`
-- `python_client/requirements.txt`
-- `python_client/.env.example`
-- `python_client/app/__init__.py`
-- `python_client/app/config.py`
-- `python_client/app/db/__init__.py`
-- `python_client/app/db/connection.py`
-- `python_client/app/db/pkg_api.py`
-- `python_client/app/services/__init__.py`
-- `python_client/app/services/session_state.py`
-- `python_client/app/services/oracle_errors.py`
-- `python_client/app/gui/__init__.py`
-- `python_client/app/gui/app.py`
-- `python_client/app/gui/styles.py`
-- `python_client/app/gui/auth_window.py`
-- `python_client/app/gui/lab_window.py`
-- `python_client/app/gui/main_window.py`
-
-Реализовано в GUI:
-- PySide6-клиент;
-- Oracle thin connection через `python-oracledb`;
-- один стабильный Oracle connection на GUI-сессию (без pool);
-- auth flow: `register_user` / `login_user` / `logout_user`;
-- lab flow: `list_user_labs` / `start_new_lab` / `load_lab` / `switch_lab`;
-- main shell со статистикой лаборатории и вкладками-заглушками;
+Что зафиксировано:
+- Python вызывает только PL/SQL API и отображает данные;
+- добавлены UX-подсказки совместимости мутации и существа;
+- добавлен блок «Целевые гены мутации»;
+- добавлена фильтрация совместимых существ (по умолчанию включена);
+- добавлена предвалидация кнопки применения мутации с понятной причиной;
+- ошибки `ORA-20043` и `ORA-20045` показываются человекочитаемо;
 - `python -m compileall python_client` проходит успешно.
 
-## 3) Ближайший следующий этап
+## 3) Текущее покрытие GUI
 
-Ручная проверка GUI на реальной Oracle БД:
-1. Создать `venv`.
-2. Установить `python_client/requirements.txt`.
-3. Создать `python_client/.env` из `.env.example`.
-4. Запустить `python_client/main.py`.
-5. Проверить сценарии:
-   - register
-   - login
-   - create lab
-   - list labs
-   - open lab
-   - main shell
-   - logout
+Уже реализовано:
+- Auth;
+- Lab Selection;
+- Main Shell;
+- вкладка «Существа»;
+- вкладка «Генетический эксперимент»;
+- вкладка «Мутации» (улучшенный UX).
 
-## 4) Следующий coding-этап после ручной проверки
+## 4) Следующий этап
 
-Вкладка **Creatures**:
-- интеграция `get_creatures_cursor`;
-- интеграция `get_genotype_cursor`;
-- отображение `phenotype_summary`;
-- показ генотипа выбранного существа.
+Следующий шаг разработки UI:
+- вкладка **«Задания»**
+  или
+- вкладка **«История экспериментов»**.
 
 ## 5) Архитектурные ограничения (не менять)
 
@@ -70,3 +45,8 @@
 - Python не использует `dbms_output`.
 - Все игровые операции идут через `pkg_genetics_game`.
 - Один connection должен жить от `login_user` до `logout_user` (package session context).
+
+## 6) Языковое правило UI
+
+- Пользовательский интерфейс и тексты проекта делать на русском языке.
+- Английский оставлять только для служебных технических имен, API, полей БД и существующих enum-значений.
