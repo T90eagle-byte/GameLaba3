@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from app.db.pkg_api import PkgApi
 from app.gui.creatures_tab import CreaturesTab
+from app.gui.crossbreed_tab import CrossbreedTab
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
 
@@ -28,6 +29,7 @@ class MainWindow(QWidget):
 
         self.stat_labels: dict[str, QLabel] = {}
         self.creatures_tab: CreaturesTab | None = None
+        self.crossbreed_tab: CrossbreedTab | None = None
 
         self.setWindowTitle("BioSborka - Main Lab")
         self.setMinimumSize(980, 640)
@@ -85,7 +87,13 @@ class MainWindow(QWidget):
         self.creatures_tab = CreaturesTab(pkg_api=self.pkg_api, state=self.state)
         tabs.addTab(self.creatures_tab, "Существа")
 
-        tabs.addTab(self._placeholder_tab("Скрещивание"), "Скрещивание")
+        self.crossbreed_tab = CrossbreedTab(
+            pkg_api=self.pkg_api,
+            state=self.state,
+            on_experiment_completed=self.refresh_main_shell,
+        )
+        tabs.addTab(self.crossbreed_tab, "Генетический эксперимент")
+
         tabs.addTab(self._placeholder_tab("Мутации"), "Мутации")
         tabs.addTab(self._placeholder_tab("Задания"), "Задания")
         tabs.addTab(self._placeholder_tab("История экспериментов"), "История экспериментов")
@@ -153,5 +161,9 @@ class MainWindow(QWidget):
 
     def refresh_main_shell(self) -> None:
         self.refresh_stats()
+
         if self.creatures_tab is not None:
             self.creatures_tab.refresh_data()
+
+        if self.crossbreed_tab is not None:
+            self.crossbreed_tab.refresh_creatures()

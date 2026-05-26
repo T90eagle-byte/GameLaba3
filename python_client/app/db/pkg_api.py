@@ -150,3 +150,35 @@ class PkgApi:
                 return self._rows_from_refcursor(ref_cursor)
             finally:
                 ref_cursor.close()
+
+    def calculate_punnett_probabilities(
+        self,
+        entity_a_id: int,
+        entity_b_id: int,
+        gene_id: int,
+    ) -> list[dict[str, Any]]:
+        with self._connection.cursor() as cursor:
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.calculate_punnett_probabilities",
+                oracledb.DB_TYPE_CURSOR,
+                [entity_a_id, entity_b_id, gene_id],
+            )
+            try:
+                return self._rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()
+
+    def crossbreed(
+        self,
+        lab_id: int,
+        entity_a_id: int,
+        entity_b_id: int,
+        result_name: str,
+    ) -> int:
+        with self._connection.cursor() as cursor:
+            out_offspring_id = cursor.var(oracledb.DB_TYPE_NUMBER)
+            cursor.callproc(
+                "pkg_genetics_game.crossbreed",
+                [lab_id, entity_a_id, entity_b_id, result_name, out_offspring_id],
+            )
+            return self._as_int(out_offspring_id.getvalue())
