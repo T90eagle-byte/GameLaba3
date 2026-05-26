@@ -170,6 +170,72 @@ create or replace package body pkg_genetics_game as
            );
     end assign_starting_tasks;
 
+    procedure refill_active_tasks(
+        p_lab_id         in number,
+        p_target_active  in number default 3
+    ) is
+        v_lab_exists_count  number;
+        v_target_active     number := nvl(p_target_active, 3);
+        v_active_count      number;
+        v_missing_count     number;
+    begin
+        if v_target_active <= 0 then
+            return;
+        end if;
+
+        select count(*)
+          into v_lab_exists_count
+          from labs l
+         where l.lab_id = p_lab_id;
+
+        if v_lab_exists_count = 0 then
+            raise_application_error(-20057, 'Lab not found.');
+        end if;
+
+        select count(*)
+          into v_active_count
+          from lab_tasks lt
+         where lt.lab_id = p_lab_id
+           and lt.task_status = 'ACTIVE';
+
+        if v_active_count >= v_target_active then
+            return;
+        end if;
+
+        v_missing_count := v_target_active - v_active_count;
+        if v_missing_count <= 0 then
+            return;
+        end if;
+
+        insert into lab_tasks (
+            lab_task_id,
+            lab_id,
+            task_id,
+            task_status,
+            assigned_at,
+            completed_at
+        )
+        select
+            lab_tasks_seq.nextval,
+            p_lab_id,
+            candidate_tasks.task_id,
+            'ACTIVE',
+            systimestamp,
+            null
+          from (
+                select t.task_id
+                  from tasks t
+                 where not exists (
+                        select 1
+                          from lab_tasks lt
+                         where lt.lab_id = p_lab_id
+                           and lt.task_id = t.task_id
+                 )
+                 order by t.task_id
+          ) candidate_tasks
+         where rownum <= v_missing_count;
+    end refill_active_tasks;
+
     function pick_random_allele_side
     return pls_integer is
     begin
@@ -1868,6 +1934,11 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20057, 'Lab not found.');
         end if;
 
+        refill_active_tasks(
+            p_lab_id        => p_lab_id,
+            p_target_active => 3
+        );
+
         get_lab_stats(
             p_lab_id               => p_lab_id,
             p_wallet               => p_wallet_after,
@@ -2039,42 +2110,3 @@ create or replace package body pkg_genetics_game as
     end create_creature_of_type;
 end pkg_genetics_game;
 /
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

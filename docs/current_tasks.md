@@ -1,52 +1,40 @@
-﻿# Current Tasks
+# Current Tasks
 
 ## 1) Текущий статус проекта
 
-- PL/SQL backend strict-pass завершен.
-- `pkg_genetics_game` (spec/body) компилируется на Oracle.
-- `USER_ERRORS` для `PKG_GENETICS_GAME` пустой.
-- Smoke-tests `01..07` проходят с `Failed: 0`.
-- Backend полностью остается в Oracle PL/SQL.
-- Backend на этом этапе **не менялся**.
+- Backend остается полностью в Oracle PL/SQL (`pkg_genetics_game`).
+- Добавлен backend-механизм пополнения заданий: после успешного `complete_task` пакет пытается восстановить до `3` ACTIVE-заданий, если в `tasks` есть неназначенные задачи.
+- Дубликаты `task_id` для одной лаборатории не создаются.
+- Если пул `tasks` исчерпан, backend корректно оставляет меньше 3 ACTIVE-заданий и не падает.
+- Python GUI не назначает задания сам и не содержит task-бизнес-логики.
 
-## 2) Последний завершенный GUI-этап
+## 2) Что изменено в strict pass (tasks refill)
 
-Реализована и улучшена вкладка **«Мутации»**.
+- В `pkg_genetics_game.pkb` добавлен private helper `refill_active_tasks(p_lab_id, p_target_active default 3)`.
+- `complete_task` после успешного завершения и начисления наград вызывает `refill_active_tasks` перед финальным `get_lab_stats`.
+- За счет того, что auto-flow (`crossbreed` / `apply_mutation` / `apply_mutagen`) завершает задачи через `complete_task`, пополнение ACTIVE-заданий применяется и в auto-сценариях.
 
-Что зафиксировано:
-- Python вызывает только PL/SQL API и отображает данные;
-- добавлены UX-подсказки совместимости мутации и существа;
-- добавлен блок «Целевые гены мутации»;
-- добавлена фильтрация совместимых существ (по умолчанию включена);
-- добавлена предвалидация кнопки применения мутации с понятной причиной;
-- ошибки `ORA-20043` и `ORA-20045` показываются человекочитаемо;
-- `python -m compileall python_client` проходит успешно.
+## 3) Обновленные smoke-tests
 
-## 3) Текущее покрытие GUI
+- `database/tests/06_tasks_smoke_test.sql`:
+  - проверяет refill после `complete_task`;
+  - проверяет отсутствие дубликатов `task_id` в `lab_tasks`;
+  - корректно обрабатывает сценарий исчерпания пула `tasks`.
+- `database/tests/07_strict_compliance_smoke_test.sql`:
+  - проверяет refill после auto-complete (`apply_mutation`);
+  - проверяет отсутствие дубликатов и ограничение по активным задачам.
 
-Уже реализовано:
-- Auth;
-- Lab Selection;
-- Main Shell;
-- вкладка «Существа»;
-- вкладка «Генетический эксперимент»;
-- вкладка «Мутации» (улучшенный UX).
+## 4) Что прогнать на Oracle
 
-## 4) Следующий этап
+1. `@database/packages/body/pkg_genetics_game.pkb`
+2. `show errors package body pkg_genetics_game`
+3. `@database/tests/06_tasks_smoke_test.sql`
+4. `@database/tests/07_strict_compliance_smoke_test.sql`
+5. При необходимости полный прогон `01..07`.
 
-Следующий шаг разработки UI:
-- вкладка **«Задания»**
-  или
-- вкладка **«История экспериментов»**.
+## 5) Ближайший GUI-check
 
-## 5) Архитектурные ограничения (не менять)
-
-- Python не переносит backend-логику из PL/SQL.
-- Python не использует `dbms_output`.
-- Все игровые операции идут через `pkg_genetics_game`.
-- Один connection должен жить от `login_user` до `logout_user` (package session context).
-
-## 6) Языковое правило UI
-
-- Пользовательский интерфейс и тексты проекта делать на русском языке.
-- Английский оставлять только для служебных технических имен, API, полей БД и существующих enum-значений.
+- Открыть вкладку «Задания».
+- Завершить подходящее задание.
+- Нажать «Обновить задания».
+- Убедиться, что появилось новое ACTIVE-задание, если в пуле `tasks` еще есть неназначенные.

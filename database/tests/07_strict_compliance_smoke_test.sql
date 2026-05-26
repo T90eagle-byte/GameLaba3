@@ -59,8 +59,18 @@ declare
     v_custom_lab_task_id            number;
     v_custom_status                 varchar2(20);
 
+    v_tasks_pool_count              number;
+    v_assigned_before_auto          number;
+    v_assigned_after_auto           number;
+    v_active_before_auto            number;
+    v_active_after_auto             number;
+    v_distinct_assigned_after_auto  number;
+
     v_failed_tests                  number := 0;
     v_passed_tests                  number := 0;
+
+    v_unhandled_sqlcode             number;
+    v_unhandled_sqlerrm             varchar2(4000);
 
     procedure pass_test(p_test_name in varchar2) is
     begin
@@ -91,99 +101,205 @@ declare
     end assert_true;
 
     procedure cleanup_test_data is
-    begin
-        if v_session2_token is not null and v_lab2_id is not null then
-            begin
-                pkg_genetics_game.delete_lab(
-                    p_session_token => v_session2_token,
-                    p_lab_id        => v_lab2_id
-                );
-            exception
-                when others then
-                    dbms_output.put_line('[WARN] cleanup delete lab2: ' || sqlcode || ' / ' || sqlerrm);
-            end;
-        end if;
+        procedure cleanup_lab_via_package(
+            p_label         in varchar2,
+            p_session_token in varchar2,
+            p_lab_id        in number
+        ) is
+        begin
+            if p_session_token is null or p_lab_id is null then
+                return;
+            end if;
 
-        if v_session1_token_relogin is not null and v_lab1_id is not null then
             begin
                 pkg_genetics_game.delete_lab(
-                    p_session_token => v_session1_token_relogin,
-                    p_lab_id        => v_lab1_id
+                    p_session_token => p_session_token,
+                    p_lab_id        => p_lab_id
                 );
+                dbms_output.put_line('[INFO] cleanup delete ' || p_label || ' via package done');
             exception
                 when others then
-                    dbms_output.put_line('[WARN] cleanup delete lab1 with relogin token: ' || sqlcode || ' / ' || sqlerrm);
+                    if sqlcode in (-20020, -20021) then
+                        dbms_output.put_line('[INFO] cleanup delete ' || p_label || ' via package skipped: ' || sqlcode || ' / ' || sqlerrm);
+                    else
+                        dbms_output.put_line('[WARN] cleanup delete ' || p_label || ' via package: ' || sqlcode || ' / ' || sqlerrm);
+                    end if;
             end;
-        elsif v_session1_token is not null and v_lab1_id is not null then
+        end cleanup_lab_via_package;
+
+        procedure cleanup_lab_direct(
+            p_label  in varchar2,
+            p_lab_id in number
+        ) is
+        begin
+            if p_lab_id is null then
+                return;
+            end if;
+
             begin
-                pkg_genetics_game.delete_lab(
-                    p_session_token => v_session1_token,
-                    p_lab_id        => v_lab1_id
-                );
+                delete from lab_tasks lt
+                 where lt.lab_id = p_lab_id;
+
+                delete from lab_mutations lm
+                 where lm.lab_id = p_lab_id;
+
+                delete from experiments e
+                 where e.lab_id = p_lab_id;
+
+                delete from genotypes g
+                 where g.creature_id in (
+                        select c.creature_id
+                          from creatures c
+                         where c.lab_id = p_lab_id
+                 );
+
+                delete from creatures c
+                 where c.lab_id = p_lab_id;
+
+                delete from labs l
+                 where l.lab_id = p_lab_id;
+
+                dbms_output.put_line('[INFO] cleanup delete ' || p_label || ' direct done');
             exception
                 when others then
-                    dbms_output.put_line('[WARN] cleanup delete lab1: ' || sqlcode || ' / ' || sqlerrm);
+                    dbms_output.put_line('[WARN] cleanup delete ' || p_label || ' direct: ' || sqlcode || ' / ' || sqlerrm);
             end;
-        end if;
+        end cleanup_lab_direct;
+
+        procedure safe_logout(
+            p_label in varchar2,
+            p_token in varchar2
+        ) is
+        begin
+            if p_token is null then
+                return;
+            end if;
+
+            begin
+                pkg_genetics_game.logout_user(p_token);
+                dbms_output.put_line('[INFO] cleanup logout ' || p_label || ' done');
+            exception
+                when others then
+                    if sqlcode in (-20020, -20021) then
+                        dbms_output.put_line('[INFO] cleanup logout ' || p_label || ' skipped: ' || sqlcode || ' / ' || sqlerrm);
+                    else
+                        dbms_output.put_line('[WARN] cleanup logout ' || p_label || ': ' || sqlcode || ' / ' || sqlerrm);
+                    end if;
+            end;
+        end safe_logout;
+    begin
+        cleanup_lab_via_package('lab2', v_session2_token, v_lab2_id);
+        cleanup_lab_via_package('lab1', v_session1_token_relogin, v_lab1_id);
+        cleanup_lab_via_package('lab1', v_session1_token, v_lab1_id);
+
+        cleanup_lab_direct('lab2', v_lab2_id);
+        cleanup_lab_direct('lab1', v_lab1_id);
 
         begin
             if v_custom_task_id is not null then
-                delete from task_markers tm where tm.task_id = v_custom_task_id;
-                delete from tasks t where t.task_id = v_custom_task_id;
+                delete from task_markers tm
+                 where tm.task_id = v_custom_task_id;
+
+                delete from lab_tasks lt
+                 where lt.task_id = v_custom_task_id;
+
+                delete from tasks t
+                 where t.task_id = v_custom_task_id;
             end if;
 
             if v_inc_gene_id is not null then
-                delete from genotypes gt where gt.gene_id = v_inc_gene_id;
-                delete from alleles a where a.gene_id = v_inc_gene_id;
-                delete from genes g where g.gene_id = v_inc_gene_id;
+                delete from mutation_rules mr
+                 where mr.gene_id = v_inc_gene_id;
+
+                delete from genotypes gt
+                 where gt.gene_id = v_inc_gene_id;
+
+                delete from alleles a
+                 where a.gene_id = v_inc_gene_id;
+
+                delete from genes g
+                 where g.gene_id = v_inc_gene_id;
             end if;
 
             if v_codom_gene_id is not null then
-                delete from genotypes gt where gt.gene_id = v_codom_gene_id;
-                delete from alleles a where a.gene_id = v_codom_gene_id;
-                delete from genes g where g.gene_id = v_codom_gene_id;
+                delete from mutation_rules mr
+                 where mr.gene_id = v_codom_gene_id;
+
+                delete from genotypes gt
+                 where gt.gene_id = v_codom_gene_id;
+
+                delete from alleles a
+                 where a.gene_id = v_codom_gene_id;
+
+                delete from genes g
+                 where g.gene_id = v_codom_gene_id;
             end if;
         exception
             when others then
                 dbms_output.put_line('[WARN] cleanup custom genes/tasks: ' || sqlcode || ' / ' || sqlerrm);
         end;
 
-        if v_session2_token is not null then
-            begin
-                pkg_genetics_game.logout_user(v_session2_token);
-            exception
-                when others then
-                    if sqlcode != -20021 then
-                        dbms_output.put_line('[WARN] cleanup logout user2: ' || sqlcode || ' / ' || sqlerrm);
-                    end if;
-            end;
-        end if;
-
-        if v_session1_token_relogin is not null then
-            begin
-                pkg_genetics_game.logout_user(v_session1_token_relogin);
-            exception
-                when others then
-                    if sqlcode != -20021 then
-                        dbms_output.put_line('[WARN] cleanup logout user1 relogin: ' || sqlcode || ' / ' || sqlerrm);
-                    end if;
-            end;
-        end if;
-
-        if v_session1_token is not null then
-            begin
-                pkg_genetics_game.logout_user(v_session1_token);
-            exception
-                when others then
-                    if sqlcode != -20021 then
-                        dbms_output.put_line('[WARN] cleanup logout user1: ' || sqlcode || ' / ' || sqlerrm);
-                    end if;
-            end;
-        end if;
+        safe_logout('user2', v_session2_token);
+        safe_logout('user1 relogin', v_session1_token_relogin);
+        safe_logout('user1', v_session1_token);
 
         begin
-            delete from sessions s where s.user_id in (v_user1_id, v_user2_id);
-            delete from users u where u.user_id in (v_user1_id, v_user2_id);
+            delete from lab_tasks lt
+             where lt.lab_id in (
+                    select l.lab_id
+                      from labs l
+                     where l.user_id in (v_user1_id, v_user2_id)
+             );
+
+            delete from lab_mutations lm
+             where lm.lab_id in (
+                    select l.lab_id
+                      from labs l
+                     where l.user_id in (v_user1_id, v_user2_id)
+             );
+
+            delete from experiments e
+             where e.lab_id in (
+                    select l.lab_id
+                      from labs l
+                     where l.user_id in (v_user1_id, v_user2_id)
+             );
+
+            delete from genotypes g
+             where g.creature_id in (
+                    select c.creature_id
+                      from creatures c
+                      join labs l
+                        on l.lab_id = c.lab_id
+                     where l.user_id in (v_user1_id, v_user2_id)
+             );
+
+            delete from creatures c
+             where c.lab_id in (
+                    select l.lab_id
+                      from labs l
+                     where l.user_id in (v_user1_id, v_user2_id)
+             );
+
+            delete from labs l
+             where l.user_id in (v_user1_id, v_user2_id);
+        exception
+            when others then
+                dbms_output.put_line('[WARN] cleanup residual lab data: ' || sqlcode || ' / ' || sqlerrm);
+        end;
+
+        begin
+            delete from sessions s
+             where s.user_id in (v_user1_id, v_user2_id)
+                or s.user_id in (
+                    select u.user_id
+                      from users u
+                     where u.login in (v_login1, v_login2)
+                );
+
+            delete from users u
+             where u.user_id in (v_user1_id, v_user2_id)
+                or u.login in (v_login1, v_login2);
         exception
             when others then
                 dbms_output.put_line('[WARN] cleanup users/sessions: ' || sqlcode || ' / ' || sqlerrm);
@@ -387,6 +503,21 @@ begin
           from labs l
          where l.lab_id = v_lab1_id;
 
+        select count(*)
+          into v_tasks_pool_count
+          from tasks t;
+
+        select count(*)
+          into v_assigned_before_auto
+          from lab_tasks lt
+         where lt.lab_id = v_lab1_id;
+
+        select count(*)
+          into v_active_before_auto
+          from lab_tasks lt
+         where lt.lab_id = v_lab1_id
+           and lt.task_status = 'ACTIVE';
+
         v_custom_task_id := tasks_seq.nextval;
         insert into tasks (
             task_id, task_name, description, money_reward, rating_reward, created_at
@@ -443,9 +574,51 @@ begin
               from labs l
              where l.lab_id = v_lab1_id;
 
+            select count(*)
+              into v_assigned_after_auto
+              from lab_tasks lt
+             where lt.lab_id = v_lab1_id;
+
+            select count(*)
+              into v_active_after_auto
+              from lab_tasks lt
+             where lt.lab_id = v_lab1_id
+               and lt.task_status = 'ACTIVE';
+
+            select count(distinct lt.task_id)
+              into v_distinct_assigned_after_auto
+              from lab_tasks lt
+             where lt.lab_id = v_lab1_id;
+
             assert_true(v_custom_status = 'COMPLETED', 'auto task check after apply_mutation completes task', 'status=' || v_custom_status);
             assert_true(v_wallet_after_auto >= v_wallet_after_buy + 11, 'auto task reward money applied');
             assert_true(v_rating_after_auto >= v_rating_after_buy + 5, 'auto task reward rating applied');
+            assert_true(
+                v_assigned_after_auto = v_distinct_assigned_after_auto,
+                'task refill does not create duplicate task_id assignments',
+                'total=' || v_assigned_after_auto || ', distinct=' || v_distinct_assigned_after_auto
+            );
+            assert_true(
+                v_assigned_after_auto <= v_tasks_pool_count,
+                'assigned tasks remain within tasks pool size',
+                'assigned=' || v_assigned_after_auto || ', pool=' || v_tasks_pool_count
+            );
+
+            if v_assigned_before_auto < v_tasks_pool_count then
+                assert_true(
+                    v_assigned_after_auto > v_assigned_before_auto,
+                    'auto-complete flow triggers task refill when pool is available',
+                    'before=' || v_assigned_before_auto || ', after=' || v_assigned_after_auto || ', pool=' || v_tasks_pool_count
+                );
+            else
+                pass_test('auto-complete flow keeps stable assignment count when pool is exhausted');
+            end if;
+
+            assert_true(
+                v_active_after_auto <= 3,
+                'active tasks after auto-complete stay capped at 3',
+                'before_active=' || v_active_before_auto || ', after_active=' || v_active_after_auto
+            );
         end if;
     end if;
 
@@ -461,7 +634,16 @@ begin
     end if;
 exception
     when others then
-        dbms_output.put_line('[ERROR] Unhandled exception in 07_strict_compliance_smoke_test: ' || sqlcode || ' / ' || sqlerrm);
+        v_unhandled_sqlcode := sqlcode;
+        v_unhandled_sqlerrm := sqlerrm;
+
+        dbms_output.put_line(
+            '[ERROR] Unhandled exception in 07_strict_compliance_smoke_test: '
+            || v_unhandled_sqlcode
+            || ' / '
+            || v_unhandled_sqlerrm
+        );
+
         begin
             cleanup_test_data;
             commit;
@@ -469,6 +651,13 @@ exception
             when others then
                 dbms_output.put_line('[WARN] Cleanup after error failed: ' || sqlcode || ' / ' || sqlerrm);
         end;
-        raise;
+
+        raise_application_error(
+            -20700,
+            'Strict compliance smoke-test failed. Root error: '
+            || to_char(v_unhandled_sqlcode)
+            || ' / '
+            || substr(v_unhandled_sqlerrm, 1, 1400)
+        );
 end;
 /

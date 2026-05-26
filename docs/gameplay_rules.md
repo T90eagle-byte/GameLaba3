@@ -67,7 +67,8 @@ Mutagen modes:
 - `complete_task`:
   - sets `task_status = COMPLETED`;
   - applies money/rating rewards;
-  - blocks duplicate reward payout.
+  - blocks duplicate reward payout;
+  - refills ACTIVE tasks up to 3 when unassigned tasks are available.
 
 Automatic task checks run after experiment flow:
 - `crossbreed`;
@@ -75,6 +76,11 @@ Automatic task checks run after experiment flow:
 - `apply_mutagen`.
 
 Startup flow (`start_new_lab` and initial generation) does not auto-complete tasks.
+
+Task refill rules:
+- refill uses only tasks not yet assigned in `lab_tasks` for this lab;
+- no duplicate `task_id` assignments per lab;
+- if task pool is exhausted, ACTIVE tasks can be less than 3 (valid state).
 
 ## 8) GUI contract
 

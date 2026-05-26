@@ -54,6 +54,13 @@ declare
     v_secondary_task_id           number;
     v_completion_done             number := 0;
 
+    v_active_task_count_before    number := 0;
+    v_active_task_count_after     number := 0;
+    v_total_task_count_before     number := 0;
+    v_total_task_count_after      number := 0;
+    v_total_available_tasks       number := 0;
+    v_distinct_task_count_after   number := 0;
+
     v_failed_tests                number := 0;
     v_passed_tests                number := 0;
 
@@ -340,6 +347,21 @@ begin
               from labs l
              where l.lab_id = v_lab_id;
 
+            select count(*)
+              into v_active_task_count_before
+              from lab_tasks lt
+             where lt.lab_id = v_lab_id
+               and lt.task_status = 'ACTIVE';
+
+            select count(*)
+              into v_total_task_count_before
+              from lab_tasks lt
+             where lt.lab_id = v_lab_id;
+
+            select count(*)
+              into v_total_available_tasks
+              from tasks t;
+
             pkg_genetics_game.complete_task(
                 p_lab_id       => v_lab_id,
                 p_task_id      => v_candidate_task_id,
@@ -355,11 +377,57 @@ begin
              where lt.lab_id = v_lab_id
                and lt.task_id = v_candidate_task_id;
 
+            select count(*)
+              into v_active_task_count_after
+              from lab_tasks lt
+             where lt.lab_id = v_lab_id
+               and lt.task_status = 'ACTIVE';
+
+            select count(*)
+              into v_total_task_count_after
+              from lab_tasks lt
+             where lt.lab_id = v_lab_id;
+
+            select count(distinct lt.task_id)
+              into v_distinct_task_count_after
+              from lab_tasks lt
+             where lt.lab_id = v_lab_id;
+
             assert_true(v_is_completed = 1, 'complete_task returns completed=1', 'actual=' || nvl(to_char(v_is_completed), 'NULL'));
             assert_true(v_completed_task_status = 'COMPLETED', 'task status changed to COMPLETED', 'actual=' || v_completed_task_status);
             assert_true(v_completed_at_after is not null, 'task completed_at is filled');
             assert_true(v_wallet_after > v_wallet_before, 'wallet increased after complete_task', 'before=' || v_wallet_before || ', after=' || v_wallet_after);
             assert_true(v_rating_after > v_rating_before, 'rating increased after complete_task', 'before=' || v_rating_before || ', after=' || v_rating_after);
+
+            assert_true(
+                v_total_task_count_after = v_distinct_task_count_after,
+                'no duplicate task_id assignments for lab',
+                'total=' || v_total_task_count_after || ', distinct=' || v_distinct_task_count_after
+            );
+            assert_true(
+                v_total_task_count_after <= v_total_available_tasks,
+                'assigned tasks do not exceed tasks pool',
+                'assigned=' || v_total_task_count_after || ', pool=' || v_total_available_tasks
+            );
+
+            if v_total_task_count_before < v_total_available_tasks then
+                assert_true(
+                    v_total_task_count_after > v_total_task_count_before,
+                    'task refill assigns a new task when pool is available',
+                    'before=' || v_total_task_count_before || ', after=' || v_total_task_count_after || ', pool=' || v_total_available_tasks
+                );
+                assert_true(
+                    v_active_task_count_after = 3,
+                    'active tasks are refilled to 3 when pool is available',
+                    'before_active=' || v_active_task_count_before || ', after_active=' || v_active_task_count_after
+                );
+            else
+                assert_true(
+                    v_active_task_count_after <= 3,
+                    'active tasks stay bounded when task pool is exhausted',
+                    'after_active=' || v_active_task_count_after || ', pool=' || v_total_available_tasks
+                );
+            end if;
 
             pkg_genetics_game.get_lab_stats(
                 p_lab_id               => v_lab_id,
@@ -371,6 +439,11 @@ begin
                 p_experiment_count     => v_stats_experiment_count
             );
             assert_true(v_stats_completed_task_count >= 1, 'get_lab_stats completed_task_count increased', 'actual=' || v_stats_completed_task_count);
+            assert_true(
+                v_stats_active_task_count = v_active_task_count_after,
+                'get_lab_stats active_task_count matches lab_tasks',
+                'stats=' || v_stats_active_task_count || ', table=' || v_active_task_count_after
+            );
 
             v_completion_done := 1;
         exception
@@ -565,4 +638,3 @@ exception
         raise;
 end;
 /
-
