@@ -1,6 +1,5 @@
 ﻿from __future__ import annotations
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -16,6 +15,7 @@ from PySide6.QtWidgets import (
 from app.db.pkg_api import PkgApi
 from app.gui.creatures_tab import CreaturesTab
 from app.gui.crossbreed_tab import CrossbreedTab
+from app.gui.history_tab import HistoryTab
 from app.gui.mutations_tab import MutationsTab
 from app.gui.tasks_tab import TasksTab
 from app.services.oracle_errors import map_oracle_error
@@ -34,6 +34,7 @@ class MainWindow(QWidget):
         self.crossbreed_tab: CrossbreedTab | None = None
         self.mutations_tab: MutationsTab | None = None
         self.tasks_tab: TasksTab | None = None
+        self.history_tab: HistoryTab | None = None
 
         self.setWindowTitle("БиоСборка - Лаборатория")
         self.setMinimumSize(980, 640)
@@ -112,7 +113,8 @@ class MainWindow(QWidget):
         )
         tabs.addTab(self.tasks_tab, "Задания")
 
-        tabs.addTab(self._placeholder_tab("История экспериментов"), "История экспериментов")
+        self.history_tab = HistoryTab(pkg_api=self.pkg_api, state=self.state)
+        tabs.addTab(self.history_tab, "История экспериментов")
 
         root.addWidget(tabs)
 
@@ -132,26 +134,6 @@ class MainWindow(QWidget):
         layout.addWidget(container, row, col)
 
         self.stat_labels[key] = value
-
-    def _placeholder_tab(self, name: str) -> QWidget:
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-
-        card = QFrame()
-        card.setProperty("card", "true")
-        card_layout = QVBoxLayout(card)
-
-        label = QLabel(f"Экран «{name}» будет реализован на следующем этапе.")
-        label.setAlignment(Qt.AlignCenter)
-        label.setWordWrap(True)
-        label.setStyleSheet("font-size: 15px; color: #374151;")
-
-        card_layout.addStretch()
-        card_layout.addWidget(label)
-        card_layout.addStretch()
-
-        layout.addWidget(card)
-        return tab
 
     def refresh_stats(self) -> None:
         lab_id = self.state.selected_lab_id
@@ -189,3 +171,6 @@ class MainWindow(QWidget):
 
         if self.tasks_tab is not None:
             self.tasks_tab.refresh_data()
+
+        if self.history_tab is not None:
+            self.history_tab.refresh_data()

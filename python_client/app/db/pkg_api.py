@@ -329,3 +329,19 @@ class PkgApi:
             if row is None:
                 return 0
             return self._as_int(row[0])
+
+    def get_experiment_history(
+        self,
+        lab_id: int,
+        experiment_type: str | None = None,
+    ) -> list[dict[str, Any]]:
+        with self._connection.cursor() as cursor:
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.get_experiment_history",
+                oracledb.DB_TYPE_CURSOR,
+                [lab_id, experiment_type],
+            )
+            try:
+                return self._rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()
