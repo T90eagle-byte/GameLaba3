@@ -34,6 +34,11 @@ _SPECIES_LABELS = {
     6: "Млекопитающие",
 }
 
+_STATUS_LABELS = {
+    "ACTIVE": "Активно",
+    "COMPLETED": "Выполнено",
+}
+
 
 class TasksTab(QWidget):
     def __init__(
@@ -110,8 +115,8 @@ class TasksTab(QWidget):
         self.tasks_table = QTableWidget(0, 9)
         self.tasks_table.setHorizontalHeaderLabels(
             [
-                "lab_task_id",
-                "task_id",
+                "ID записи",
+                "ID задания",
                 "Название",
                 "Описание",
                 "Награда (монеты)",
@@ -126,9 +131,15 @@ class TasksTab(QWidget):
         self.tasks_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tasks_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.tasks_table.horizontalHeader().setStretchLastSection(True)
+        self.tasks_table.setAlternatingRowColors(True)
         self.tasks_table.itemSelectionChanged.connect(self._on_task_selected)
 
         left_layout.addWidget(self.tasks_table)
+
+        self.empty_tasks_hint = QLabel("")
+        self.empty_tasks_hint.setObjectName("subtitle")
+        self.empty_tasks_hint.setWordWrap(True)
+        left_layout.addWidget(self.empty_tasks_hint)
 
         splitter.addWidget(left_card)
 
@@ -293,7 +304,13 @@ class TasksTab(QWidget):
             self._set_table_item(self.tasks_table, row_idx, 3, task.get("description"))
             self._set_table_item(self.tasks_table, row_idx, 4, task.get("reward_money"), center=True)
             self._set_table_item(self.tasks_table, row_idx, 5, task.get("reward_rating"), center=True)
-            self._set_table_item(self.tasks_table, row_idx, 6, task.get("task_status"), center=True)
+            self._set_table_item(
+                self.tasks_table,
+                row_idx,
+                6,
+                self._status_display(task.get("task_status")),
+                center=True,
+            )
             self._set_table_item(self.tasks_table, row_idx, 7, task.get("created_at"), center=True)
             self._set_table_item(self.tasks_table, row_idx, 8, task.get("completed_at"), center=True)
 
@@ -302,8 +319,10 @@ class TasksTab(QWidget):
 
         if self.tasks_table.rowCount() > 0:
             self.tasks_table.selectRow(selected_row_idx)
+            self.empty_tasks_hint.setText("")
         else:
             self._clear_task_card()
+            self._update_empty_tasks_hint(filter_value)
 
         self.tasks_table.blockSignals(False)
         self._on_task_selected()
@@ -348,7 +367,7 @@ class TasksTab(QWidget):
         self.task_desc_label.setText(self._display(task.get("description")))
         self.task_reward_money_label.setText(self._display(task.get("reward_money")))
         self.task_reward_rating_label.setText(self._display(task.get("reward_rating")))
-        self.task_status_label.setText(self._display(task.get("task_status")))
+        self.task_status_label.setText(self._status_display(task.get("task_status")))
 
         self._update_status_hint()
 
@@ -485,6 +504,17 @@ class TasksTab(QWidget):
         self.status_hint_label.setText("Выберите активное задание и существо.")
         self.complete_btn.setEnabled(True)
 
+    def _update_empty_tasks_hint(self, filter_value: str) -> None:
+        if filter_value == "ACTIVE":
+            completed_count = sum(1 for task in self._tasks if str(task.get("task_status") or "").upper() == "COMPLETED")
+            if completed_count > 0:
+                self.empty_tasks_hint.setText(
+                    "Сейчас нет активных заданий. Возможно, все доступные задания выполнены. "
+                    "Нажмите «Обновить задания» для актуализации списка."
+                )
+                return
+        self.empty_tasks_hint.setText("По выбранному фильтру нет записей.")
+
     def _selected_task(self) -> dict[str, Any] | None:
         row_idx = self.tasks_table.currentRow()
         if row_idx < 0 or row_idx >= len(self._visible_tasks):
@@ -514,10 +544,10 @@ class TasksTab(QWidget):
     @staticmethod
     def _display(value: Any) -> str:
         if value is None:
-            return "-"
+            return "Не указано"
 
         text = str(value).strip()
-        return text if text else "-"
+        return text if text else "Не указано"
 
     @staticmethod
     def _to_int(value: Any) -> int | None:
@@ -532,8 +562,18 @@ class TasksTab(QWidget):
     def _species_text(species_value: Any) -> str:
         species_id = TasksTab._to_int(species_value)
         if species_id is None:
-            return "-"
+            return "Не указано"
         return _SPECIES_LABELS.get(species_id, f"Тип {species_id}")
+
+    @staticmethod
+    def _status_display(status_value: Any) -> str:
+        code = str(status_value).strip().upper() if status_value is not None else ""
+        if code == "":
+            return "Не указано"
+        label = _STATUS_LABELS.get(code)
+        if label is None:
+            return code
+        return f"{label} ({code})"
 
     @staticmethod
     def _oracle_error_code(exc: Exception) -> int | None:

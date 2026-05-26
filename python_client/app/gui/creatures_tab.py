@@ -24,12 +24,12 @@ from app.services.session_state import SessionState
 
 
 _SPECIES_LABELS = {
-    1: "Cartilaginous fish",
-    2: "Bony fish",
-    3: "Crustacean",
-    4: "Mollusk",
-    5: "Turtle",
-    6: "Mammal",
+    1: "Хрящевые рыбы",
+    2: "Костные рыбы",
+    3: "Ракообразные",
+    4: "Моллюски",
+    5: "Черепахи",
+    6: "Млекопитающие",
 }
 
 
@@ -48,16 +48,16 @@ class CreaturesTab(QWidget):
         root.setSpacing(10)
 
         toolbar = QHBoxLayout()
-        title = QLabel("Creature Collection")
+        title = QLabel("Коллекция существ")
         title.setObjectName("title")
-        subtitle = QLabel("Lab creatures, phenotype card, and genotype details")
+        subtitle = QLabel("Существа лаборатории, фенотип и генотип выбранного экземпляра")
         subtitle.setObjectName("subtitle")
 
         heading = QVBoxLayout()
         heading.addWidget(title)
         heading.addWidget(subtitle)
 
-        self.refresh_btn = QPushButton("Refresh")
+        self.refresh_btn = QPushButton("Обновить")
         self.refresh_btn.setProperty("role", "secondary")
         self.refresh_btn.clicked.connect(self.refresh_data)
 
@@ -78,13 +78,13 @@ class CreaturesTab(QWidget):
         self.creatures_table.setHorizontalHeaderLabels(
             [
                 "ID",
-                "Name",
-                "Species",
-                "Color",
-                "Size",
-                "Wings",
-                "Nutrition",
-                "Phenotype summary",
+                "Имя",
+                "Вид",
+                "Цвет",
+                "Размер",
+                "Крылья",
+                "Тип питания",
+                "Фенотип",
             ]
         )
         self.creatures_table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -92,6 +92,7 @@ class CreaturesTab(QWidget):
         self.creatures_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.creatures_table.verticalHeader().setVisible(False)
         self.creatures_table.horizontalHeader().setStretchLastSection(True)
+        self.creatures_table.setAlternatingRowColors(True)
         self.creatures_table.itemSelectionChanged.connect(self._on_creature_selected)
 
         left_layout.addWidget(self.creatures_table)
@@ -103,7 +104,7 @@ class CreaturesTab(QWidget):
         right_layout.setContentsMargins(10, 10, 10, 10)
         right_layout.setSpacing(10)
 
-        card_title = QLabel("Selected Creature")
+        card_title = QLabel("Карточка существа")
         card_title.setObjectName("subtitle")
         right_layout.addWidget(card_title)
 
@@ -119,16 +120,16 @@ class CreaturesTab(QWidget):
         self.lbl_nutrition = QLabel("-")
 
         info_form.addRow("ID:", self.lbl_creature_id)
-        info_form.addRow("Name:", self.lbl_creature_name)
-        info_form.addRow("Species:", self.lbl_species)
-        info_form.addRow("Color:", self.lbl_color)
-        info_form.addRow("Size:", self.lbl_size)
-        info_form.addRow("Wings:", self.lbl_wings)
-        info_form.addRow("Nutrition:", self.lbl_nutrition)
+        info_form.addRow("Имя:", self.lbl_creature_name)
+        info_form.addRow("Вид:", self.lbl_species)
+        info_form.addRow("Цвет:", self.lbl_color)
+        info_form.addRow("Размер:", self.lbl_size)
+        info_form.addRow("Крылья:", self.lbl_wings)
+        info_form.addRow("Тип питания:", self.lbl_nutrition)
 
         right_layout.addLayout(info_form)
 
-        summary_label = QLabel("Phenotype summary")
+        summary_label = QLabel("Описание фенотипа")
         summary_label.setObjectName("subtitle")
         right_layout.addWidget(summary_label)
 
@@ -138,20 +139,20 @@ class CreaturesTab(QWidget):
         self.phenotype_summary.setMinimumHeight(64)
         right_layout.addWidget(self.phenotype_summary)
 
-        genotype_label = QLabel("Genotype")
+        genotype_label = QLabel("Генотип")
         genotype_label.setObjectName("subtitle")
         right_layout.addWidget(genotype_label)
 
         self.genotype_table = QTableWidget(0, 7)
         self.genotype_table.setHorizontalHeaderLabels(
             [
-                "Gene",
-                "Type",
-                "Dominance",
-                "Allele 1",
-                "Trait 1",
-                "Allele 2",
-                "Trait 2",
+                "Ген",
+                "Тип гена",
+                "Тип доминирования",
+                "Аллель 1",
+                "Значение 1",
+                "Аллель 2",
+                "Значение 2",
             ]
         )
         self.genotype_table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -159,6 +160,7 @@ class CreaturesTab(QWidget):
         self.genotype_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.genotype_table.verticalHeader().setVisible(False)
         self.genotype_table.horizontalHeader().setStretchLastSection(True)
+        self.genotype_table.setAlternatingRowColors(True)
 
         right_layout.addWidget(self.genotype_table)
 
@@ -171,13 +173,13 @@ class CreaturesTab(QWidget):
     def refresh_data(self) -> None:
         lab_id = self.state.selected_lab_id
         if lab_id is None:
-            QMessageBox.warning(self, "Creatures", "Select a lab first.")
+            QMessageBox.warning(self, "Существа", "Сначала выберите лабораторию.")
             return
 
         try:
             self._creatures = self.pkg_api.get_creatures(lab_id)
         except Exception as exc:
-            QMessageBox.critical(self, "Creatures Error", map_oracle_error(exc))
+            QMessageBox.critical(self, "Ошибка существ", map_oracle_error(exc))
             return
 
         self._fill_creatures_table()
@@ -224,7 +226,7 @@ class CreaturesTab(QWidget):
         try:
             genotype_rows = self.pkg_api.get_genotype(creature_id)
         except Exception as exc:
-            QMessageBox.critical(self, "Genotype Error", map_oracle_error(exc))
+            QMessageBox.critical(self, "Ошибка генотипа", map_oracle_error(exc))
             self.genotype_table.setRowCount(0)
             return
 
@@ -276,16 +278,16 @@ class CreaturesTab(QWidget):
     @staticmethod
     def _display(value: Any) -> str:
         if value is None:
-            return "-"
-        text = str(value)
-        return text if text.strip() else "-"
+            return "Не указано"
+        text = str(value).strip()
+        return text if text else "Не указано"
 
     @staticmethod
     def _species_name(value: Any) -> str:
         species_id = CreaturesTab._to_int(value)
         if species_id is None:
-            return "-"
-        return _SPECIES_LABELS.get(species_id, f"Type {species_id}")
+            return "Не указано"
+        return _SPECIES_LABELS.get(species_id, f"Тип {species_id}")
 
     @staticmethod
     def _to_int(value: Any) -> int | None:

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -26,8 +26,8 @@ class AuthWindow(QWidget):
         self.state = state
         self.on_login_success = on_login_success
 
-        self.setWindowTitle("БиоСборка - Авторизация")
-        self.setMinimumSize(520, 420)
+        self.setWindowTitle("БиоСборка — Авторизация")
+        self.setMinimumSize(540, 430)
 
         self._build_ui()
 
@@ -45,8 +45,8 @@ class AuthWindow(QWidget):
         root_layout.addWidget(subtitle)
 
         self.tabs = QTabWidget()
-        self.tabs.addTab(self._build_login_tab(), "Login")
-        self.tabs.addTab(self._build_register_tab(), "Register")
+        self.tabs.addTab(self._build_login_tab(), "Вход")
+        self.tabs.addTab(self._build_register_tab(), "Регистрация")
         root_layout.addWidget(self.tabs)
 
     def _build_login_tab(self) -> QWidget:
@@ -58,16 +58,16 @@ class AuthWindow(QWidget):
         form.setLabelAlignment(Qt.AlignRight)
 
         self.login_input = QLineEdit()
-        self.login_input.setPlaceholderText("login")
+        self.login_input.setPlaceholderText("Логин")
 
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setPlaceholderText("password")
+        self.password_input.setPlaceholderText("Пароль")
 
-        form.addRow("Login:", self.login_input)
-        form.addRow("Password:", self.password_input)
+        form.addRow("Логин:", self.login_input)
+        form.addRow("Пароль:", self.password_input)
 
-        login_btn = QPushButton("Login")
+        login_btn = QPushButton("Войти")
         login_btn.clicked.connect(self._handle_login)
 
         buttons = QHBoxLayout()
@@ -88,25 +88,25 @@ class AuthWindow(QWidget):
         form.setLabelAlignment(Qt.AlignRight)
 
         self.reg_username_input = QLineEdit()
-        self.reg_username_input.setPlaceholderText("display name")
+        self.reg_username_input.setPlaceholderText("Отображаемое имя")
 
         self.reg_login_input = QLineEdit()
-        self.reg_login_input.setPlaceholderText("login")
+        self.reg_login_input.setPlaceholderText("Логин")
 
         self.reg_password_input = QLineEdit()
         self.reg_password_input.setEchoMode(QLineEdit.Password)
-        self.reg_password_input.setPlaceholderText("password")
+        self.reg_password_input.setPlaceholderText("Пароль")
 
         self.reg_password_repeat_input = QLineEdit()
         self.reg_password_repeat_input.setEchoMode(QLineEdit.Password)
-        self.reg_password_repeat_input.setPlaceholderText("repeat password")
+        self.reg_password_repeat_input.setPlaceholderText("Повторите пароль")
 
-        form.addRow("Username:", self.reg_username_input)
-        form.addRow("Login:", self.reg_login_input)
-        form.addRow("Password:", self.reg_password_input)
-        form.addRow("Repeat:", self.reg_password_repeat_input)
+        form.addRow("Имя:", self.reg_username_input)
+        form.addRow("Логин:", self.reg_login_input)
+        form.addRow("Пароль:", self.reg_password_input)
+        form.addRow("Повтор пароля:", self.reg_password_repeat_input)
 
-        register_btn = QPushButton("Register")
+        register_btn = QPushButton("Зарегистрироваться")
         register_btn.clicked.connect(self._handle_register)
 
         buttons = QHBoxLayout()
@@ -123,18 +123,22 @@ class AuthWindow(QWidget):
         password = self.password_input.text()
 
         if not login or not password:
-            QMessageBox.warning(self, "Validation", "Login and password are required.")
+            QMessageBox.warning(self, "Проверка данных", "Введите логин и пароль.")
             return
 
         try:
             token = self.pkg_api.login_user(login, password)
             if not token:
-                QMessageBox.warning(self, "Login", "Invalid login or password.")
+                QMessageBox.warning(self, "Вход", "Неверный логин или пароль.")
                 return
 
             user_id = self.pkg_api.resolve_user_id_by_token(token)
             if user_id is None:
-                QMessageBox.critical(self, "Login", "Could not resolve user context by session token.")
+                QMessageBox.critical(
+                    self,
+                    "Вход",
+                    "Не удалось определить пользователя по токену сессии. Повторите вход.",
+                )
                 return
 
             self.state.session_token = token
@@ -142,7 +146,7 @@ class AuthWindow(QWidget):
             self.state.clear_lab_context()
             self.on_login_success()
         except Exception as exc:
-            QMessageBox.critical(self, "Login Error", map_oracle_error(exc))
+            QMessageBox.critical(self, "Ошибка входа", map_oracle_error(exc))
 
     def _handle_register(self) -> None:
         username = self.reg_username_input.text().strip()
@@ -151,18 +155,18 @@ class AuthWindow(QWidget):
         password_repeat = self.reg_password_repeat_input.text()
 
         if not username or not login or not password:
-            QMessageBox.warning(self, "Validation", "Username, login and password are required.")
+            QMessageBox.warning(self, "Проверка данных", "Заполните имя, логин и пароль.")
             return
 
         if password != password_repeat:
-            QMessageBox.warning(self, "Validation", "Passwords do not match.")
+            QMessageBox.warning(self, "Проверка данных", "Пароли не совпадают.")
             return
 
         try:
             self.pkg_api.register_user(username, login, password)
-            QMessageBox.information(self, "Register", "User created successfully. Please login.")
+            QMessageBox.information(self, "Регистрация", "Пользователь успешно создан. Теперь выполните вход.")
             self.login_input.setText(login)
             self.password_input.setFocus()
             self.tabs.setCurrentIndex(0)
         except Exception as exc:
-            QMessageBox.critical(self, "Register Error", map_oracle_error(exc))
+            QMessageBox.critical(self, "Ошибка регистрации", map_oracle_error(exc))

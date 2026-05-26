@@ -61,7 +61,7 @@ class CrossbreedTab(QWidget):
 
         title = QLabel("Генетический эксперимент")
         title.setObjectName("title")
-        subtitle = QLabel("Скрещивание двух существ и просмотр вероятностей по выбранному гену")
+        subtitle = QLabel("Выбор двух исходных существ, расчет вероятностей и создание результата")
         subtitle.setObjectName("subtitle")
 
         heading.addWidget(title)
@@ -90,8 +90,8 @@ class CrossbreedTab(QWidget):
         self.parent_a_combo.currentIndexChanged.connect(self._on_parent_changed)
         self.parent_b_combo.currentIndexChanged.connect(self._on_parent_changed)
 
-        selector_layout.addRow("Существо A:", self.parent_a_combo)
-        selector_layout.addRow("Существо B:", self.parent_b_combo)
+        selector_layout.addRow("Исходное существо A:", self.parent_a_combo)
+        selector_layout.addRow("Исходное существо B:", self.parent_b_combo)
         selector_layout.addRow("Ген:", self.gene_combo)
 
         self.show_probabilities_btn = QPushButton("Показать вероятности")
@@ -101,8 +101,8 @@ class CrossbreedTab(QWidget):
         root.addWidget(selector_card)
 
         cards_row = QHBoxLayout()
-        self.parent_a_card, self.parent_a_fields = self._build_parent_card("Существо A")
-        self.parent_b_card, self.parent_b_fields = self._build_parent_card("Существо B")
+        self.parent_a_card, self.parent_a_fields = self._build_source_card("Исходное существо A")
+        self.parent_b_card, self.parent_b_fields = self._build_source_card("Исходное существо B")
         cards_row.addWidget(self.parent_a_card)
         cards_row.addWidget(self.parent_b_card)
         root.addLayout(cards_row)
@@ -112,18 +112,18 @@ class CrossbreedTab(QWidget):
         probabilities_layout = QVBoxLayout(probabilities_card)
         probabilities_layout.setContentsMargins(12, 12, 12, 12)
 
-        probabilities_title = QLabel("Вероятности (решетка Пеннета)")
+        probabilities_title = QLabel("Вероятности признаков")
         probabilities_title.setObjectName("subtitle")
         probabilities_layout.addWidget(probabilities_title)
 
         self.probabilities_table = QTableWidget(0, 5)
         self.probabilities_table.setHorizontalHeaderLabels(
             [
-                "Аллель 1 ID",
-                "Аллель 2 ID",
+                "Аллель 1 (ID)",
+                "Аллель 2 (ID)",
                 "Вероятность",
-                "Аллель 1",
-                "Аллель 2",
+                "Описание аллеля 1",
+                "Описание аллеля 2",
             ]
         )
         self.probabilities_table.verticalHeader().setVisible(False)
@@ -131,6 +131,7 @@ class CrossbreedTab(QWidget):
         self.probabilities_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.probabilities_table.setSelectionMode(QTableWidget.SingleSelection)
         self.probabilities_table.horizontalHeader().setStretchLastSection(True)
+        self.probabilities_table.setAlternatingRowColors(True)
 
         probabilities_layout.addWidget(self.probabilities_table)
         root.addWidget(probabilities_card)
@@ -159,7 +160,7 @@ class CrossbreedTab(QWidget):
 
         root.addWidget(result_card)
 
-    def _build_parent_card(self, header: str) -> tuple[QFrame, dict[str, QLabel]]:
+    def _build_source_card(self, header: str) -> tuple[QFrame, dict[str, QLabel]]:
         frame = QFrame()
         frame.setProperty("card", "true")
         layout = QFormLayout(frame)
@@ -379,7 +380,7 @@ class CrossbreedTab(QWidget):
     @staticmethod
     def _format_probability(value: Any) -> str:
         if value is None:
-            return "-"
+            return "Нет данных"
 
         if isinstance(value, Decimal):
             return f"{float(value):.2f}"
@@ -392,10 +393,10 @@ class CrossbreedTab(QWidget):
     @staticmethod
     def _display(value: Any) -> str:
         if value is None:
-            return "-"
+            return "Не указано"
 
         text = str(value).strip()
-        return text if text else "-"
+        return text if text else "Не указано"
 
     @staticmethod
     def _to_int(value: Any) -> int | None:
@@ -411,5 +412,5 @@ class CrossbreedTab(QWidget):
     def _species_text(species_value: Any) -> str:
         species_id = CrossbreedTab._to_int(species_value)
         if species_id is None:
-            return "-"
+            return "Не указано"
         return _SPECIES_LABELS.get(species_id, f"Тип {species_id}")

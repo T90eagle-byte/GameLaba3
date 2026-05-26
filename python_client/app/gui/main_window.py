@@ -36,8 +36,8 @@ class MainWindow(QWidget):
         self.tasks_tab: TasksTab | None = None
         self.history_tab: HistoryTab | None = None
 
-        self.setWindowTitle("БиоСборка - Лаборатория")
-        self.setMinimumSize(980, 640)
+        self.setWindowTitle("БиоСборка — Лаборатория")
+        self.setMinimumSize(1020, 680)
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -50,7 +50,7 @@ class MainWindow(QWidget):
         title_col = QVBoxLayout()
         title = QLabel("Панель лаборатории")
         title.setObjectName("title")
-        subtitle = QLabel("Игровая логика выполняется в Oracle PL/SQL")
+        subtitle = QLabel("Все игровые расчеты выполняются в Oracle PL/SQL")
         subtitle.setObjectName("subtitle")
         title_col.addWidget(title)
         title_col.addWidget(subtitle)
@@ -77,7 +77,7 @@ class MainWindow(QWidget):
         stats_layout.setHorizontalSpacing(18)
         stats_layout.setVerticalSpacing(10)
 
-        self._add_stat(stats_layout, 0, 0, "ID лаборатории", "lab_id")
+        self._add_stat(stats_layout, 0, 0, "Лаборатория", "lab_id")
         self._add_stat(stats_layout, 0, 1, "Монеты", "wallet")
         self._add_stat(stats_layout, 0, 2, "Рейтинг", "rating")
         self._add_stat(stats_layout, 0, 3, "Существа", "creature_count")
@@ -126,8 +126,8 @@ class MainWindow(QWidget):
 
         name = QLabel(label)
         name.setObjectName("subtitle")
-        value = QLabel("-")
-        value.setStyleSheet("font-size: 16px; font-weight: 600;")
+        value = QLabel("—")
+        value.setStyleSheet("font-size: 16px; font-weight: 700;")
 
         vbox.addWidget(name)
         vbox.addWidget(value)
@@ -150,12 +150,12 @@ class MainWindow(QWidget):
         self.state.set_lab_stats(stats)
 
         self.stat_labels["lab_id"].setText(str(lab_id))
-        self.stat_labels["wallet"].setText(str(stats.get("wallet", 0)))
-        self.stat_labels["rating"].setText(str(stats.get("rating", 0)))
-        self.stat_labels["creature_count"].setText(str(stats.get("creature_count", 0)))
-        self.stat_labels["active_task_count"].setText(str(stats.get("active_task_count", 0)))
-        self.stat_labels["completed_task_count"].setText(str(stats.get("completed_task_count", 0)))
-        self.stat_labels["experiment_count"].setText(str(stats.get("experiment_count", 0)))
+        self.stat_labels["wallet"].setText(self._format_stat(stats.get("wallet")))
+        self.stat_labels["rating"].setText(self._format_stat(stats.get("rating")))
+        self.stat_labels["creature_count"].setText(self._format_stat(stats.get("creature_count")))
+        self.stat_labels["active_task_count"].setText(self._format_stat(stats.get("active_task_count")))
+        self.stat_labels["completed_task_count"].setText(self._format_stat(stats.get("completed_task_count")))
+        self.stat_labels["experiment_count"].setText(self._format_stat(stats.get("experiment_count")))
 
     def refresh_main_shell(self) -> None:
         self.refresh_stats()
@@ -174,3 +174,9 @@ class MainWindow(QWidget):
 
         if self.history_tab is not None:
             self.history_tab.refresh_data()
+
+    @staticmethod
+    def _format_stat(value) -> str:
+        if value is None:
+            return "Не указано"
+        return str(value)

@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 
 from PySide6.QtWidgets import QApplication, QMessageBox
 
@@ -21,8 +21,12 @@ def main() -> int:
     except Exception as exc:  # pragma: no cover - startup guard
         QMessageBox.critical(
             None,
-            "Oracle Connection Error",
-            f"Failed to connect to Oracle: {exc}",
+            "Ошибка подключения к Oracle",
+            (
+                "Не удалось подключиться к базе данных Oracle. "
+                "Проверьте параметры подключения в файле .env.\n\n"
+                f"Технические детали: {exc}"
+            ),
         )
         return 1
 

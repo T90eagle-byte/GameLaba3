@@ -10,6 +10,11 @@ def map_oracle_error(exc: Exception) -> str:
         message = getattr(payload, "message", str(exc))
 
         custom = {
+            -1017: "Неверный логин или пароль для подключения к Oracle.",
+            -12154: "Не удалось разрешить адрес Oracle (TNS). Проверьте host/service_name.",
+            -12514: "Сервис Oracle не найден. Проверьте ORACLE_SERVICE.",
+            -12541: "Нет соединения с Oracle Listener. Проверьте host/port и доступность БД.",
+            -28000: "Учетная запись Oracle заблокирована.",
             -20003: "Некорректный формат логина.",
             -20004: "Пароль не может быть пустым.",
             -20005: "Пользователь с таким логином уже существует.",
@@ -18,18 +23,18 @@ def map_oracle_error(exc: Exception) -> str:
             -20023: "Лаборатория не найдена или доступ запрещен.",
             -20024: "Лаборатория не найдена.",
             -20025: "Лаборатория не найдена или доступ запрещен.",
-            -20030: "Для выбранного гена отсутствуют данные генотипа у одного из родителей.",
+            -20030: "Для выбранного гена отсутствуют данные генотипа у одного из исходных существ.",
             -20031: "Нужно выбрать оба исходных существа.",
             -20032: "Нельзя выбирать одно и то же существо дважды.",
             -20033: "Имя результирующего существа не может быть пустым.",
             -20034: "Существо A не найдено в выбранной лаборатории.",
             -20035: "Существо B не найдено в выбранной лаборатории.",
-            -20036: "Скрещивание доступно только для существ одного вида.",
-            -20037: "У выбранных существ нет общих генов для скрещивания.",
+            -20036: "Генетический эксперимент доступен только для существ одного вида.",
+            -20037: "У выбранных существ нет общих генов для эксперимента.",
             -20041: "Мутация не найдена.",
             -20043: "Эта мутация не куплена для текущей лаборатории или её запас уже израсходован.",
             -20044: "Запас выбранной мутации равен нулю.",
-            -20045: "Эта мутация не подходит выбранному существу: у него нет гена, на который действует мутация.",
+            -20045: "Эта мутация не подходит выбранному существу: у него нет нужного целевого гена.",
             -20046: "Для выбранной мутации не найдено правил применения.",
             -20047: "Не удалось уменьшить запас мутации.",
             -20048: "Тип мутагена не указан.",
@@ -60,13 +65,45 @@ def map_oracle_error(exc: Exception) -> str:
             except (TypeError, ValueError):
                 normalized_code = None
 
-        for lookup_code in (code, normalized_code):
+        for lookup_code in (normalized_code, code):
             if lookup_code in custom:
-                return custom[lookup_code]
+                human_message = custom[lookup_code]
+                details = _oracle_details(code=code, message=message)
+                return f"{human_message}\n\n{details}" if details else human_message
 
-        if code is not None:
-            return f"Ошибка Oracle {code}: {message}"
+        details = _oracle_details(code=code, message=message)
+        if details:
+            return f"Произошла ошибка Oracle.\n\n{details}"
+        return "Произошла ошибка Oracle."
 
-        return f"Ошибка Oracle: {message}"
+    text = str(exc).strip()
+    if not text:
+        return "Произошла непредвиденная ошибка."
 
-    return str(exc)
+    lower_text = text.lower()
+    if "dpy-" in lower_text or "oracle" in lower_text or "connection" in lower_text:
+        return (
+            "Ошибка подключения к Oracle. Проверьте параметры в .env, доступность контейнера БД и сеть."
+            f"\n\nТехнические детали: {text}"
+        )
+
+    return text
+
+
+def _oracle_details(code, message: str) -> str:
+    clean_message = (message or "").strip()
+    if code is None and not clean_message:
+        return ""
+
+    code_part = ""
+    if code is not None:
+        try:
+            code_part = f"ORA-{abs(int(code)):05d}"
+        except (TypeError, ValueError):
+            code_part = f"Код Oracle: {code}"
+
+    if code_part and clean_message:
+        return f"Технические детали: {code_part}. {clean_message}"
+    if code_part:
+        return f"Технические детали: {code_part}."
+    return f"Технические детали: {clean_message}"

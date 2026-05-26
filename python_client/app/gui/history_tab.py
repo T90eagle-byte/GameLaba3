@@ -62,9 +62,9 @@ class HistoryTab(QWidget):
         filter_label = QLabel("Фильтр:")
         self.type_filter_combo = QComboBox()
         self.type_filter_combo.addItem("Все", None)
-        self.type_filter_combo.addItem("Генетический эксперимент", "CROSS")
-        self.type_filter_combo.addItem("Мутация", "MUTATION")
-        self.type_filter_combo.addItem("Мутаген", "MUTAGEN")
+        self.type_filter_combo.addItem("Генетические эксперименты", "CROSS")
+        self.type_filter_combo.addItem("Мутации", "MUTATION")
+        self.type_filter_combo.addItem("Мутагены", "MUTAGEN")
         self.type_filter_combo.currentIndexChanged.connect(self.refresh_data)
 
         self.refresh_btn = QPushButton("Обновить историю")
@@ -86,17 +86,17 @@ class HistoryTab(QWidget):
         self.history_table = QTableWidget(0, 11)
         self.history_table.setHorizontalHeaderLabels(
             [
-                "experiment_id",
-                "experiment_type",
-                "parent1_id",
-                "parent1_name",
-                "parent2_id",
-                "parent2_name",
-                "offspring_id",
-                "offspring_name",
-                "mutation_id",
-                "mutation_name",
-                "created_at",
+                "ID",
+                "Тип",
+                "ID существа A",
+                "Имя существа A",
+                "ID существа B",
+                "Имя существа B",
+                "ID результата",
+                "Имя результата",
+                "ID мутации",
+                "Название мутации",
+                "Дата/время",
             ]
         )
         self.history_table.verticalHeader().setVisible(False)
@@ -104,6 +104,7 @@ class HistoryTab(QWidget):
         self.history_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.history_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.history_table.horizontalHeader().setStretchLastSection(True)
+        self.history_table.setAlternatingRowColors(True)
         self.history_table.itemSelectionChanged.connect(self._on_history_selected)
 
         table_layout.addWidget(self.history_table)
@@ -169,10 +170,10 @@ class HistoryTab(QWidget):
             experiment_id = self._to_int(row.get("experiment_id"))
             type_code = self._display(row.get("experiment_type"))
             type_label = self._experiment_type_ru(type_code)
-            if type_code == "-":
+            if type_code == "Не указано":
                 type_display = type_label
             else:
-                type_display = f"{type_code} / {type_label}"
+                type_display = f"{type_label} ({type_code})"
 
             self._set_table_item(row_idx, 0, experiment_id, center=True)
             self._set_table_item(row_idx, 1, type_display, center=True)
@@ -205,7 +206,7 @@ class HistoryTab(QWidget):
 
         type_code = self._display(row.get("experiment_type"))
         type_ru = self._experiment_type_ru(type_code)
-        if type_code == "-":
+        if type_code == "Не указано":
             self.lbl_type.setText(type_ru)
         else:
             self.lbl_type.setText(f"{type_ru} ({type_code})")
@@ -222,7 +223,7 @@ class HistoryTab(QWidget):
             self.lbl_mutation.setText(f"{mutation_id} | {mutation_name}")
 
         created_at_text = self._display_datetime(row.get("created_at"))
-        if created_at_text == "-":
+        if created_at_text == "Нет данных":
             self.lbl_created_at.setText("Нет данных")
         else:
             self.lbl_created_at.setText(created_at_text)
@@ -256,9 +257,9 @@ class HistoryTab(QWidget):
     @staticmethod
     def _display(value: Any) -> str:
         if value is None:
-            return "-"
+            return "Не указано"
         text = str(value).strip()
-        return text if text else "-"
+        return text if text else "Не указано"
 
     @staticmethod
     def _to_int(value: Any) -> int | None:
@@ -272,13 +273,13 @@ class HistoryTab(QWidget):
     @staticmethod
     def _display_datetime(value: Any) -> str:
         if value is None:
-            return "-"
+            return "Нет данных"
         if isinstance(value, datetime):
             return value.strftime("%d.%m.%Y %H:%M:%S")
         if isinstance(value, date):
             return value.strftime("%d.%m.%Y")
         text = str(value).strip()
-        return text if text else "-"
+        return text if text else "Нет данных"
 
     @staticmethod
     def _experiment_type_ru(type_code: str) -> str:
@@ -289,11 +290,10 @@ class HistoryTab(QWidget):
         value_id = self._to_int(entity_id)
         value_name = self._display(entity_name)
 
-        if value_id is None and value_name == "-":
-            return "-"
+        if value_id is None and value_name == "Не указано":
+            return "Нет данных"
         if value_id is None:
             return value_name
-        if value_name == "-":
+        if value_name == "Не указано":
             return str(value_id)
         return f"{value_id} | {value_name}"
-
