@@ -45,3 +45,16 @@
 ## 6) Отдельный DDL-трек (по решению)
 
 Поле `generation` в `creatures` остается отдельным DDL-этапом и не входит в текущий GUI-срез.
+
+## 7) Content Compliance Pass (LR2)
+
+Status: completed at seed/test level (no DDL migrations and no package spec/body changes).
+
+Result:
+- expanded mutation/task content coverage;
+- closed trait/species coverage gaps from LR2 KB matrix;
+- added coverage checks to `02_seed_data_smoke_test` and `07_strict_compliance_smoke_test`.
+
+Next:
+- confirm run on real Oracle;
+- proceed with next GUI feature slice (for example, Experiment History tab).

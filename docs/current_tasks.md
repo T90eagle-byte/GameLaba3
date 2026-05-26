@@ -38,3 +38,33 @@
 - Завершить подходящее задание.
 - Нажать «Обновить задания».
 - Убедиться, что появилось новое ACTIVE-задание, если в пуле `tasks` еще есть неназначенные.
+
+## Content Compliance Pass (LR2)
+
+Status: completed (no DDL or package API changes).
+
+Completed work:
+- Expanded `database/seeds/01_seed_core_game_data.sql`.
+- Added mutation and mutation-rule coverage for weak traits:
+  `nutrition_type`, `has_wings`, `fin_shape` (types 1 and 2), `claw_form`,
+  `beak_nose_shape`, `shell_armor` (type 5), `fur_density`.
+- Expanded task and marker pool to cover all `species_type 1..6` and
+  universal traits (`color`, `size`, `nutrition_type`, `has_wings`).
+- Updated smoke-tests:
+  - `database/tests/02_seed_data_smoke_test.sql`;
+  - `database/tests/07_strict_compliance_smoke_test.sql`.
+
+Current content targets:
+- genes: 12
+- alleles: 24
+- mutations: 8
+- mutation_rules: 12
+- tasks: 12
+- task_markers: 21
+
+Next step:
+1. Run seed + checks on Oracle:
+   - `@database/seeds/01_seed_core_game_data.sql`
+   - `@database/tests/02_seed_data_smoke_test.sql`
+   - `@database/tests/07_strict_compliance_smoke_test.sql`
+2. If green, run full regression `01..07`.

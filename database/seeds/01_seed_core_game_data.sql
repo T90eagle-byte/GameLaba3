@@ -398,6 +398,10 @@ begin
     upsert_mutation('chemical_mutation', 2, 'Chemical transformation with controlled target', 130, -3);
     upsert_mutation('enhanced_color_mutation', 3, 'Boost color expression toward green', 200, 2);
     upsert_mutation('size_shift_mutation', 4, 'Shift body size toward large phenotype', 180, 1);
+    upsert_mutation('nutrition_shift_mutation', 5, 'Shift feeding strategy toward carnivore pattern', 160, 1);
+    upsert_mutation('wing_activation_mutation', 6, 'Activate wing trait expression where gene is present', 170, 1);
+    upsert_mutation('aquatic_form_mutation', 7, 'Aquatic morphology shift for fins and turtle shell profile', 190, 2);
+    upsert_mutation('morphology_refine_mutation', 8, 'Refine claws, beak/nose, and fur morphology', 210, 2);
 
     -- -------------------------------------------------------------------------
     -- 4) Mutation rules
@@ -406,6 +410,17 @@ begin
     upsert_mutation_rule('chemical_mutation', 'shell_armor', 3, 'thick_armor', '1');
     upsert_mutation_rule('enhanced_color_mutation', 'color', 0, 'green_color', 'ANY');
     upsert_mutation_rule('size_shift_mutation', 'size', 0, 'large_size', 'ANY');
+
+    upsert_mutation_rule('nutrition_shift_mutation', 'nutrition_type', 0, 'carnivore', 'ANY');
+    upsert_mutation_rule('wing_activation_mutation', 'has_wings', 0, 'wings', 'ANY');
+
+    upsert_mutation_rule('aquatic_form_mutation', 'fin_shape', 1, 'broad_fin', 'ANY');
+    upsert_mutation_rule('aquatic_form_mutation', 'fin_shape', 2, 'forked_fin', 'ANY');
+    upsert_mutation_rule('aquatic_form_mutation', 'shell_armor', 5, 'spiked_shell', 'ANY');
+
+    upsert_mutation_rule('morphology_refine_mutation', 'claw_form', 3, 'long_claws', 'ANY');
+    upsert_mutation_rule('morphology_refine_mutation', 'beak_nose_shape', 4, 'sharp_beak', 'ANY');
+    upsert_mutation_rule('morphology_refine_mutation', 'fur_density', 6, 'dense_fur', 'ANY');
 
     -- -------------------------------------------------------------------------
     -- 5) Tasks
@@ -452,6 +467,48 @@ begin
         340
     );
 
+    upsert_task(
+        'task_cartilaginous_fin_line',
+        'Create a cartilaginous fish with broad_fin and carnivore nutrition.',
+        28,
+        250
+    );
+
+    upsert_task(
+        'task_mollusk_sharp_profile',
+        'Create a mollusk with sharp_beak and green color.',
+        26,
+        230
+    );
+
+    upsert_task(
+        'task_large_specimen',
+        'Get a large specimen with the large_size trait.',
+        14,
+        140
+    );
+
+    upsert_task(
+        'task_herbivore_line',
+        'Build a herbivore creature line.',
+        16,
+        160
+    );
+
+    upsert_task(
+        'task_spiked_turtle',
+        'Create a turtle with spiked_shell and fast_speed.',
+        24,
+        220
+    );
+
+    upsert_task(
+        'task_mammal_short_fur',
+        'Create a mammal with short_fur and compact_size.',
+        22,
+        210
+    );
+
     -- -------------------------------------------------------------------------
     -- 6) Task markers
     -- -------------------------------------------------------------------------
@@ -471,6 +528,22 @@ begin
 
     upsert_task_marker('task_dense_fur_mammal', 'fur_density', 6, 'dense_fur');
     upsert_task_marker('task_dense_fur_mammal', 'color', 0, 'green_color');
+
+    upsert_task_marker('task_cartilaginous_fin_line', 'fin_shape', 1, 'broad_fin');
+    upsert_task_marker('task_cartilaginous_fin_line', 'nutrition_type', 0, 'carnivore');
+
+    upsert_task_marker('task_mollusk_sharp_profile', 'beak_nose_shape', 4, 'sharp_beak');
+    upsert_task_marker('task_mollusk_sharp_profile', 'color', 0, 'green_color');
+
+    upsert_task_marker('task_large_specimen', 'size', 0, 'large_size');
+
+    upsert_task_marker('task_herbivore_line', 'nutrition_type', 0, 'herbivore');
+
+    upsert_task_marker('task_spiked_turtle', 'shell_armor', 5, 'spiked_shell');
+    upsert_task_marker('task_spiked_turtle', 'speed_level', 5, 'fast_speed');
+
+    upsert_task_marker('task_mammal_short_fur', 'fur_density', 6, 'short_fur');
+    upsert_task_marker('task_mammal_short_fur', 'size', 0, 'compact_size');
 end;
 /
 

@@ -57,9 +57,9 @@ begin
      where allele_cnt < 2;
     assert_true(v_value = 0, 'Each gene has >= 2 alleles', 'genes with <2 alleles=' || v_value);
 
-    -- 4) Mutation count >= 4
+    -- 4) Mutation count >= 8
     select count(*) into v_value from mutations;
-    assert_true(v_value >= 4, 'Mutation count >= 4', 'actual=' || v_value);
+    assert_true(v_value >= 8, 'Mutation count >= 8', 'actual=' || v_value);
 
     -- 5) mutation_rules reference existing mutation_id/gene_id/target_allele_id
     select count(*)
@@ -85,11 +85,36 @@ begin
      where a.gene_id <> mr.gene_id;
     assert_true(v_value = 0, 'mutation_rules allele belongs to same gene', 'mismatched rows=' || v_value);
 
-    -- 7) Task count >= 6
-    select count(*) into v_value from tasks;
-    assert_true(v_value >= 6, 'Task count >= 6', 'actual=' || v_value);
+    -- 7) mutation_rules cover a broad gene set
+    select count(distinct mr.gene_id)
+      into v_value
+      from mutation_rules mr;
+    assert_true(v_value >= 10, 'mutation_rules cover >= 10 genes', 'distinct genes=' || v_value);
 
-    -- 8) Each task has at least one task_marker
+    -- 8) mutation_rules include required universal genes
+    select count(distinct g.gene_name)
+      into v_value
+      from mutation_rules mr
+      join genes g
+        on g.gene_id = mr.gene_id
+     where g.species_type = 0
+       and g.gene_name in ('color', 'size', 'nutrition_type', 'has_wings');
+    assert_true(v_value = 4, 'mutation_rules cover universal genes color/size/nutrition_type/has_wings', 'covered=' || v_value);
+
+    -- 9) mutation_rules include species-specific coverage for all 1..6
+    select count(distinct g.species_type)
+      into v_value
+      from mutation_rules mr
+      join genes g
+        on g.gene_id = mr.gene_id
+     where g.species_type between 1 and 6;
+    assert_true(v_value = 6, 'mutation_rules cover species_type 1..6', 'covered species=' || v_value);
+
+    -- 10) Task count >= 12
+    select count(*) into v_value from tasks;
+    assert_true(v_value >= 12, 'Task count >= 12', 'actual=' || v_value);
+
+    -- 11) Each task has at least one task_marker
     select count(*)
       into v_value
       from (
@@ -102,50 +127,55 @@ begin
            );
     assert_true(v_value = 0, 'Each task has >= 1 task_marker', 'tasks with no markers=' || v_value);
 
-    -- 9) task_markers reference existing allele_id
+    -- 12) task_markers reference existing task and allele
     select count(*)
       into v_value
       from task_markers tm
+      left join tasks t
+        on t.task_id = tm.task_id
       left join alleles a
         on a.allele_id = tm.allele_id
-     where a.allele_id is null;
-    assert_true(v_value = 0, 'task_markers reference existing alleles', 'invalid rows=' || v_value);
+     where t.task_id is null
+        or a.allele_id is null;
+    assert_true(v_value = 0, 'task_markers references are valid', 'invalid rows=' || v_value);
 
-    -- 10) Required universal genes exist (concept names)
+    -- 13) Task markers cover all species_type 1..6
+    select count(distinct g.species_type)
+      into v_value
+      from task_markers tm
+      join alleles a
+        on a.allele_id = tm.allele_id
+      join genes g
+        on g.gene_id = a.gene_id
+     where g.species_type between 1 and 6;
+    assert_true(v_value = 6, 'task_markers cover species_type 1..6', 'covered species=' || v_value);
+
+    -- 14) Task markers include universal traits
+    select count(distinct g.gene_name)
+      into v_value
+      from task_markers tm
+      join alleles a
+        on a.allele_id = tm.allele_id
+      join genes g
+        on g.gene_id = a.gene_id
+     where g.species_type = 0
+       and g.gene_name in ('color', 'size', 'nutrition_type', 'has_wings');
+    assert_true(v_value = 4, 'task_markers cover universal traits color/size/nutrition_type/has_wings', 'covered=' || v_value);
+
+    -- 15) Required universal genes exist
     select count(*)
       into v_value
       from genes g
      where g.species_type = 0
-       and lower(g.gene_name) in ('color', 'цвет');
-    assert_true(v_value > 0, 'Gene exists: color/цвет', 'missing universal color gene');
+       and g.gene_name in ('color', 'size', 'nutrition_type', 'has_wings');
+    assert_true(v_value = 4, 'Universal genes set exists', 'actual=' || v_value);
 
-    select count(*)
-      into v_value
-      from genes g
-     where g.species_type = 0
-       and lower(g.gene_name) in ('size', 'размер');
-    assert_true(v_value > 0, 'Gene exists: size/размер', 'missing universal size gene');
-
-    select count(*)
-      into v_value
-      from genes g
-     where g.species_type = 0
-       and lower(g.gene_name) in ('nutrition_type', 'тип питания');
-    assert_true(v_value > 0, 'Gene exists: nutrition_type/тип питания', 'missing universal nutrition gene');
-
-    select count(*)
-      into v_value
-      from genes g
-     where g.species_type = 0
-       and lower(g.gene_name) in ('has_wings', 'наличие крыльев');
-    assert_true(v_value > 0, 'Gene exists: has_wings/наличие крыльев', 'missing universal wings gene');
-
-    -- 11) Data exists for all 6 species_type values
+    -- 16) Data exists for all 6 species_type values
     select count(distinct g.species_type)
       into v_value
       from genes g
      where g.species_type between 1 and 6;
-    assert_true(v_value = 6, 'All species_type 1..6 are present', 'distinct species_type count=' || v_value);
+    assert_true(v_value = 6, 'All species_type 1..6 are present in genes', 'distinct species_type count=' || v_value);
 
     dbms_output.put_line('--- SUMMARY ---');
     dbms_output.put_line('Passed: ' || v_passed_tests);

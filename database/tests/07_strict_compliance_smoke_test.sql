@@ -332,6 +332,59 @@ begin
     assert_true(v_creature_count = 30, 'start_new_lab creates 30 creatures', 'actual=' || v_creature_count);
     assert_true(v_active_task_count = 3, 'start_new_lab assigns 3 ACTIVE tasks', 'actual=' || v_active_task_count);
 
+    select count(*)
+      into v_dummy_num
+      from mutations m;
+    assert_true(v_dummy_num >= 8, 'content coverage: mutations >= 8', 'actual=' || v_dummy_num);
+
+    select count(*)
+      into v_dummy_num
+      from tasks t;
+    assert_true(v_dummy_num >= 12, 'content coverage: tasks >= 12', 'actual=' || v_dummy_num);
+
+    select count(distinct mr.gene_id)
+      into v_dummy_num
+      from mutation_rules mr;
+    assert_true(v_dummy_num >= 10, 'content coverage: mutation_rules cover >= 10 genes', 'actual=' || v_dummy_num);
+
+    select count(distinct g.gene_name)
+      into v_dummy_num
+      from mutation_rules mr
+      join genes g
+        on g.gene_id = mr.gene_id
+     where g.species_type = 0
+       and g.gene_name in ('color', 'size', 'nutrition_type', 'has_wings');
+    assert_true(v_dummy_num = 4, 'content coverage: mutation_rules cover universal genes', 'covered=' || v_dummy_num);
+
+    select count(distinct g.species_type)
+      into v_dummy_num
+      from mutation_rules mr
+      join genes g
+        on g.gene_id = mr.gene_id
+     where g.species_type between 1 and 6;
+    assert_true(v_dummy_num = 6, 'content coverage: mutation_rules cover species_type 1..6', 'covered=' || v_dummy_num);
+
+    select count(*)
+      into v_dummy_num
+      from task_markers tm
+      left join tasks t
+        on t.task_id = tm.task_id
+      left join alleles a
+        on a.allele_id = tm.allele_id
+     where t.task_id is null
+        or a.allele_id is null;
+    assert_true(v_dummy_num = 0, 'content coverage: task_markers references are valid', 'invalid rows=' || v_dummy_num);
+
+    select count(distinct g.species_type)
+      into v_dummy_num
+      from task_markers tm
+      join alleles a
+        on a.allele_id = tm.allele_id
+      join genes g
+        on g.gene_id = a.gene_id
+     where g.species_type between 1 and 6;
+    assert_true(v_dummy_num = 6, 'content coverage: tasks cover species_type 1..6', 'covered=' || v_dummy_num);
+
     select min(c.creature_id)
       into v_lab1_creature_id
       from creatures c

@@ -90,3 +90,16 @@ GUI must consume data only through:
 - simple return types.
 
 `dbms_output` is not a runtime data channel for GUI.
+
+## 9) Content Coverage (LR2)
+
+Content compliance pass extended seed data without DDL/backend API changes.
+
+- Genes/alleles remain stable (`12/24`), matching core KB structure.
+- Mutations expanded to `8` entries with `12` mutation rules.
+- Mutation rules now cover:
+  - universal traits: `color`, `size`, `nutrition_type`, `has_wings`;
+  - species traits for all `species_type 1..6`.
+- Tasks expanded to `12` entries with `21` task markers.
+- Task markers include universal traits and species-specific markers for all `1..6`.
+- Python GUI still consumes backend-only logic and does not implement gameplay rules locally.
