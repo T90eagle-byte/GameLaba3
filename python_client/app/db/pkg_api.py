@@ -151,6 +151,51 @@ class PkgApi:
             finally:
                 ref_cursor.close()
 
+    def get_tasks(self, lab_id: int) -> list[dict[str, Any]]:
+        with self._connection.cursor() as cursor:
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.get_tasks_cursor",
+                oracledb.DB_TYPE_CURSOR,
+                [lab_id],
+            )
+            try:
+                return self._rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()
+
+    def check_task(self, lab_id: int, task_id: int, creature_id: int) -> int:
+        with self._connection.cursor() as cursor:
+            result = cursor.callfunc(
+                "pkg_genetics_game.check_task",
+                oracledb.DB_TYPE_NUMBER,
+                [lab_id, task_id, creature_id],
+            )
+            return self._as_int(result)
+
+    def complete_task(self, lab_id: int, task_id: int, creature_id: int) -> dict[str, Any]:
+        with self._connection.cursor() as cursor:
+            out_is_completed = cursor.var(oracledb.DB_TYPE_NUMBER)
+            out_wallet_after = cursor.var(oracledb.DB_TYPE_NUMBER)
+            out_rating_after = cursor.var(oracledb.DB_TYPE_NUMBER)
+
+            cursor.callproc(
+                "pkg_genetics_game.complete_task",
+                [
+                    lab_id,
+                    task_id,
+                    creature_id,
+                    out_is_completed,
+                    out_wallet_after,
+                    out_rating_after,
+                ],
+            )
+
+            return {
+                "is_completed": self._as_int(out_is_completed.getvalue()),
+                "wallet_after": self._as_float(out_wallet_after.getvalue()),
+                "rating_after": self._as_float(out_rating_after.getvalue()),
+            }
+
     def calculate_punnett_probabilities(
         self,
         entity_a_id: int,

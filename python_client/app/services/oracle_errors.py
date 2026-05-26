@@ -10,50 +10,63 @@ def map_oracle_error(exc: Exception) -> str:
         message = getattr(payload, "message", str(exc))
 
         custom = {
-            -20003: "Invalid login format.",
-            -20004: "Password cannot be empty.",
-            -20005: "Login already exists.",
-            -20020: "Session is not active. Please login again.",
-            -20021: "Session already closed or not found.",
-            -20023: "Lab not found or access denied.",
-            -20024: "Lab not found.",
-            -20025: "Lab not found or access denied.",
-            -20030: "Genotype data for the selected gene is missing in one or both parents.",
-            -20031: "Both source creatures must be selected.",
-            -20032: "Source creatures must be different.",
-            -20033: "Result creature name cannot be empty.",
-            -20034: "Source creature A not found in selected lab.",
-            -20035: "Source creature B not found in selected lab.",
-            -20036: "Crossbreeding is allowed only for creatures of the same species type.",
-            -20037: "Selected creatures have no common genes for crossbreeding.",
-            -20041: "Mutation not found.",
+            -20003: "Некорректный формат логина.",
+            -20004: "Пароль не может быть пустым.",
+            -20005: "Пользователь с таким логином уже существует.",
+            -20020: "Сессия не активна. Выполните вход заново.",
+            -20021: "Сессия уже закрыта или не найдена.",
+            -20023: "Лаборатория не найдена или доступ запрещен.",
+            -20024: "Лаборатория не найдена.",
+            -20025: "Лаборатория не найдена или доступ запрещен.",
+            -20030: "Для выбранного гена отсутствуют данные генотипа у одного из родителей.",
+            -20031: "Нужно выбрать оба исходных существа.",
+            -20032: "Нельзя выбирать одно и то же существо дважды.",
+            -20033: "Имя результирующего существа не может быть пустым.",
+            -20034: "Существо A не найдено в выбранной лаборатории.",
+            -20035: "Существо B не найдено в выбранной лаборатории.",
+            -20036: "Скрещивание доступно только для существ одного вида.",
+            -20037: "У выбранных существ нет общих генов для скрещивания.",
+            -20041: "Мутация не найдена.",
             -20043: "Эта мутация не куплена для текущей лаборатории или её запас уже израсходован.",
-            -20044: "Mutation quantity is zero.",
+            -20044: "Запас выбранной мутации равен нулю.",
             -20045: "Эта мутация не подходит выбранному существу: у него нет гена, на который действует мутация.",
-            -20046: "No mutation rules found for selected mutation.",
-            -20047: "Failed to decrease mutation quantity.",
-            -20048: "Mutagen type cannot be empty.",
-            -20049: "Source creature not found.",
-            -20050: "Source creature has no genotype rows.",
-            -20051: "Unable to select genotype row for mutagen operation.",
-            -20056: "Mutation not found.",
-            -20057: "Lab not found.",
-            -20058: "Task not found.",
-            -20059: "Creature not found.",
-            -20060: "Creature does not belong to selected lab.",
-            -20066: "Session context is not initialized. Login is required.",
-            -20067: "Session expired. Please login again.",
-            -20068: "Access denied for selected lab.",
-            -20069: "Access denied for selected creature.",
-            -20070: "Unsupported mutagen type.",
+            -20046: "Для выбранной мутации не найдено правил применения.",
+            -20047: "Не удалось уменьшить запас мутации.",
+            -20048: "Тип мутагена не указан.",
+            -20049: "Исходное существо не найдено.",
+            -20050: "У исходного существа отсутствуют генотипы.",
+            -20051: "Не удалось выбрать генотип для операции мутагена.",
+            -20056: "Мутация не найдена.",
+            -20057: "Лаборатория не найдена.",
+            -20058: "Задание не найдено.",
+            -20059: "Существо не найдено.",
+            -20060: "Существо не принадлежит выбранной лаборатории.",
+            -20061: "Задание не назначено этой лаборатории.",
+            -20062: "У задания не настроены маркеры.",
+            -20063: "Выбранное существо не соответствует условиям задания.",
+            -20064: "Это задание уже выполнено, награда повторно не начисляется.",
+            -20065: "Не удалось завершить задание.",
+            -20066: "Контекст сессии не инициализирован. Выполните вход.",
+            -20067: "Сессия истекла. Выполните вход заново.",
+            -20068: "Нет доступа к выбранной лаборатории.",
+            -20069: "Нет доступа к выбранному существу.",
+            -20070: "Неподдерживаемый тип мутагена.",
         }
 
-        if code in custom:
-            return custom[code]
+        normalized_code: int | None = None
+        if code is not None:
+            try:
+                normalized_code = -abs(int(code))
+            except (TypeError, ValueError):
+                normalized_code = None
+
+        for lookup_code in (code, normalized_code):
+            if lookup_code in custom:
+                return custom[lookup_code]
 
         if code is not None:
-            return f"Oracle error {code}: {message}"
+            return f"Ошибка Oracle {code}: {message}"
 
-        return f"Oracle error: {message}"
+        return f"Ошибка Oracle: {message}"
 
     return str(exc)

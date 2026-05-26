@@ -17,6 +17,7 @@ from app.db.pkg_api import PkgApi
 from app.gui.creatures_tab import CreaturesTab
 from app.gui.crossbreed_tab import CrossbreedTab
 from app.gui.mutations_tab import MutationsTab
+from app.gui.tasks_tab import TasksTab
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
 
@@ -32,8 +33,9 @@ class MainWindow(QWidget):
         self.creatures_tab: CreaturesTab | None = None
         self.crossbreed_tab: CrossbreedTab | None = None
         self.mutations_tab: MutationsTab | None = None
+        self.tasks_tab: TasksTab | None = None
 
-        self.setWindowTitle("BioSborka - Main Lab")
+        self.setWindowTitle("БиоСборка - Лаборатория")
         self.setMinimumSize(980, 640)
         self._build_ui()
 
@@ -45,9 +47,9 @@ class MainWindow(QWidget):
         title_row = QHBoxLayout()
 
         title_col = QVBoxLayout()
-        title = QLabel("Main Lab Window")
+        title = QLabel("Панель лаборатории")
         title.setObjectName("title")
-        subtitle = QLabel("Gameplay backend is executed in Oracle PL/SQL")
+        subtitle = QLabel("Игровая логика выполняется в Oracle PL/SQL")
         subtitle.setObjectName("subtitle")
         title_col.addWidget(title)
         title_col.addWidget(subtitle)
@@ -55,11 +57,11 @@ class MainWindow(QWidget):
         title_row.addLayout(title_col)
         title_row.addStretch()
 
-        refresh_btn = QPushButton("Refresh Stats")
+        refresh_btn = QPushButton("Обновить статистику")
         refresh_btn.setProperty("role", "secondary")
         refresh_btn.clicked.connect(self.refresh_stats)
 
-        logout_btn = QPushButton("Logout")
+        logout_btn = QPushButton("Выход")
         logout_btn.clicked.connect(self.on_logout)
 
         title_row.addWidget(refresh_btn)
@@ -74,13 +76,13 @@ class MainWindow(QWidget):
         stats_layout.setHorizontalSpacing(18)
         stats_layout.setVerticalSpacing(10)
 
-        self._add_stat(stats_layout, 0, 0, "Lab ID", "lab_id")
-        self._add_stat(stats_layout, 0, 1, "Wallet", "wallet")
-        self._add_stat(stats_layout, 0, 2, "Rating", "rating")
-        self._add_stat(stats_layout, 0, 3, "Creatures", "creature_count")
-        self._add_stat(stats_layout, 1, 0, "Active Tasks", "active_task_count")
-        self._add_stat(stats_layout, 1, 1, "Completed Tasks", "completed_task_count")
-        self._add_stat(stats_layout, 1, 2, "Experiments", "experiment_count")
+        self._add_stat(stats_layout, 0, 0, "ID лаборатории", "lab_id")
+        self._add_stat(stats_layout, 0, 1, "Монеты", "wallet")
+        self._add_stat(stats_layout, 0, 2, "Рейтинг", "rating")
+        self._add_stat(stats_layout, 0, 3, "Существа", "creature_count")
+        self._add_stat(stats_layout, 1, 0, "Активные задания", "active_task_count")
+        self._add_stat(stats_layout, 1, 1, "Выполненные задания", "completed_task_count")
+        self._add_stat(stats_layout, 1, 2, "Эксперименты", "experiment_count")
 
         root.addWidget(stats_card)
 
@@ -103,7 +105,13 @@ class MainWindow(QWidget):
         )
         tabs.addTab(self.mutations_tab, "Мутации")
 
-        tabs.addTab(self._placeholder_tab("Задания"), "Задания")
+        self.tasks_tab = TasksTab(
+            pkg_api=self.pkg_api,
+            state=self.state,
+            on_lab_data_changed=self.refresh_main_shell,
+        )
+        tabs.addTab(self.tasks_tab, "Задания")
+
         tabs.addTab(self._placeholder_tab("История экспериментов"), "История экспериментов")
 
         root.addWidget(tabs)
@@ -133,7 +141,7 @@ class MainWindow(QWidget):
         card.setProperty("card", "true")
         card_layout = QVBoxLayout(card)
 
-        label = QLabel(f"{name}: screen will be implemented in the next stage.")
+        label = QLabel(f"Экран «{name}» будет реализован на следующем этапе.")
         label.setAlignment(Qt.AlignCenter)
         label.setWordWrap(True)
         label.setStyleSheet("font-size: 15px; color: #374151;")
@@ -148,13 +156,13 @@ class MainWindow(QWidget):
     def refresh_stats(self) -> None:
         lab_id = self.state.selected_lab_id
         if lab_id is None:
-            QMessageBox.warning(self, "Lab", "Selected lab is missing.")
+            QMessageBox.warning(self, "Лаборатория", "Сначала выберите лабораторию.")
             return
 
         try:
             stats = self.pkg_api.get_lab_stats(lab_id)
         except Exception as exc:
-            QMessageBox.critical(self, "Stats Error", map_oracle_error(exc))
+            QMessageBox.critical(self, "Ошибка статистики", map_oracle_error(exc))
             return
 
         self.state.set_lab_stats(stats)
@@ -178,3 +186,6 @@ class MainWindow(QWidget):
 
         if self.mutations_tab is not None:
             self.mutations_tab.refresh_data()
+
+        if self.tasks_tab is not None:
+            self.tasks_tab.refresh_data()
