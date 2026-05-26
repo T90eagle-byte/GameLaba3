@@ -182,3 +182,105 @@ class PkgApi:
                 [lab_id, entity_a_id, entity_b_id, result_name, out_offspring_id],
             )
             return self._as_int(out_offspring_id.getvalue())
+
+    def show_mutation_shop(self) -> list[dict[str, Any]]:
+        with self._connection.cursor() as cursor:
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.show_mutation_shop",
+                oracledb.DB_TYPE_CURSOR,
+                [],
+            )
+            try:
+                return self._rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()
+
+    def buy_mutation(self, lab_id: int, mutation_id: int) -> int:
+        with self._connection.cursor() as cursor:
+            result = cursor.callfunc(
+                "pkg_genetics_game.buy_mutation",
+                oracledb.DB_TYPE_NUMBER,
+                [lab_id, mutation_id],
+            )
+            return self._as_int(result)
+
+    def apply_mutation(self, creature_id: int, mutation_id: int) -> None:
+        with self._connection.cursor() as cursor:
+            cursor.callproc(
+                "pkg_genetics_game.apply_mutation",
+                [creature_id, mutation_id],
+            )
+
+    def apply_mutagen(self, creature_id: int, mutagen_type: str) -> int:
+        with self._connection.cursor() as cursor:
+            out_new_creature_id = cursor.var(oracledb.DB_TYPE_NUMBER)
+            cursor.callproc(
+                "pkg_genetics_game.apply_mutagen",
+                [creature_id, mutagen_type, out_new_creature_id],
+            )
+            return self._as_int(out_new_creature_id.getvalue())
+
+    def get_mutation_target_genes(self, mutation_id: int) -> list[dict[str, Any]]:
+        with self._connection.cursor() as cursor:
+            cursor.execute(
+                """
+                select
+                  mr.gene_id,
+                  g.gene_name,
+                  g.gene_type,
+                  g.species_type,
+                  mr.target_slot,
+                  a.trait_value,
+                  a.description as target_allele_description
+                from mutation_rules mr
+                join genes g on g.gene_id = mr.gene_id
+                join alleles a on a.allele_id = mr.target_allele_id
+                where mr.mutation_id = :mutation_id
+                order by mr.gene_id
+                """,
+                {"mutation_id": mutation_id},
+            )
+            return self._rows_from_refcursor(cursor)
+
+    def get_compatible_creature_ids_for_mutation(self, lab_id: int, mutation_id: int) -> list[int]:
+        with self._connection.cursor() as cursor:
+            cursor.execute(
+                """
+                select c.creature_id
+                from creatures c
+                where c.lab_id = :lab_id
+                  and not exists (
+                    select 1
+                    from (
+                      select distinct mr.gene_id
+                      from mutation_rules mr
+                      where mr.mutation_id = :mutation_id
+                    ) req
+                    where not exists (
+                      select 1
+                      from genotypes g
+                      where g.creature_id = c.creature_id
+                        and g.gene_id = req.gene_id
+                    )
+                  )
+                order by c.creature_id
+                """,
+                {"lab_id": lab_id, "mutation_id": mutation_id},
+            )
+            return [self._as_int(row[0]) for row in cursor.fetchall()]
+
+    def get_lab_mutation_quantity(self, lab_id: int, mutation_id: int) -> int:
+        with self._connection.cursor() as cursor:
+            cursor.execute(
+                """
+                select lm.quantity
+                from lab_mutations lm
+                where lm.lab_id = :lab_id
+                  and lm.mutation_id = :mutation_id
+                """,
+                {"lab_id": lab_id, "mutation_id": mutation_id},
+            )
+            row = cursor.fetchone()
+            if row is None:
+                return 0
+            return self._as_int(row[0])

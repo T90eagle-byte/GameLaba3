@@ -1,0 +1,638 @@
+﻿from __future__ import annotations
+
+from typing import Any, Callable
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFormLayout,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+from app.db.pkg_api import PkgApi
+from app.services.oracle_errors import map_oracle_error
+from app.services.session_state import SessionState
+
+
+_SPECIES_LABELS = {
+    1: "Хрящевые рыбы",
+    2: "Костные рыбы",
+    3: "Ракообразные",
+    4: "Моллюски",
+    5: "Черепахи",
+    6: "Млекопитающие",
+}
+
+
+class MutationsTab(QWidget):
+    def __init__(
+        self,
+        pkg_api: PkgApi,
+        state: SessionState,
+        on_lab_data_changed: Callable[[], None] | None = None,
+    ) -> None:
+        super().__init__()
+        self.pkg_api = pkg_api
+        self.state = state
+        self.on_lab_data_changed = on_lab_data_changed
+
+        self._shop_rows: list[dict[str, Any]] = []
+        self._creatures: list[dict[str, Any]] = []
+        self._creature_by_id: dict[int, dict[str, Any]] = {}
+
+        self._target_genes: list[dict[str, Any]] = []
+        self._compatible_creature_ids: set[int] = set()
+        self._mutation_stock_qty: int = 0
+
+        self.last_purchased_mutation_id: int | None = None
+
+        self._build_ui()
+
+    def _build_ui(self) -> None:
+        root = QVBoxLayout(self)
+        root.setContentsMargins(8, 8, 8, 8)
+        root.setSpacing(10)
+
+        heading_row = QHBoxLayout()
+        heading = QVBoxLayout()
+
+        title = QLabel("Мутации")
+        title.setObjectName("title")
+        subtitle = QLabel("Лабораторный магазин, совместимость существ и мутагенные эксперименты")
+        subtitle.setObjectName("subtitle")
+        heading.addWidget(title)
+        heading.addWidget(subtitle)
+
+        self.refresh_shop_btn = QPushButton("Обновить магазин")
+        self.refresh_shop_btn.setProperty("role", "secondary")
+        self.refresh_shop_btn.clicked.connect(self.refresh_shop)
+
+        self.refresh_creatures_btn = QPushButton("Обновить список существ")
+        self.refresh_creatures_btn.setProperty("role", "secondary")
+        self.refresh_creatures_btn.clicked.connect(self.refresh_creatures)
+
+        heading_row.addLayout(heading)
+        heading_row.addStretch()
+        heading_row.addWidget(self.refresh_shop_btn)
+        heading_row.addWidget(self.refresh_creatures_btn)
+
+        root.addLayout(heading_row)
+
+        content_row = QHBoxLayout()
+        content_row.setSpacing(10)
+
+        shop_card = QFrame()
+        shop_card.setProperty("card", "true")
+        shop_layout = QVBoxLayout(shop_card)
+        shop_layout.setContentsMargins(12, 12, 12, 12)
+        shop_layout.setSpacing(8)
+
+        shop_title = QLabel("Магазин мутаций")
+        shop_title.setObjectName("subtitle")
+        shop_layout.addWidget(shop_title)
+
+        self.shop_table = QTableWidget(0, 6)
+        self.shop_table.setHorizontalHeaderLabels(
+            [
+                "ID",
+                "Название",
+                "Тип",
+                "Описание",
+                "Цена",
+                "Эффект рейтинга",
+            ]
+        )
+        self.shop_table.verticalHeader().setVisible(False)
+        self.shop_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.shop_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.shop_table.setSelectionMode(QTableWidget.SingleSelection)
+        self.shop_table.horizontalHeader().setStretchLastSection(True)
+        self.shop_table.itemSelectionChanged.connect(self._on_mutation_selected)
+        shop_layout.addWidget(self.shop_table)
+
+        selected_mutation_form = QFormLayout()
+        selected_mutation_form.setLabelAlignment(Qt.AlignRight)
+
+        self.selected_mutation_id_label = QLabel("-")
+        self.selected_mutation_name_label = QLabel("-")
+        self.selected_mutation_price_label = QLabel("-")
+        self.selected_mutation_stock_label = QLabel("0")
+
+        selected_mutation_form.addRow("Выбрано (ID):", self.selected_mutation_id_label)
+        selected_mutation_form.addRow("Название:", self.selected_mutation_name_label)
+        selected_mutation_form.addRow("Цена:", self.selected_mutation_price_label)
+        selected_mutation_form.addRow("Запас в лаборатории:", self.selected_mutation_stock_label)
+
+        shop_layout.addLayout(selected_mutation_form)
+
+        self.buy_btn = QPushButton("Купить мутацию")
+        self.buy_btn.clicked.connect(self.buy_selected_mutation)
+        shop_layout.addWidget(self.buy_btn)
+
+        target_genes_title = QLabel("Целевые гены мутации")
+        target_genes_title.setObjectName("subtitle")
+        shop_layout.addWidget(target_genes_title)
+
+        self.target_genes_table = QTableWidget(0, 7)
+        self.target_genes_table.setHorizontalHeaderLabels(
+            [
+                "gene_id",
+                "gene_name",
+                "gene_type",
+                "species_type",
+                "target_slot",
+                "trait_value",
+                "target_allele_description",
+            ]
+        )
+        self.target_genes_table.verticalHeader().setVisible(False)
+        self.target_genes_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.target_genes_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.target_genes_table.setSelectionMode(QTableWidget.SingleSelection)
+        self.target_genes_table.horizontalHeader().setStretchLastSection(True)
+        shop_layout.addWidget(self.target_genes_table)
+
+        self.target_hint_label = QLabel("Выберите мутацию, чтобы увидеть целевые гены.")
+        self.target_hint_label.setObjectName("subtitle")
+        self.target_hint_label.setWordWrap(True)
+        shop_layout.addWidget(self.target_hint_label)
+
+        content_row.addWidget(shop_card, 3)
+
+        right_col = QVBoxLayout()
+        right_col.setSpacing(10)
+
+        creature_card = QFrame()
+        creature_card.setProperty("card", "true")
+        creature_layout = QFormLayout(creature_card)
+        creature_layout.setContentsMargins(12, 12, 12, 12)
+        creature_layout.setLabelAlignment(Qt.AlignRight)
+
+        creature_title = QLabel("Выбранное существо")
+        creature_title.setObjectName("subtitle")
+        creature_layout.addRow("", creature_title)
+
+        self.only_compatible_checkbox = QCheckBox("Показывать только совместимых")
+        self.only_compatible_checkbox.setChecked(True)
+        self.only_compatible_checkbox.toggled.connect(self._on_compatibility_filter_toggled)
+        creature_layout.addRow("", self.only_compatible_checkbox)
+
+        self.creature_combo = QComboBox()
+        self.creature_combo.currentIndexChanged.connect(self._on_creature_changed)
+
+        self.creature_id_label = QLabel("-")
+        self.creature_name_label = QLabel("-")
+        self.creature_species_label = QLabel("-")
+        self.creature_phenotype_label = QLabel("-")
+        self.creature_phenotype_label.setWordWrap(True)
+        self.creature_phenotype_label.setMinimumHeight(48)
+
+        creature_layout.addRow("Существо:", self.creature_combo)
+        creature_layout.addRow("ID:", self.creature_id_label)
+        creature_layout.addRow("Имя:", self.creature_name_label)
+        creature_layout.addRow("Вид:", self.creature_species_label)
+        creature_layout.addRow("Фенотип:", self.creature_phenotype_label)
+
+        right_col.addWidget(creature_card)
+
+        apply_card = QFrame()
+        apply_card.setProperty("card", "true")
+        apply_layout = QVBoxLayout(apply_card)
+        apply_layout.setContentsMargins(12, 12, 12, 12)
+        apply_layout.setSpacing(8)
+
+        apply_title = QLabel("Применение мутации")
+        apply_title.setObjectName("subtitle")
+        apply_layout.addWidget(apply_title)
+
+        self.apply_mutation_btn = QPushButton("Применить купленную мутацию")
+        self.apply_mutation_btn.clicked.connect(self.apply_selected_mutation)
+        apply_layout.addWidget(self.apply_mutation_btn)
+
+        self.apply_state_label = QLabel("Сначала выберите мутацию.")
+        self.apply_state_label.setObjectName("subtitle")
+        self.apply_state_label.setWordWrap(True)
+        apply_layout.addWidget(self.apply_state_label)
+
+        right_col.addWidget(apply_card)
+
+        mutagen_card = QFrame()
+        mutagen_card.setProperty("card", "true")
+        mutagen_layout = QFormLayout(mutagen_card)
+        mutagen_layout.setContentsMargins(12, 12, 12, 12)
+        mutagen_layout.setLabelAlignment(Qt.AlignRight)
+
+        mutagen_title = QLabel("Мутагены")
+        mutagen_title.setObjectName("subtitle")
+        mutagen_layout.addRow("", mutagen_title)
+
+        self.mutagen_type_combo = QComboBox()
+        self.mutagen_type_combo.addItem("RADIATION (облучение)", "RADIATION")
+        self.mutagen_type_combo.addItem("CHEMICAL (химикаты)", "CHEMICAL")
+
+        self.apply_mutagen_btn = QPushButton("Применить мутаген")
+        self.apply_mutagen_btn.clicked.connect(self.apply_selected_mutagen)
+
+        self.new_creature_id_label = QLabel("-")
+
+        mutagen_layout.addRow("Тип мутагена:", self.mutagen_type_combo)
+        mutagen_layout.addRow("", self.apply_mutagen_btn)
+        mutagen_layout.addRow("ID нового существа:", self.new_creature_id_label)
+
+        right_col.addWidget(mutagen_card)
+
+        content_row.addLayout(right_col, 2)
+
+        root.addLayout(content_row)
+
+    def refresh_data(self) -> None:
+        self.refresh_shop()
+        self.refresh_creatures()
+
+    def refresh_shop(self) -> None:
+        selected_mutation_id = self._selected_mutation_id()
+        if selected_mutation_id is None:
+            selected_mutation_id = self.last_purchased_mutation_id
+
+        try:
+            self._shop_rows = self.pkg_api.show_mutation_shop()
+        except Exception as exc:
+            QMessageBox.critical(self, "Ошибка магазина", map_oracle_error(exc))
+            return
+
+        self.shop_table.blockSignals(True)
+        self.shop_table.setRowCount(0)
+
+        for row_idx, row in enumerate(self._shop_rows):
+            self.shop_table.insertRow(row_idx)
+            self._set_shop_item(row_idx, 0, row.get("mutation_id"), center=True)
+            self._set_shop_item(row_idx, 1, row.get("mutation_name"))
+            self._set_shop_item(row_idx, 2, row.get("mutation_type"), center=True)
+            self._set_shop_item(row_idx, 3, row.get("description"))
+            self._set_shop_item(row_idx, 4, row.get("price"), center=True)
+            self._set_shop_item(row_idx, 5, row.get("rating_effect"), center=True)
+
+        if self.shop_table.rowCount() > 0:
+            target_row = 0
+            if selected_mutation_id is not None:
+                for idx, row in enumerate(self._shop_rows):
+                    if self._to_int(row.get("mutation_id")) == self._to_int(selected_mutation_id):
+                        target_row = idx
+                        break
+            self.shop_table.selectRow(target_row)
+        else:
+            self._clear_selected_mutation_labels()
+
+        self.shop_table.blockSignals(False)
+        self._on_mutation_selected()
+
+    def refresh_creatures(self) -> None:
+        lab_id = self.state.selected_lab_id
+        if lab_id is None:
+            QMessageBox.warning(self, "Мутации", "Сначала выберите лабораторию.")
+            return
+
+        current_creature_id = self.creature_combo.currentData()
+
+        try:
+            self._creatures = self.pkg_api.get_creatures(lab_id)
+        except Exception as exc:
+            QMessageBox.critical(self, "Ошибка списка существ", map_oracle_error(exc))
+            return
+
+        self._creature_by_id = {}
+        for creature in self._creatures:
+            creature_id = self._to_int(creature.get("creature_id"))
+            if creature_id is not None:
+                self._creature_by_id[creature_id] = creature
+
+        self._update_creature_combo(current_creature_id)
+
+    def buy_selected_mutation(self) -> None:
+        lab_id = self.state.selected_lab_id
+        mutation_id = self._selected_mutation_id()
+
+        if lab_id is None:
+            QMessageBox.warning(self, "Мутации", "Сначала выберите лабораторию.")
+            return
+
+        if mutation_id is None:
+            QMessageBox.warning(self, "Мутации", "Выберите мутацию в магазине.")
+            return
+
+        try:
+            result = self.pkg_api.buy_mutation(lab_id, mutation_id)
+        except Exception as exc:
+            QMessageBox.critical(self, "Ошибка покупки", map_oracle_error(exc))
+            return
+
+        if result == 0:
+            QMessageBox.warning(self, "Мутации", "Недостаточно средств для покупки мутации.")
+            return
+
+        self.last_purchased_mutation_id = mutation_id
+
+        QMessageBox.information(self, "Мутации", "Мутация успешно куплена.")
+        self._notify_lab_data_changed()
+
+    def apply_selected_mutation(self) -> None:
+        creature_id = self._to_int(self.creature_combo.currentData())
+        mutation_id = self._selected_mutation_id()
+
+        if creature_id is None:
+            QMessageBox.warning(self, "Мутации", "Выберите существо для применения мутации.")
+            return
+
+        if mutation_id is None:
+            QMessageBox.warning(self, "Мутации", "Выберите мутацию в магазине.")
+            return
+
+        try:
+            self.pkg_api.apply_mutation(creature_id, mutation_id)
+        except Exception as exc:
+            QMessageBox.critical(self, "Ошибка применения", map_oracle_error(exc))
+            return
+
+        QMessageBox.information(self, "Мутации", "Мутация успешно применена к существу.")
+
+        lab_id = self.state.selected_lab_id
+        if lab_id is not None:
+            try:
+                qty_after = self.pkg_api.get_lab_mutation_quantity(lab_id, mutation_id)
+                if qty_after <= 0 and self.last_purchased_mutation_id == mutation_id:
+                    self.last_purchased_mutation_id = None
+            except Exception:
+                pass
+
+        self._notify_lab_data_changed()
+
+    def apply_selected_mutagen(self) -> None:
+        creature_id = self._to_int(self.creature_combo.currentData())
+        mutagen_type = self.mutagen_type_combo.currentData()
+
+        if creature_id is None:
+            QMessageBox.warning(self, "Мутагены", "Выберите существо для применения мутагена.")
+            return
+
+        if mutagen_type is None:
+            QMessageBox.warning(self, "Мутагены", "Выберите тип мутагена.")
+            return
+
+        try:
+            new_creature_id = self.pkg_api.apply_mutagen(creature_id, str(mutagen_type))
+        except Exception as exc:
+            QMessageBox.critical(self, "Ошибка мутагена", map_oracle_error(exc))
+            return
+
+        self.new_creature_id_label.setText(str(new_creature_id))
+        QMessageBox.information(
+            self,
+            "Мутагены",
+            f"Мутаген применен успешно. Создано новое существо с ID: {new_creature_id}",
+        )
+
+        self._notify_lab_data_changed()
+
+    def _on_mutation_selected(self) -> None:
+        mutation = self._selected_mutation_row()
+        if mutation is None:
+            self._clear_selected_mutation_labels()
+            self._target_genes = []
+            self._compatible_creature_ids = set()
+            self._mutation_stock_qty = 0
+            self._fill_target_genes_table([])
+            self.target_hint_label.setText("Выберите мутацию, чтобы увидеть целевые гены.")
+            self._update_creature_combo(self.creature_combo.currentData())
+            self._update_apply_mutation_state()
+            return
+
+        mutation_id = self._to_int(mutation.get("mutation_id"))
+
+        self.selected_mutation_id_label.setText(self._display(mutation.get("mutation_id")))
+        self.selected_mutation_name_label.setText(self._display(mutation.get("mutation_name")))
+        self.selected_mutation_price_label.setText(self._display(mutation.get("price")))
+
+        self._load_mutation_targets_and_compatibility(mutation_id)
+        self._fill_target_genes_table(self._target_genes)
+        self._update_target_hint()
+        self._update_creature_combo(self.creature_combo.currentData())
+        self._update_apply_mutation_state()
+
+    def _on_creature_changed(self) -> None:
+        creature_id = self._to_int(self.creature_combo.currentData())
+        creature = self._creature_by_id.get(creature_id) if creature_id is not None else None
+
+        if creature is None:
+            self.creature_id_label.setText("-")
+            self.creature_name_label.setText("-")
+            self.creature_species_label.setText("-")
+            self.creature_phenotype_label.setText("-")
+            self._update_apply_mutation_state()
+            return
+
+        self.creature_id_label.setText(self._display(creature.get("creature_id")))
+        self.creature_name_label.setText(self._display(creature.get("creature_name")))
+        self.creature_species_label.setText(self._species_text(creature.get("species_type")))
+        self.creature_phenotype_label.setText(self._display(creature.get("phenotype_summary")))
+        self._update_apply_mutation_state()
+
+    def _on_compatibility_filter_toggled(self) -> None:
+        self._update_creature_combo(self.creature_combo.currentData())
+
+    def _load_mutation_targets_and_compatibility(self, mutation_id: int | None) -> None:
+        self._target_genes = []
+        self._compatible_creature_ids = set()
+        self._mutation_stock_qty = 0
+
+        if mutation_id is None:
+            self.selected_mutation_stock_label.setText("0")
+            return
+
+        lab_id = self.state.selected_lab_id
+        if lab_id is None:
+            self.selected_mutation_stock_label.setText("0")
+            return
+
+        try:
+            self._target_genes = self.pkg_api.get_mutation_target_genes(mutation_id)
+            compatible_ids = self.pkg_api.get_compatible_creature_ids_for_mutation(lab_id, mutation_id)
+            self._compatible_creature_ids = set(compatible_ids)
+            self._mutation_stock_qty = self.pkg_api.get_lab_mutation_quantity(lab_id, mutation_id)
+        except Exception as exc:
+            QMessageBox.critical(self, "Ошибка совместимости", map_oracle_error(exc))
+            self._target_genes = []
+            self._compatible_creature_ids = set()
+            self._mutation_stock_qty = 0
+
+        self.selected_mutation_stock_label.setText(str(self._mutation_stock_qty))
+
+    def _fill_target_genes_table(self, rows: list[dict[str, Any]]) -> None:
+        self.target_genes_table.setRowCount(0)
+
+        for row_idx, row in enumerate(rows):
+            self.target_genes_table.insertRow(row_idx)
+            self._set_target_item(row_idx, 0, row.get("gene_id"), center=True)
+            self._set_target_item(row_idx, 1, row.get("gene_name"))
+            self._set_target_item(row_idx, 2, row.get("gene_type"))
+            self._set_target_item(row_idx, 3, self._species_text(row.get("species_type")), center=True)
+            self._set_target_item(row_idx, 4, row.get("target_slot"), center=True)
+            self._set_target_item(row_idx, 5, row.get("trait_value"), center=True)
+            self._set_target_item(row_idx, 6, row.get("target_allele_description"))
+
+    def _update_target_hint(self) -> None:
+        if not self._target_genes:
+            self.target_hint_label.setText("Для выбранной мутации не найдено целевых генов.")
+            return
+
+        names: list[str] = []
+        for row in self._target_genes:
+            gene_name = self._display(row.get("gene_name"))
+            if gene_name != "-" and gene_name not in names:
+                names.append(gene_name)
+
+        if not names:
+            self.target_hint_label.setText("Эта мутация действует на набор целевых генов. Выберите совместимое существо.")
+            return
+
+        if len(names) == 1:
+            self.target_hint_label.setText(
+                f"Эта мутация действует на ген {names[0]}. Выберите существо, у которого есть этот ген."
+            )
+            return
+
+        names_text = ", ".join(names)
+        self.target_hint_label.setText(
+            f"Эта мутация действует на гены: {names_text}. Выберите существо, у которого есть эти гены."
+        )
+
+    def _update_creature_combo(self, selected_creature_id: Any) -> None:
+        mutation_id = self._selected_mutation_id()
+        selected_id_int = self._to_int(selected_creature_id)
+
+        self.creature_combo.blockSignals(True)
+        self.creature_combo.clear()
+        self.creature_combo.addItem("Выберите существо...", None)
+
+        selected_index = 0
+        filter_only_compatible = self.only_compatible_checkbox.isChecked() and mutation_id is not None
+
+        for creature in self._creatures:
+            creature_id = self._to_int(creature.get("creature_id"))
+            if creature_id is None:
+                continue
+
+            is_compatible = creature_id in self._compatible_creature_ids if mutation_id is not None else True
+
+            if filter_only_compatible and not is_compatible:
+                continue
+
+            name = self._display(creature.get("creature_name"))
+            species_text = self._species_text(creature.get("species_type"))
+
+            if mutation_id is None:
+                label = f"{creature_id} | {name} | {species_text}"
+            elif is_compatible:
+                label = f"[OK] {creature_id} | {name} | {species_text}"
+            else:
+                label = f"[нет нужного гена] {creature_id} | {name} | {species_text}"
+
+            self.creature_combo.addItem(label, creature_id)
+
+            if selected_id_int is not None and creature_id == selected_id_int:
+                selected_index = self.creature_combo.count() - 1
+
+        self.creature_combo.setCurrentIndex(selected_index)
+        self.creature_combo.blockSignals(False)
+
+        self._on_creature_changed()
+
+    def _update_apply_mutation_state(self) -> None:
+        mutation_id = self._selected_mutation_id()
+        creature_id = self._to_int(self.creature_combo.currentData())
+
+        reason = ""
+        can_apply = False
+
+        if mutation_id is None:
+            reason = "Сначала выберите мутацию."
+        elif self._mutation_stock_qty <= 0:
+            reason = "Сначала купите выбранную мутацию."
+        elif creature_id is None:
+            reason = "Выберите существо для применения мутации."
+        elif creature_id not in self._compatible_creature_ids:
+            reason = "Выбранное существо не содержит целевой ген этой мутации."
+        else:
+            reason = "Можно применить."
+            can_apply = True
+
+        self.apply_mutation_btn.setEnabled(can_apply)
+        self.apply_state_label.setText(reason)
+
+    def _notify_lab_data_changed(self) -> None:
+        if self.on_lab_data_changed is not None:
+            self.on_lab_data_changed()
+        else:
+            self.refresh_data()
+
+    def _selected_mutation_row(self) -> dict[str, Any] | None:
+        row_idx = self.shop_table.currentRow()
+        if row_idx < 0 or row_idx >= len(self._shop_rows):
+            return None
+        return self._shop_rows[row_idx]
+
+    def _selected_mutation_id(self) -> int | None:
+        mutation = self._selected_mutation_row()
+        if mutation is None:
+            return None
+        return self._to_int(mutation.get("mutation_id"))
+
+    def _clear_selected_mutation_labels(self) -> None:
+        self.selected_mutation_id_label.setText("-")
+        self.selected_mutation_name_label.setText("-")
+        self.selected_mutation_price_label.setText("-")
+        self.selected_mutation_stock_label.setText("0")
+
+    def _set_shop_item(self, row: int, col: int, value: Any, center: bool = False) -> None:
+        item = QTableWidgetItem(self._display(value))
+        if center:
+            item.setTextAlignment(Qt.AlignCenter)
+        self.shop_table.setItem(row, col, item)
+
+    def _set_target_item(self, row: int, col: int, value: Any, center: bool = False) -> None:
+        item = QTableWidgetItem(self._display(value))
+        if center:
+            item.setTextAlignment(Qt.AlignCenter)
+        self.target_genes_table.setItem(row, col, item)
+
+    @staticmethod
+    def _display(value: Any) -> str:
+        if value is None:
+            return "-"
+
+        text = str(value).strip()
+        return text if text else "-"
+
+    @staticmethod
+    def _to_int(value: Any) -> int | None:
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _species_text(species_value: Any) -> str:
+        species_id = MutationsTab._to_int(species_value)
+        if species_id is None:
+            return "-"
+        return _SPECIES_LABELS.get(species_id, f"Тип {species_id}")
