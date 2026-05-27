@@ -29,6 +29,7 @@ from app.services.display_names import (
     phenotype_summary_label,
     species_label,
     display_task_name,
+    display_task_difficulty,
     task_status_label,
 )
 
@@ -120,12 +121,13 @@ class TasksTab(QWidget):
 
         left_layout.addLayout(filter_row)
 
-        self.tasks_table = QTableWidget(0, 9)
+        self.tasks_table = QTableWidget(0, 10)
         self.tasks_table.setHorizontalHeaderLabels(
             [
                 "ID записи",
                 "ID задания",
                 "Название",
+                "Сложность",
                 "Описание",
                 "Награда (монеты)",
                 "Награда (рейтинг)",
@@ -172,12 +174,14 @@ class TasksTab(QWidget):
         self.task_desc_label.setMinimumHeight(54)
         self.task_reward_money_label = QLabel("-")
         self.task_reward_rating_label = QLabel("-")
+        self.task_difficulty_label = QLabel("-")
         self.task_status_label = QLabel("-")
 
         task_info_layout.addRow("Название:", self.task_name_label)
         task_info_layout.addRow("Описание:", self.task_desc_label)
         task_info_layout.addRow("Награда (монеты):", self.task_reward_money_label)
         task_info_layout.addRow("Награда (рейтинг):", self.task_reward_rating_label)
+        task_info_layout.addRow("Сложность:", self.task_difficulty_label)
         task_info_layout.addRow("Статус:", self.task_status_label)
 
         right_layout.addWidget(task_info_card)
@@ -311,18 +315,19 @@ class TasksTab(QWidget):
             task_name_item = QTableWidgetItem(display_task_name(task.get("task_name")))
             task_name_item.setToolTip(self._display(task.get("task_name")))
             self.tasks_table.setItem(row_idx, 2, task_name_item)
-            self._set_table_item(self.tasks_table, row_idx, 3, task.get("description"))
-            self._set_table_item(self.tasks_table, row_idx, 4, task.get("reward_money"), center=True)
-            self._set_table_item(self.tasks_table, row_idx, 5, task.get("reward_rating"), center=True)
+            self._set_table_item(self.tasks_table, row_idx, 3, display_task_difficulty(task.get("task_name")), center=True)
+            self._set_table_item(self.tasks_table, row_idx, 4, task.get("description"))
+            self._set_table_item(self.tasks_table, row_idx, 5, task.get("reward_money"), center=True)
+            self._set_table_item(self.tasks_table, row_idx, 6, task.get("reward_rating"), center=True)
             self._set_table_item(
                 self.tasks_table,
                 row_idx,
-                6,
+                7,
                 task_status_label(task.get("task_status")),
                 center=True,
             )
-            self._set_table_item(self.tasks_table, row_idx, 7, task.get("created_at"), center=True)
-            self._set_table_item(self.tasks_table, row_idx, 8, task.get("completed_at"), center=True)
+            self._set_table_item(self.tasks_table, row_idx, 8, task.get("created_at"), center=True)
+            self._set_table_item(self.tasks_table, row_idx, 9, task.get("completed_at"), center=True)
 
             if selected_task_id is not None and self._to_int(task.get("task_id")) == selected_task_id:
                 selected_row_idx = row_idx
@@ -378,6 +383,7 @@ class TasksTab(QWidget):
         self.task_desc_label.setText(self._display(task.get("description")))
         self.task_reward_money_label.setText(self._display(task.get("reward_money")))
         self.task_reward_rating_label.setText(self._display(task.get("reward_rating")))
+        self.task_difficulty_label.setText(display_task_difficulty(task.get("task_name")))
         self.task_status_label.setText(task_status_label(task.get("task_status")))
 
         self._update_status_hint()
@@ -543,6 +549,7 @@ class TasksTab(QWidget):
         self.task_desc_label.setText("-")
         self.task_reward_money_label.setText("-")
         self.task_reward_rating_label.setText("-")
+        self.task_difficulty_label.setText("-")
         self.task_status_label.setText("-")
 
     @staticmethod

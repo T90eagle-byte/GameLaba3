@@ -108,6 +108,22 @@ TASK_NAME_LABELS = {
     "task_mammal_short_fur": "Млекопитающее с короткой шерстью",
 }
 
+TASK_DIFFICULTY_LABELS = {
+    "task_green_specimen": "Лёгкое",
+    "task_winged_specimen": "Лёгкое",
+    "task_large_specimen": "Лёгкое",
+    "task_herbivore_line": "Лёгкое",
+    "task_fast_turtle": "Среднее",
+    "task_predator_fish_line": "Среднее",
+    "task_cartilaginous_fin_line": "Среднее",
+    "task_mollusk_sharp_profile": "Среднее",
+    "task_mammal_short_fur": "Среднее",
+    "task_spiked_turtle": "Среднее",
+    "task_armored_crustacean": "Сложное",
+    "task_dense_fur_mammal": "Сложное",
+}
+
+
 CREATURE_PREFIX_LABELS = {
     "cartilaginous_fish": "Хрящевая рыба",
     "bony_fish": "Костная рыба",
@@ -186,6 +202,10 @@ def display_task_name(value: Any) -> str:
     return task_name_label(value, with_code=False)
 
 
+def display_task_difficulty(value: Any) -> str:
+    return task_difficulty_label(value)
+
+
 def format_phenotype_summary(summary: Any) -> str:
     return phenotype_summary_label(summary)
 
@@ -234,6 +254,12 @@ def task_name_label(value: Any, *, with_code: bool = False) -> str:
     label = TASK_NAME_LABELS.get(code.lower(), code.replace("_", " "))
     return f"{label} ({code})" if with_code and code != "Не указано" else label
 
+
+def task_difficulty_label(value: Any) -> str:
+    code = display_value(value)
+    if code == "Не указано":
+        return code
+    return TASK_DIFFICULTY_LABELS.get(code.lower(), "Среднее")
 
 def creature_name_label(value: Any) -> str:
     text = display_value(value)

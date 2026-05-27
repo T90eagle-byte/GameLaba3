@@ -408,6 +408,18 @@ begin
      where g.species_type between 1 and 6;
     assert_true(v_dummy_num = 6, 'content coverage: tasks cover species_type 1..6', 'covered=' || v_dummy_num);
 
+    select count(*)
+      into v_dummy_num
+      from (
+            select tm.task_id, a.gene_id
+              from task_markers tm
+              join alleles a
+                on a.allele_id = tm.allele_id
+             group by tm.task_id, a.gene_id
+            having count(distinct tm.allele_id) > 1
+           );
+    assert_true(v_dummy_num = 0, 'content coverage: no conflicting task_markers by gene in one task', 'conflicting groups=' || v_dummy_num);
+
     select min(c.creature_id)
       into v_lab1_creature_id
       from creatures c

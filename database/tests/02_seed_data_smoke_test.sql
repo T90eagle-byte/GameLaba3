@@ -177,6 +177,19 @@ begin
      where g.species_type between 1 and 6;
     assert_true(v_value = 6, 'All species_type 1..6 are present in genes', 'distinct species_type count=' || v_value);
 
+    -- 17) Task markers do not contain conflicting alleles of the same gene in one task
+    select count(*)
+      into v_value
+      from (
+            select tm.task_id, a.gene_id
+              from task_markers tm
+              join alleles a
+                on a.allele_id = tm.allele_id
+             group by tm.task_id, a.gene_id
+            having count(distinct tm.allele_id) > 1
+           );
+    assert_true(v_value = 0, 'No conflicting task_markers within one task gene', 'conflicting groups=' || v_value);
+
     dbms_output.put_line('--- SUMMARY ---');
     dbms_output.put_line('Passed: ' || v_passed_tests);
     dbms_output.put_line('Failed: ' || v_failed_tests);
