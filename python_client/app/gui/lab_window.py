@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 
+from collections.abc import Callable
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFrame,
@@ -19,12 +21,22 @@ from app.services.session_state import SessionState
 
 
 class LabWindow(QWidget):
-    def __init__(self, pkg_api: PkgApi, state: SessionState, on_open_lab, on_logout) -> None:
+    def __init__(
+        self,
+        pkg_api: PkgApi,
+        state: SessionState,
+        on_open_lab,
+        on_logout,
+        on_window_close: Callable[[], None],
+        is_programmatic_close: Callable[[], bool],
+    ) -> None:
         super().__init__()
         self.pkg_api = pkg_api
         self.state = state
         self.on_open_lab = on_open_lab
         self.on_logout = on_logout
+        self.on_window_close = on_window_close
+        self.is_programmatic_close = is_programmatic_close
 
         self._labs: list[dict] = []
 
@@ -86,7 +98,7 @@ class LabWindow(QWidget):
         self.delete_btn.setProperty("role", "secondary")
         self.delete_btn.clicked.connect(self._delete_selected_lab)
 
-        self.logout_btn = QPushButton("Выход")
+        self.logout_btn = QPushButton("Выйти из аккаунта")
         self.logout_btn.setProperty("role", "secondary")
         self.logout_btn.clicked.connect(self.on_logout)
 
@@ -98,6 +110,14 @@ class LabWindow(QWidget):
         actions.addWidget(self.logout_btn)
 
         root.addLayout(actions)
+
+    def closeEvent(self, event) -> None:
+        if self.is_programmatic_close():
+            event.accept()
+            return
+
+        self.on_window_close()
+        event.accept()
 
     def refresh_labs(self) -> None:
         if self.state.user_id is None:
@@ -214,3 +234,6 @@ class LabWindow(QWidget):
             self.refresh_labs()
         except Exception as exc:
             QMessageBox.critical(self, "Ошибка удаления", map_oracle_error(exc))
+
+
+

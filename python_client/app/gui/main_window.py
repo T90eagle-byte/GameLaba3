@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 
+from collections.abc import Callable
+
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -24,11 +26,22 @@ from app.services.session_state import SessionState
 
 
 class MainWindow(QWidget):
-    def __init__(self, pkg_api: PkgApi, state: SessionState, on_logout) -> None:
+    def __init__(
+        self,
+        pkg_api: PkgApi,
+        state: SessionState,
+        on_back_to_labs,
+        on_logout,
+        on_window_close: Callable[[], None],
+        is_programmatic_close: Callable[[], bool],
+    ) -> None:
         super().__init__()
         self.pkg_api = pkg_api
         self.state = state
+        self.on_back_to_labs = on_back_to_labs
         self.on_logout = on_logout
+        self.on_window_close = on_window_close
+        self.is_programmatic_close = is_programmatic_close
 
         self.stat_labels: dict[str, QLabel] = {}
         self.creatures_tab: CreaturesTab | None = None
@@ -63,10 +76,15 @@ class MainWindow(QWidget):
         refresh_btn.setProperty("role", "secondary")
         refresh_btn.clicked.connect(self.refresh_stats)
 
-        logout_btn = QPushButton("Выход")
+        back_to_labs_btn = QPushButton("К лабораториям")
+        back_to_labs_btn.setProperty("role", "secondary")
+        back_to_labs_btn.clicked.connect(self.on_back_to_labs)
+
+        logout_btn = QPushButton("Выйти из аккаунта")
         logout_btn.clicked.connect(self.on_logout)
 
         title_row.addWidget(refresh_btn)
+        title_row.addWidget(back_to_labs_btn)
         title_row.addWidget(logout_btn)
 
         root.addLayout(title_row)
@@ -118,6 +136,14 @@ class MainWindow(QWidget):
         tabs.addTab(self._wrap_tab(self.history_tab), "История экспериментов")
 
         root.addWidget(tabs)
+
+    def closeEvent(self, event) -> None:
+        if self.is_programmatic_close():
+            event.accept()
+            return
+
+        self.on_window_close()
+        event.accept()
 
     def _add_stat(self, layout: QGridLayout, row: int, col: int, label: str, key: str) -> None:
         container = QFrame()
@@ -189,3 +215,6 @@ class MainWindow(QWidget):
         if value is None:
             return "Не указано"
         return str(value)
+
+
+
