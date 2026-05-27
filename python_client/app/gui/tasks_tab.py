@@ -28,7 +28,7 @@ from app.services.display_names import (
     display_value,
     phenotype_summary_label,
     species_label,
-    task_name_label,
+    display_task_name,
     task_status_label,
 )
 
@@ -308,7 +308,9 @@ class TasksTab(QWidget):
             self.tasks_table.insertRow(row_idx)
             self._set_table_item(self.tasks_table, row_idx, 0, task.get("lab_task_id"), center=True)
             self._set_table_item(self.tasks_table, row_idx, 1, task.get("task_id"), center=True)
-            self._set_table_item(self.tasks_table, row_idx, 2, task_name_label(task.get("task_name")))
+            task_name_item = QTableWidgetItem(display_task_name(task.get("task_name")))
+            task_name_item.setToolTip(self._display(task.get("task_name")))
+            self.tasks_table.setItem(row_idx, 2, task_name_item)
             self._set_table_item(self.tasks_table, row_idx, 3, task.get("description"))
             self._set_table_item(self.tasks_table, row_idx, 4, task.get("reward_money"), center=True)
             self._set_table_item(self.tasks_table, row_idx, 5, task.get("reward_rating"), center=True)
@@ -371,7 +373,8 @@ class TasksTab(QWidget):
             self._update_status_hint()
             return
 
-        self.task_name_label.setText(task_name_label(task.get("task_name")))
+        self.task_name_label.setText(display_task_name(task.get("task_name")))
+        self.task_name_label.setToolTip(self._display(task.get("task_name")))
         self.task_desc_label.setText(self._display(task.get("description")))
         self.task_reward_money_label.setText(self._display(task.get("reward_money")))
         self.task_reward_rating_label.setText(self._display(task.get("reward_rating")))
