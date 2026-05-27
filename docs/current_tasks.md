@@ -1,4 +1,4 @@
-﻿# Current Tasks
+# Current Tasks
 
 ## Статус проекта (обновлено: 2026-05-27)
 
@@ -115,15 +115,48 @@
 - GUI не читает `dbms_output`.
 - Все Python-файлы с кириллицей сохранять в UTF-8.
 
-## Следующий шаг (pending GUI-fix)
-Нужно исправить закрытие через `X`:
-- закрытие окна должно вызывать тот же logout flow, что кнопка «Выход»;
-- вызвать `pkg_genetics_game.logout_user(session_token)`;
-- очистить `SessionState`;
-- закрыть Oracle connection;
-- исключить повторный logout, если пользователь уже вышел кнопкой;
-- ошибки logout при закрытии не должны крашить приложение.
+## CloseEvent/logout fix — завершён
+- Закрытие GUI через `X` вызывает безопасный logout flow.
+- GUI вызывает `logout_user(session_token)`, очищает `SessionState` и закрывает Oracle connection.
+- Добавлены понятные русские сообщения для `ORA-20072` и `ORA-20073`.
+- Dev-only recovery script для старых зависших sessions: `database/scripts/dev_unlock_stale_sessions.sql`.
 
-Также обновить сообщения в `oracle_errors.py`:
-- `ORA-20072`: «Эта лаборатория уже открыта в другой активной сессии. Закройте другое окно игры или выйдите из лаборатории там.»
-- `ORA-20073`: «Выбранная лаборатория не активна в текущей сессии. Вернитесь к выбору лаборатории и откройте её заново.»
+## Аудит расширения признаков/контента по ЛР1/ЛР2 и KB — выполнен
+Вывод: базовое соответствие ЛР1/ЛР2 достаточное, расширение контента желательно точечно для лучшего учебного впечатления и более явной демонстрации KB.
+
+Текущие объёмы seed:
+- `genes`: 12
+- `alleles`: 24
+- `mutations`: 8
+- `mutation_rules`: 12
+- `tasks`: 12
+- `task_markers`: 21
+
+Что уже закрыто:
+- 6 видов существ вместо минимальных 5: хрящевые рыбы, костные рыбы, ракообразные, моллюски, черепахи, млекопитающие.
+- Универсальные признаки: `color`, `size`, `nutrition_type`, `has_wings`.
+- Видоспецифичные признаки покрывают `species_type 1..6`.
+- По каждому гену есть 2 аллеля.
+- Реализованы `FULL`, `INCOMPLETE`, `CODOMINANT`.
+- `mutation_rules` покрывают универсальные признаки и все `species_type 1..6`.
+- `task_markers` покрывают все `species_type 1..6` и универсальные признаки.
+- `calculate_punnett_probabilities`, `crossbreed`, `get_phenotype`, `apply_mutation`, `apply_mutagen` остаются в PL/SQL backend.
+
+Рекомендации для будущего content-pass:
+- Обязательных seed-изменений для текущего strict baseline нет.
+- Желательно усилить демонстрацию `linkage_group`: сейчас осмысленная связанная пара явно есть у черепах (`shell_armor` + `speed_level`), а у рыб linkage-группы содержат по одному гену и почти не демонстрируют связанное наследование.
+- Желательно расширять признаки только по подтверждённой KB-таблице/требованиям преподавателя, не добавляя случайные гены.
+- Если потребуется показывать в истории точный тип мутагена и изменённый ген, это отдельный backend/DDL-трек, потому что текущая таблица `experiments` не хранит такие детали.
+- `creatures.generation` остаётся отдельным DDL-треком, если нужно строго показывать поколение в коллекции.
+
+Потенциальные файлы будущей реализации:
+- `database/seeds/01_seed_core_game_data.sql`
+- `database/tests/02_seed_data_smoke_test.sql`
+- `database/tests/07_strict_compliance_smoke_test.sql`
+- `python_client/app/services/display_names.py`
+- `docs/current_tasks.md`, `docs/project_roadmap.md`, `docs/gameplay_rules.md`, `docs/ai_context.md`
+
+Код, SQL, backend package, DDL, seed, tests и Python в ходе аудита не менялись.
+
+## Следующий шаг
+Если требуется расширение KB-контента, сначала согласовать конкретные признаки из ЛР2/KB, затем делать отдельный seed/test/display pass. Без подтверждения не менять backend/DDL/Python.
