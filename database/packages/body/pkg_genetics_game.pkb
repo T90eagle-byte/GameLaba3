@@ -1827,7 +1827,7 @@ create or replace package body pkg_genetics_game as
                 o.creature_name as offspring_name,
                 e.mutation_id,
                 m.mutation_name,
-                cast(null as timestamp) as created_at
+                e.created_at as created_at
               from experiments e
               left join creatures p1
                 on p1.creature_id = e.parent1_id

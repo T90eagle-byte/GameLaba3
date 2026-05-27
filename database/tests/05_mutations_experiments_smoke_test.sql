@@ -1,4 +1,4 @@
-﻿set serveroutput on size unlimited;
+set serveroutput on size unlimited;
 set verify off;
 
 declare
@@ -82,6 +82,7 @@ declare
     v_history_has_cross               number := 0;
     v_history_has_mutation            number := 0;
     v_history_has_mutagen             number := 0;
+    v_history_created_at_null_count   number := 0;
 
     v_wallet_stats                    number;
     v_rating_stats                    number;
@@ -636,6 +637,7 @@ if v_lab_id is not null then
             v_history_has_cross := 0;
             v_history_has_mutation := 0;
             v_history_has_mutagen := 0;
+            v_history_created_at_null_count := 0;
 
             v_history_cursor := pkg_genetics_game.get_experiment_history(
                 p_lab_id => v_lab_id
@@ -657,6 +659,9 @@ if v_lab_id is not null then
                 exit when v_history_cursor%notfound;
 
                 v_history_row_count := v_history_row_count + 1;
+                if v_h_created_at is null then
+                    v_history_created_at_null_count := v_history_created_at_null_count + 1;
+                end if;
                 if v_h_experiment_type = 'CROSS' then
                     v_history_has_cross := 1;
                 elsif v_h_experiment_type = 'MUTATION' then
@@ -672,6 +677,7 @@ if v_lab_id is not null then
             assert_true(v_history_has_cross = 1, 'history contains CROSS');
             assert_true(v_history_has_mutation = 1, 'history contains MUTATION');
             assert_true(v_history_has_mutagen = 1, 'history contains MUTAGEN');
+            assert_true(v_history_created_at_null_count = 0, 'history created_at is not null', 'null_count=' || v_history_created_at_null_count);
         exception
             when others then
                 if v_history_cursor%isopen then
@@ -821,7 +827,3 @@ exception
         raise;
 end;
 /
-
-
-
-
