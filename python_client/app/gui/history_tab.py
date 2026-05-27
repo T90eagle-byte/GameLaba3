@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Any
@@ -20,21 +20,14 @@ from PySide6.QtWidgets import (
 )
 
 from app.db.pkg_api import PkgApi
-from app.services.oracle_errors import map_oracle_error
-from app.services.session_state import SessionState
 from app.services.display_names import (
     display_creature_name,
     display_mutation_name,
     display_value,
     experiment_type_label,
 )
-
-
-_EXPERIMENT_TYPE_LABELS = {
-    "CROSS": "Генетический эксперимент",
-    "MUTATION": "Мутация",
-    "MUTAGEN": "Мутаген",
-}
+from app.services.oracle_errors import map_oracle_error
+from app.services.session_state import SessionState
 
 
 class HistoryTab(QWidget):
@@ -58,7 +51,6 @@ class HistoryTab(QWidget):
         title.setObjectName("title")
         subtitle = QLabel("Журнал генетических экспериментов, мутаций и мутагенных воздействий")
         subtitle.setObjectName("subtitle")
-
         heading.addWidget(title)
         heading.addWidget(subtitle)
 
@@ -132,11 +124,13 @@ class HistoryTab(QWidget):
         self.lbl_offspring = QLabel("-")
         self.lbl_mutation = QLabel("-")
         self.lbl_created_at = QLabel("-")
+        self.lbl_rating_note = QLabel("-")
 
         self.lbl_parent1.setWordWrap(True)
         self.lbl_parent2.setWordWrap(True)
         self.lbl_offspring.setWordWrap(True)
         self.lbl_mutation.setWordWrap(True)
+        self.lbl_rating_note.setWordWrap(True)
 
         detail_layout.addRow("Тип эксперимента:", self.lbl_type)
         detail_layout.addRow("Исходное существо A:", self.lbl_parent1)
@@ -144,6 +138,7 @@ class HistoryTab(QWidget):
         detail_layout.addRow("Результат:", self.lbl_offspring)
         detail_layout.addRow("Мутация:", self.lbl_mutation)
         detail_layout.addRow("Дата/время:", self.lbl_created_at)
+        detail_layout.addRow("Справка по рейтингу:", self.lbl_rating_note)
 
         root.addWidget(detail_card)
 
@@ -176,10 +171,7 @@ class HistoryTab(QWidget):
             experiment_id = self._to_int(row.get("experiment_id"))
             type_code = self._display(row.get("experiment_type"))
             type_label = experiment_type_label(type_code, with_code=False)
-            if type_code == "Не указано":
-                type_display = type_label
-            else:
-                type_display = f"{type_label} ({type_code})"
+            type_display = type_label if type_code == "Не указано" else f"{type_label} ({type_code})"
 
             self._set_table_item(row_idx, 0, experiment_id, center=True)
             self._set_table_item(row_idx, 1, type_display, center=True)
@@ -212,10 +204,7 @@ class HistoryTab(QWidget):
 
         type_code = self._display(row.get("experiment_type"))
         type_ru = experiment_type_label(type_code, with_code=False)
-        if type_code == "Не указано":
-            self.lbl_type.setText(type_ru)
-        else:
-            self.lbl_type.setText(f"{type_ru} ({type_code})")
+        self.lbl_type.setText(type_ru if type_code == "Не указано" else f"{type_ru} ({type_code})")
 
         self.lbl_parent1.setText(self._entity_text(row.get("parent1_id"), row.get("parent1_name")))
         self.lbl_parent2.setText(self._entity_text(row.get("parent2_id"), row.get("parent2_name")))
@@ -229,10 +218,44 @@ class HistoryTab(QWidget):
             self.lbl_mutation.setText(f"{mutation_id} | {mutation_name}")
 
         created_at_text = self._display_datetime(row.get("created_at"))
-        if created_at_text == "Нет данных":
-            self.lbl_created_at.setText("Нет данных")
-        else:
-            self.lbl_created_at.setText(created_at_text)
+        self.lbl_created_at.setText(created_at_text)
+
+        self.lbl_rating_note.setText(self._rating_reference_text(row))
+
+    def _rating_reference_text(self, row: dict[str, Any]) -> str:
+        exp_type = self._display(row.get("experiment_type")).upper()
+
+        if exp_type == "MUTATION":
+            raw_effect = row.get("rating_effect")
+            if raw_effect is not None:
+                return (
+                    f"Справка: для этой мутации базовый эффект рейтинга {raw_effect}. "
+                    "Итог может измениться из-за автозавершения заданий."
+                )
+            return "Итоговое изменение рейтинга может включать награды за задания."
+
+        if exp_type == "MUTAGEN":
+            mutagen_hint = self._detect_mutagen_subtype(row)
+            if mutagen_hint == "RADIATION":
+                return "Справка: RADIATION обычно даёт cost 50 и базовый штраф рейтинга -5."
+            if mutagen_hint == "CHEMICAL":
+                return "Справка: CHEMICAL обычно даёт cost 100 и базовый штраф рейтинга -2."
+            return (
+                "Справка: для мутагенов действуют базовые правила RADIATION (50 / -5) "
+                "и CHEMICAL (100 / -2). Итоговое изменение рейтинга может включать награды за задания."
+            )
+
+        return "Итоговое изменение рейтинга может включать награды за задания."
+
+    def _detect_mutagen_subtype(self, row: dict[str, Any]) -> str | None:
+        # В истории экспериментов backend может не отдавать subtype явно.
+        for key in ("mutagen_type", "mutation_name", "offspring_name"):
+            value = self._display(row.get(key)).lower()
+            if "radiation" in value:
+                return "RADIATION"
+            if "chemical" in value:
+                return "CHEMICAL"
+        return None
 
     def _selected_row(self) -> dict[str, Any] | None:
         row_idx = self.history_table.currentRow()
@@ -253,6 +276,7 @@ class HistoryTab(QWidget):
         self.lbl_offspring.setText("-")
         self.lbl_mutation.setText("-")
         self.lbl_created_at.setText("-")
+        self.lbl_rating_note.setText("-")
 
     def _set_table_item(self, row: int, col: int, value: Any, center: bool = False) -> None:
         item = QTableWidgetItem(self._display(value))
@@ -283,10 +307,6 @@ class HistoryTab(QWidget):
             return value.strftime("%d.%m.%Y")
         text = str(value).strip()
         return text if text else "Нет данных"
-
-    @staticmethod
-    def _experiment_type_ru(type_code: str) -> str:
-        return experiment_type_label(type_code, with_code=False)
 
     def _entity_text(self, entity_id: Any, entity_name: Any) -> str:
         value_id = self._to_int(entity_id)

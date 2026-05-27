@@ -227,3 +227,17 @@ where object_name = 'PKG_GENETICS_GAME'
 order by object_type;
 ```
 
+
+## 14) DEV-only: unlock stale ACTIVE sessions (after old GUI crash)
+
+If you still have a stale lab lock (`ORA-20072`) from an old GUI version that was closed without logout, you can close stale sessions for a specific user in dev environment:
+
+```sql
+@database/scripts/dev_unlock_stale_sessions.sql
+```
+
+Notes:
+- This script is **DEV ONLY** and is not part of mandatory smoke-tests.
+- It only closes `sessions.status='ACTIVE'` for the chosen login.
+- It does **not** delete labs/creatures/genotypes/experiments/lab_tasks/lab_mutations.
+- With current GUI close handling, this should no longer occur in normal flow.
