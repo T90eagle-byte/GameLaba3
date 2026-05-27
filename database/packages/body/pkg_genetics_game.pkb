@@ -1,4 +1,4 @@
-create or replace package body pkg_genetics_game as
+﻿create or replace package body pkg_genetics_game as
     c_err_not_implemented constant number := -20999;
     g_current_user_id       number;
     g_current_session_id    number;
@@ -1264,9 +1264,9 @@ create or replace package body pkg_genetics_game as
         p_creature_id     in number,
         p_mutation_id     in number
     ) is
-        v_lab_id                number;
-        v_mutation_exists       number;
-        v_mutation_stock        number;
+        v_lab_id                 number;
+        v_mutation_rating_effect number(12, 2) := 0;
+        v_mutation_stock         number;
         v_rule_count            number := 0;
         v_selected_slot         pls_integer;
         v_summary               varchar2(1000);
@@ -1282,15 +1282,15 @@ create or replace package body pkg_genetics_game as
         v_lab_id := assert_creature_access(
             p_creature_id => p_creature_id
         );
-
-        select count(*)
-          into v_mutation_exists
-          from mutations m
-         where m.mutation_id = p_mutation_id;
-
-        if v_mutation_exists = 0 then
-            raise_application_error(-20056, 'Mutation not found.');
-        end if;
+        begin
+            select nvl(m.rating_effect, 0)
+              into v_mutation_rating_effect
+              from mutations m
+             where m.mutation_id = p_mutation_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20056, 'Mutation not found.');
+        end;
 
         begin
             select lm.quantity
@@ -1367,6 +1367,14 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20047, 'Failed to decrease mutation quantity.');
         end if;
 
+        update labs l
+           set l.rating = greatest(0, l.rating + nvl(v_mutation_rating_effect, 0))
+         where l.lab_id = v_lab_id;
+
+        if sql%rowcount = 0 then
+            raise_application_error(-20057, 'Lab not found.');
+        end if;
+
         v_experiment_id := experiments_seq.nextval;
 
         insert into experiments (
@@ -1419,6 +1427,9 @@ create or replace package body pkg_genetics_game as
         v_new_allele_id         number;
         v_selected_slot         pls_integer;
         v_mutation_rounds       pls_integer := 1;
+        v_wallet_cost           number(12, 2);
+        v_rating_delta          number(12, 2);
+        v_lab_wallet            number(12, 2);
         v_summary               varchar2(1000);
         v_experiment_id         number;
 
@@ -1439,6 +1450,14 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20070, 'Unsupported mutagen type. Use RADIATION or CHEMICAL.');
         end if;
 
+        if v_mutagen_mode = 'RADIATION' then
+            v_wallet_cost := 50;
+            v_rating_delta := -5;
+        else
+            v_wallet_cost := 100;
+            v_rating_delta := -2;
+        end if;
+
         v_lab_id := assert_creature_access(
             p_creature_id => p_creature_id
         );
@@ -1452,6 +1471,25 @@ create or replace package body pkg_genetics_game as
             when no_data_found then
                 raise_application_error(-20049, 'Source creature not found.');
         end;
+
+        select l.wallet
+          into v_lab_wallet
+          from labs l
+         where l.lab_id = v_lab_id
+         for update;
+
+        if v_lab_wallet < v_wallet_cost then
+            raise_application_error(-20071, 'Not enough wallet balance for selected mutagen.');
+        end if;
+
+        update labs l
+           set l.wallet = l.wallet - v_wallet_cost,
+               l.rating = greatest(0, l.rating + v_rating_delta)
+         where l.lab_id = v_lab_id;
+
+        if sql%rowcount = 0 then
+            raise_application_error(-20057, 'Lab not found.');
+        end if;
 
         v_new_name := substr(v_source_name || '_mutagen_' || lower(substr(rawtohex(sys_guid()), 1, 8)), 1, 255);
         p_new_creature_id := creatures_seq.nextval;
@@ -2110,3 +2148,4 @@ create or replace package body pkg_genetics_game as
     end create_creature_of_type;
 end pkg_genetics_game;
 /
+

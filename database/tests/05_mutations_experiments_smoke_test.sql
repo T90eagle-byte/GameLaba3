@@ -1,4 +1,4 @@
-set serveroutput on size unlimited;
+﻿set serveroutput on size unlimited;
 set verify off;
 
 declare
@@ -31,6 +31,13 @@ declare
     v_stock_after                     number := 0;
     v_stock_after_apply               number := 0;
 
+    v_mutation_rating_effect          number := 0;
+    v_rating_before_apply_mut         number := 0;
+    v_rating_after_apply_mut          number := 0;
+    v_apply_mutation_started_at       timestamp;
+    v_new_task_rating_after_mut       number := 0;
+    v_expected_rating_after_mut       number := 0;
+
     v_mutation_experiment_count       number := 0;
     v_source_species_type             number;
     v_mutagen_new_creature_id         number;
@@ -38,6 +45,14 @@ declare
     v_mutagen_genotype_count          number := 0;
     v_mutagen_phenotype_summary       varchar2(1000);
     v_mutagen_experiment_count        number := 0;
+
+    v_wallet_before_mutagen           number := 0;
+    v_wallet_after_mutagen            number := 0;
+    v_rating_before_mutagen           number := 0;
+    v_rating_after_mutagen            number := 0;
+    v_mutagen_started_at              timestamp;
+    v_mutagen_task_rating_rewards     number := 0;
+    v_expected_rating_after_mutagen   number := 0;
 
     v_cross_species_type              number;
     v_cross_parent1_id                number;
@@ -324,14 +339,41 @@ begin
                 fail_test('buy_mutation success path', sqlerrm);
         end;
     end if;
-
     -- 9) apply_mutation success path
     if v_target_creature_id is not null and v_mutation_id is not null then
         begin
+            select nvl(m.rating_effect, 0)
+              into v_mutation_rating_effect
+              from mutations m
+             where m.mutation_id = v_mutation_id;
+
+            select l.rating
+              into v_rating_before_apply_mut
+              from labs l
+             where l.lab_id = v_lab_id;
+
+            v_apply_mutation_started_at := systimestamp;
+
             pkg_genetics_game.apply_mutation(
                 p_creature_id => v_target_creature_id,
                 p_mutation_id => v_mutation_id
             );
+
+            select l.rating
+              into v_rating_after_apply_mut
+              from labs l
+             where l.lab_id = v_lab_id;
+
+            select nvl(sum(t.rating_reward), 0)
+              into v_new_task_rating_after_mut
+              from lab_tasks lt
+              join tasks t
+                on t.task_id = lt.task_id
+             where lt.lab_id = v_lab_id
+               and lt.completed_at is not null
+               and lt.completed_at >= v_apply_mutation_started_at;
+
+            v_expected_rating_after_mut := greatest(0, v_rating_before_apply_mut + v_mutation_rating_effect) + v_new_task_rating_after_mut;
 
             select nvl(max(lm.quantity), 0)
               into v_stock_after_apply
@@ -340,6 +382,9 @@ begin
                and lm.mutation_id = v_mutation_id;
 
             assert_true(v_stock_after_apply = v_stock_after - 1, 'apply_mutation decreases stock', 'before apply=' || v_stock_after || ', after=' || v_stock_after_apply);
+            assert_true(abs(v_rating_after_apply_mut - v_expected_rating_after_mut) < 0.0001,
+                'apply_mutation rating = rating_effect + new task rewards',
+                'before=' || v_rating_before_apply_mut || ', effect=' || v_mutation_rating_effect || ', new_rewards=' || v_new_task_rating_after_mut || ', expected=' || v_expected_rating_after_mut || ', actual=' || v_rating_after_apply_mut);
 
             select c.phenotype_summary
               into v_mutagen_phenotype_summary
@@ -363,7 +408,6 @@ begin
                 fail_test('apply_mutation success path', sqlerrm);
         end;
     end if;
-
     -- 10) apply_mutagen path
     if v_target_creature_id is not null then
         begin
@@ -372,11 +416,41 @@ begin
               from creatures c
              where c.creature_id = v_target_creature_id;
 
+            select l.wallet, l.rating
+              into v_wallet_before_mutagen, v_rating_before_mutagen
+              from labs l
+             where l.lab_id = v_lab_id;
+
+            v_mutagen_started_at := systimestamp;
+
             pkg_genetics_game.apply_mutagen(
                 p_creature_id     => v_target_creature_id,
                 p_mutagen_type    => 'RADIATION',
                 p_new_creature_id => v_mutagen_new_creature_id
             );
+
+            select l.wallet, l.rating
+              into v_wallet_after_mutagen, v_rating_after_mutagen
+              from labs l
+             where l.lab_id = v_lab_id;
+
+            select nvl(sum(t.rating_reward), 0)
+              into v_mutagen_task_rating_rewards
+              from lab_tasks lt
+              join tasks t
+                on t.task_id = lt.task_id
+             where lt.lab_id = v_lab_id
+               and lt.completed_at is not null
+               and lt.completed_at >= v_mutagen_started_at;
+
+            v_expected_rating_after_mutagen := greatest(0, v_rating_before_mutagen - 5) + v_mutagen_task_rating_rewards;
+
+            assert_true(v_wallet_after_mutagen = v_wallet_before_mutagen - 50,
+                'apply_mutagen (RADIATION) decreases wallet by fixed cost',
+                'before=' || v_wallet_before_mutagen || ', after=' || v_wallet_after_mutagen);
+            assert_true(abs(v_rating_after_mutagen - v_expected_rating_after_mutagen) < 0.0001,
+                'apply_mutagen (RADIATION) rating = penalty + new task rewards',
+                'before=' || v_rating_before_mutagen || ', rewards=' || v_mutagen_task_rating_rewards || ', expected=' || v_expected_rating_after_mutagen || ', actual=' || v_rating_after_mutagen);
 
             assert_true(v_mutagen_new_creature_id is not null and v_mutagen_new_creature_id > 0, 'apply_mutagen returns new creature id');
 
@@ -416,7 +490,7 @@ begin
     end if;
 
     -- 11) make_experiment CROSS branch
-    if v_lab_id is not null then
+if v_lab_id is not null then
         begin
             select species_type
               into v_cross_species_type
@@ -747,4 +821,7 @@ exception
         raise;
 end;
 /
+
+
+
 

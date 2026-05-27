@@ -1,4 +1,4 @@
-set serveroutput on size unlimited;
+﻿set serveroutput on size unlimited;
 set verify off;
 
 declare
@@ -44,6 +44,25 @@ declare
     v_diff_chemical                 number;
     v_diff_radiation                number;
 
+    v_wallet_before_chemical        number;
+    v_wallet_after_chemical         number;
+    v_wallet_before_radiation       number;
+    v_wallet_after_radiation        number;
+    v_rating_before_chemical        number;
+    v_rating_after_chemical         number;
+    v_rating_before_radiation       number;
+    v_rating_after_radiation        number;
+    v_chemical_started_at           timestamp;
+    v_radiation_started_at          timestamp;
+    v_chemical_task_rating_rewards  number := 0;
+    v_radiation_task_rating_rewards number := 0;
+    v_chemical_task_money_rewards   number := 0;
+    v_radiation_task_money_rewards  number := 0;
+    v_expected_rating_chemical      number := 0;
+    v_expected_rating_radiation     number := 0;
+    v_expected_wallet_chemical      number := 0;
+    v_expected_wallet_radiation     number := 0;
+
     v_mutation_id                   number;
     v_target_creature_id            number;
     v_marker_allele_id              number;
@@ -54,6 +73,10 @@ declare
     v_rating_after_buy              number;
     v_wallet_after_auto             number;
     v_rating_after_auto             number;
+    v_mutation_rating_effect        number := 0;
+    v_apply_mutation_started_at     timestamp;
+    v_new_task_rating_after_apply   number := 0;
+    v_expected_rating_after_apply   number := 0;
 
     v_custom_task_id                number;
     v_custom_lab_task_id            number;
@@ -478,17 +501,78 @@ begin
         'INCOMPLETE dominance produces intermediate phenotype', v_summary);
     assert_true(instr(lower(v_summary), lower('strict_codom_' || v_suffix || '=' || 'strict_cod_a_' || v_suffix || '/' || 'strict_cod_b_' || v_suffix)) > 0,
         'CODOMINANT dominance shows both traits', v_summary);
+    select l.wallet, l.rating
+      into v_wallet_before_chemical, v_rating_before_chemical
+      from labs l
+     where l.lab_id = v_lab1_id;
 
+    v_chemical_started_at := systimestamp;
     pkg_genetics_game.apply_mutagen(
         p_creature_id     => v_lab1_creature_id,
         p_mutagen_type    => 'CHEMICAL',
         p_new_creature_id => v_mut_chemical_creature_id
     );
+
+    select l.wallet, l.rating
+      into v_wallet_after_chemical, v_rating_after_chemical
+      from labs l
+     where l.lab_id = v_lab1_id;
+
+    select nvl(sum(t.rating_reward), 0), nvl(sum(t.money_reward), 0)
+      into v_chemical_task_rating_rewards, v_chemical_task_money_rewards
+      from lab_tasks lt
+      join tasks t
+        on t.task_id = lt.task_id
+     where lt.lab_id = v_lab1_id
+       and lt.completed_at is not null
+       and lt.completed_at >= v_chemical_started_at;
+
+    v_expected_rating_chemical := greatest(0, v_rating_before_chemical - 2) + v_chemical_task_rating_rewards;
+    v_expected_wallet_chemical := v_wallet_before_chemical - 100 + v_chemical_task_money_rewards;
+
+    assert_true(abs(v_wallet_after_chemical - v_expected_wallet_chemical) < 0.0001,
+        'CHEMICAL mutagen has higher wallet cost',
+        'before=' || v_wallet_before_chemical || ', after=' || v_wallet_after_chemical || ', cost=100, task_money_rewards=' || v_chemical_task_money_rewards || ', expected=' || v_expected_wallet_chemical);
+    assert_true(abs(v_rating_after_chemical - v_expected_rating_chemical) < 0.0001,
+        'CHEMICAL mutagen rating = penalty + new task rewards',
+        'before=' || v_rating_before_chemical || ', rewards=' || v_chemical_task_rating_rewards || ', expected=' || v_expected_rating_chemical || ', actual=' || v_rating_after_chemical);
+
+    select l.wallet, l.rating
+      into v_wallet_before_radiation, v_rating_before_radiation
+      from labs l
+     where l.lab_id = v_lab1_id;
+
+    v_radiation_started_at := systimestamp;
     pkg_genetics_game.apply_mutagen(
         p_creature_id     => v_lab1_creature_id,
         p_mutagen_type    => 'RADIATION',
         p_new_creature_id => v_mut_radiation_creature_id
     );
+
+    select l.wallet, l.rating
+      into v_wallet_after_radiation, v_rating_after_radiation
+      from labs l
+     where l.lab_id = v_lab1_id;
+
+    select nvl(sum(t.rating_reward), 0), nvl(sum(t.money_reward), 0)
+      into v_radiation_task_rating_rewards, v_radiation_task_money_rewards
+      from lab_tasks lt
+      join tasks t
+        on t.task_id = lt.task_id
+     where lt.lab_id = v_lab1_id
+       and lt.completed_at is not null
+       and lt.completed_at >= v_radiation_started_at;
+
+    v_expected_rating_radiation := greatest(0, v_rating_before_radiation - 5) + v_radiation_task_rating_rewards;
+    v_expected_wallet_radiation := v_wallet_before_radiation - 50 + v_radiation_task_money_rewards;
+
+    assert_true(abs(v_wallet_after_radiation - v_expected_wallet_radiation) < 0.0001,
+        'RADIATION mutagen has lower wallet cost',
+        'before=' || v_wallet_before_radiation || ', after=' || v_wallet_after_radiation || ', cost=50, task_money_rewards=' || v_radiation_task_money_rewards || ', expected=' || v_expected_wallet_radiation);
+    assert_true(abs(v_rating_after_radiation - v_expected_rating_radiation) < 0.0001,
+        'RADIATION mutagen rating = penalty + new task rewards',
+        'before=' || v_rating_before_radiation || ', rewards=' || v_radiation_task_rating_rewards || ', expected=' || v_expected_rating_radiation || ', actual=' || v_rating_after_radiation);
+    assert_true(50 < 100, 'RADIATION base cost is lower than CHEMICAL');
 
     select sum(
                case when src.allele1_id <> dst.allele1_id then 1 else 0 end
@@ -614,7 +698,24 @@ begin
               from labs l
              where l.lab_id = v_lab1_id;
 
+            select nvl(m.rating_effect, 0)
+              into v_mutation_rating_effect
+              from mutations m
+             where m.mutation_id = v_mutation_id;
+
+            v_apply_mutation_started_at := systimestamp;
             pkg_genetics_game.apply_mutation(v_target_creature_id, v_mutation_id);
+
+            select nvl(sum(t.rating_reward), 0)
+              into v_new_task_rating_after_apply
+              from lab_tasks lt
+              join tasks t
+                on t.task_id = lt.task_id
+             where lt.lab_id = v_lab1_id
+               and lt.completed_at is not null
+               and lt.completed_at >= v_apply_mutation_started_at;
+
+            v_expected_rating_after_apply := greatest(0, v_rating_after_buy + v_mutation_rating_effect) + v_new_task_rating_after_apply;
 
             select lt.task_status
               into v_custom_status
@@ -645,7 +746,9 @@ begin
 
             assert_true(v_custom_status = 'COMPLETED', 'auto task check after apply_mutation completes task', 'status=' || v_custom_status);
             assert_true(v_wallet_after_auto >= v_wallet_after_buy + 11, 'auto task reward money applied');
-            assert_true(v_rating_after_auto >= v_rating_after_buy + 5, 'auto task reward rating applied');
+            assert_true(abs(v_rating_after_auto - v_expected_rating_after_apply) < 0.0001,
+                'apply_mutation rating = rating_effect + auto task rewards',
+                'before=' || v_rating_after_buy || ', effect=' || v_mutation_rating_effect || ', rewards=' || v_new_task_rating_after_apply || ', expected=' || v_expected_rating_after_apply || ', actual=' || v_rating_after_auto);
             assert_true(
                 v_assigned_after_auto = v_distinct_assigned_after_auto,
                 'task refill does not create duplicate task_id assignments',
@@ -714,3 +817,7 @@ exception
         );
 end;
 /
+
+
+
+
