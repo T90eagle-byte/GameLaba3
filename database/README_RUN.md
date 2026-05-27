@@ -142,7 +142,19 @@ This smoke-test validates strict-compliance behavior on top of MVP:
 - `RADIATION` and `CHEMICAL` mutagen flows are different and invalid mutagen type is rejected;
 - auto task-check after experiment flow can complete matching ACTIVE tasks.
 
-## 12) Inspect compile errors via USER_ERRORS
+## 12) Run multiuser/sessions smoke-test
+
+```sql
+@database/tests/08_multiuser_sessions_smoke_test.sql
+```
+
+This smoke-test validates strict multiuser/session behavior:
+- cross-user access is blocked for labs, creatures, tasks, history, and gameplay APIs;
+- the same lab cannot be opened in two ACTIVE sessions at once (`-20072`);
+- after closing session1, session2 can load the lab;
+- an old closed session token cannot reopen the lab (`-20020`).
+
+## 13) Inspect compile errors via USER_ERRORS
 
 ```sql
 select
@@ -214,3 +226,4 @@ from user_objects
 where object_name = 'PKG_GENETICS_GAME'
 order by object_type;
 ```
+

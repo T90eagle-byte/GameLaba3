@@ -582,7 +582,7 @@ begin
         end;
     end if;
 
-    -- Negative case: creature_id from another lab -> -20060
+    -- Negative case: creature_id from another lab under session-bound access model
     if v_session_token is not null and v_lab_id is not null and v_probe_creature_id is not null then
         begin
             pkg_genetics_game.start_new_lab(
@@ -601,14 +601,17 @@ begin
                 p_creature_id => v_probe_creature_id
             );
 
-            fail_test('negative check_task creature from another lab', 'expected -20060, got result=' || nvl(to_char(v_check_result), 'NULL'));
+            fail_test(
+                'negative check_task creature from another lab (session-bound)',
+                'expected -20073 (or -20060 for legacy order), got result=' || nvl(to_char(v_check_result), 'NULL')
+            );
         exception
             when others then
-                if sqlcode = -20060 then
-                    pass_test('negative check_task creature from another lab');
+                if sqlcode in (-20073, -20060) then
+                    pass_test('negative check_task creature from another lab (session-bound)');
                 else
                     fail_test(
-                        'negative check_task creature from another lab',
+                        'negative check_task creature from another lab (session-bound)',
                         'unexpected sqlcode=' || to_char(sqlcode) || ' message=' || sqlerrm
                     );
                 end if;
@@ -627,14 +630,23 @@ begin
     end if;
 exception
     when others then
-        dbms_output.put_line('[ERROR] Unhandled exception in 06_tasks_smoke_test: ' || sqlcode || ' / ' || sqlerrm);
+        declare
+            v_unhandled_sqlcode number := sqlcode;
+            v_unhandled_sqlerrm varchar2(4000) := sqlerrm;
         begin
-            cleanup_test_data;
-            commit;
-        exception
-            when others then
-                dbms_output.put_line('[WARN] Cleanup after error failed: ' || sqlcode || ' / ' || sqlerrm);
+            dbms_output.put_line('[ERROR] Unhandled exception in 06_tasks_smoke_test: ' || v_unhandled_sqlcode || ' / ' || v_unhandled_sqlerrm);
+            begin
+                cleanup_test_data;
+                commit;
+            exception
+                when others then
+                    dbms_output.put_line('[WARN] Cleanup after error failed: ' || sqlcode || ' / ' || sqlerrm);
+            end;
+
+            raise_application_error(
+                -20600,
+                'Tasks smoke-test failed. Root error: ' || to_char(v_unhandled_sqlcode) || ' / ' || substr(v_unhandled_sqlerrm, 1, 1400)
+            );
         end;
-        raise;
 end;
 /

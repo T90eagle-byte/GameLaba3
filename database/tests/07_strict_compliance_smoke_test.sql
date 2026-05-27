@@ -1,4 +1,4 @@
-﻿set serveroutput on size unlimited;
+set serveroutput on size unlimited;
 set verify off;
 
 declare
@@ -459,8 +459,13 @@ begin
             end if;
     end;
 
-    v_session1_token_relogin := pkg_genetics_game.login_user(v_login1, v_password1);
-    assert_true(v_session1_token_relogin is not null, 'user1 relogin for own context');
+    begin
+        pkg_genetics_game.load_lab(v_session1_token, v_lab1_id);
+        pass_test('restore user1 lab context via session1 token');
+    exception
+        when others then
+            fail_test('restore user1 lab context via session1 token', 'unexpected sqlcode=' || sqlcode || ' ' || sqlerrm);
+    end;
 
     v_inc_gene_id := genes_seq.nextval;
     insert into genes (gene_id, gene_name, gene_type, species_type, dominance_type, linkage_group, created_at)

@@ -1,14 +1,16 @@
-﻿create or replace package body pkg_genetics_game as
+create or replace package body pkg_genetics_game as
     c_err_not_implemented constant number := -20999;
     g_current_user_id       number;
     g_current_session_id    number;
     g_current_session_token varchar2(128);
+    g_current_lab_id        number;
 
     procedure clear_current_session_context is
     begin
         g_current_user_id := null;
         g_current_session_id := null;
         g_current_session_token := null;
+        g_current_lab_id := null;
     end clear_current_session_context;
 
     procedure set_current_session_context(
@@ -20,6 +22,7 @@
         g_current_user_id := p_user_id;
         g_current_session_id := p_session_id;
         g_current_session_token := p_session_token;
+        g_current_lab_id := null;
     end set_current_session_context;
     procedure require_current_session is
         v_active_session_count number;
@@ -47,13 +50,14 @@
     procedure assert_lab_access(
         p_lab_id in number
     ) is
-        v_lab_user_id number;
+        v_lab_user_id    number;
+        v_lab_session_id number;
     begin
         require_current_session();
 
         begin
-            select l.user_id
-              into v_lab_user_id
+            select l.user_id, l.session_id
+              into v_lab_user_id, v_lab_session_id
               from labs l
              where l.lab_id = p_lab_id;
         exception
@@ -63,6 +67,14 @@
 
         if v_lab_user_id <> g_current_user_id then
             raise_application_error(-20068, 'Access denied for selected lab.');
+        end if;
+
+        if g_current_lab_id is null or p_lab_id <> g_current_lab_id then
+            raise_application_error(-20073, 'Selected lab is not active in current session.');
+        end if;
+
+        if v_lab_session_id is null or v_lab_session_id <> g_current_session_id then
+            raise_application_error(-20073, 'Selected lab is not active in current session.');
         end if;
     end assert_lab_access;
 
@@ -90,6 +102,10 @@
         if v_lab_user_id <> g_current_user_id then
             raise_application_error(-20069, 'Access denied for selected creature.');
         end if;
+
+        assert_lab_access(
+            p_lab_id => v_lab_id
+        );
 
         if p_expected_lab_id is not null and v_lab_id <> p_expected_lab_id then
             raise_application_error(-20060, 'Creature does not belong to the selected lab.');
@@ -207,33 +223,38 @@
             return;
         end if;
 
-        insert into lab_tasks (
-            lab_task_id,
-            lab_id,
-            task_id,
-            task_status,
-            assigned_at,
-            completed_at
-        )
-        select
-            lab_tasks_seq.nextval,
-            p_lab_id,
-            candidate_tasks.task_id,
-            'ACTIVE',
-            systimestamp,
-            null
-          from (
-                select t.task_id
-                  from tasks t
-                 where not exists (
-                        select 1
-                          from lab_tasks lt
-                         where lt.lab_id = p_lab_id
-                           and lt.task_id = t.task_id
-                 )
-                 order by t.task_id
-          ) candidate_tasks
-         where rownum <= v_missing_count;
+        begin
+            insert into lab_tasks (
+                lab_task_id,
+                lab_id,
+                task_id,
+                task_status,
+                assigned_at,
+                completed_at
+            )
+            select
+                lab_tasks_seq.nextval,
+                p_lab_id,
+                candidate_tasks.task_id,
+                'ACTIVE',
+                systimestamp,
+                null
+              from (
+                    select t.task_id
+                      from tasks t
+                     where not exists (
+                            select 1
+                              from lab_tasks lt
+                             where lt.lab_id = p_lab_id
+                               and lt.task_id = t.task_id
+                     )
+                     order by t.task_id
+              ) candidate_tasks
+             where rownum <= v_missing_count;
+        exception
+            when dup_val_on_index then
+                null;
+        end;
     end refill_active_tasks;
 
     function pick_random_allele_side
@@ -457,6 +478,8 @@
             p_lab_id => p_lab_id
         );
 
+        g_current_lab_id := p_lab_id;
+
         generate_starting_creatures(
             p_lab_id => p_lab_id
         );
@@ -476,8 +499,11 @@
         p_session_token in varchar2,
         p_lab_id        in number
     ) is
-        v_session_id number;
-        v_user_id    number;
+        v_session_id     number;
+        v_user_id        number;
+        v_lab_user_id    number;
+        v_lab_session_id number;
+        v_holder_status  sessions.status%type;
     begin
         get_active_session(
             p_session_token => p_session_token,
@@ -491,14 +517,42 @@
             p_session_token => p_session_token
         );
 
-        update labs l
-           set l.session_id = v_session_id
-         where l.lab_id = p_lab_id
-           and l.user_id = v_user_id;
+        begin
+            select l.user_id, l.session_id
+              into v_lab_user_id, v_lab_session_id
+              from labs l
+             where l.lab_id = p_lab_id
+             for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20023, 'Lab not found or access denied.');
+        end;
 
-        if sql%rowcount = 0 then
+        if v_lab_user_id <> v_user_id then
             raise_application_error(-20023, 'Lab not found or access denied.');
         end if;
+
+        if v_lab_session_id is not null and v_lab_session_id <> v_session_id then
+            begin
+                select s.status
+                  into v_holder_status
+                  from sessions s
+                 where s.session_id = v_lab_session_id;
+            exception
+                when no_data_found then
+                    v_holder_status := 'CLOSED';
+            end;
+
+            if v_holder_status = 'ACTIVE' then
+                raise_application_error(-20072, 'Lab is already opened in another active session.');
+            end if;
+        end if;
+
+        update labs l
+           set l.session_id = v_session_id
+         where l.lab_id = p_lab_id;
+
+        g_current_lab_id := p_lab_id;
     end load_lab;
 
     procedure switch_lab(
@@ -591,19 +645,10 @@
         p_session_token in varchar2,
         p_lab_id        in number
     ) is
-        v_session_id number;
-        v_user_id    number;
     begin
-        get_active_session(
+        load_lab(
             p_session_token => p_session_token,
-            p_session_id    => v_session_id,
-            p_user_id       => v_user_id
-        );
-
-        set_current_session_context(
-            p_user_id       => v_user_id,
-            p_session_id    => v_session_id,
-            p_session_token => p_session_token
+            p_lab_id        => p_lab_id
         );
 
         delete from genotypes g
@@ -627,10 +672,14 @@
 
         delete from labs l
          where l.lab_id = p_lab_id
-           and l.user_id = v_user_id;
+           and l.user_id = g_current_user_id;
 
         if sql%rowcount = 0 then
             raise_application_error(-20025, 'Lab not found or access denied.');
+        end if;
+
+        if g_current_lab_id = p_lab_id then
+            g_current_lab_id := null;
         end if;
     end delete_lab;
 
@@ -2148,4 +2197,3 @@
     end create_creature_of_type;
 end pkg_genetics_game;
 /
-

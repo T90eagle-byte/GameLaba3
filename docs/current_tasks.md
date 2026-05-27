@@ -106,3 +106,13 @@
   - проверяется влияние `rating_effect` при `apply_mutation`;
   - проверяется экономическая разница `RADIATION/CHEMICAL`;
   - проверки устойчивы к auto-complete rewards за счёт расчёта новых completed tasks.
+
+## Обновление: Multiuser strict-pass (2026-05-27)
+
+- Реализована блокировка лаборатории на уровне ACTIVE-сессий в `pkg_genetics_game`.
+- Одна и та же лаборатория теперь не может быть одновременно открыта в двух активных сессиях (`-20072`).
+- Gameplay API теперь требуют, чтобы лаборатория была активна именно в текущей package session (`-20073`).
+- `load_lab/switch_lab` проверяют занятость лаборатории и не перезаписывают `labs.session_id`, если лаборатория занята другой ACTIVE session.
+- `delete_lab` переведён на session-bound доступ через `load_lab`.
+- Python GUI не менялся: вся логика блокировки остаётся в Oracle PL/SQL backend.
+- Добавлен smoke-test `database/tests/08_multiuser_sessions_smoke_test.sql`.
