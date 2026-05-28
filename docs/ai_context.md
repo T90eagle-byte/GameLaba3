@@ -1,4 +1,4 @@
-﻿# AI Context: БиоСборка
+# AI Context: БиоСборка
 
 ## Базовая архитектура
 - Backend полностью реализован в Oracle PL/SQL.
@@ -18,7 +18,7 @@
 Итоговые объёмы seed:
 - genes: 12
 - alleles: 24
-- mutations: 8
+- mutations: 12
 - mutation_rules: 12
 - tasks: 12
 - task_markers: 21
@@ -89,7 +89,7 @@
 Текущий seed:
 - `genes=12`
 - `alleles=24`
-- `mutations=8`
+- `mutations=12`
 - `mutation_rules=12`
 - `tasks=12`
 - `task_markers=21`
@@ -129,3 +129,11 @@
 - Корень инцидента ORA-20045: apply_mutation применяет все rules мутации.
 - Смешанные мутации разделены в seed на видоспецифичные; GUI display-слой получил названия новых mutation_name.
 
+## Update: GUI polish stage 2 checkpoint
+- Финальный GUI polish Этап 2 начат: разгрузка таблиц «Существа», «Задания», «История экспериментов».
+- Изменения Этапа 2 затрагивают только Python GUI: `creatures_tab.py`, `tasks_tab.py`, `history_tab.py`; также уже был добавлен аварийный cleanup при ошибке открытия `MainWindow` в `app.py`.
+- Цель Этапа 2: убрать длинные/технические колонки из основного фокуса, оставить детали в карточках и tooltip, не меняя backend.
+- Контрольная точка перед коммитом: GUI должен открывать существующую и новую лабораторию без ошибок `QHeaderView`.
+- Ошибки, связанные с этапом: старый enum-стиль `QHeaderView.Stretch` и отсутствие импорта `QHeaderView` при использовании `QHeaderView.ResizeMode.*`.
+- Следующая сессия должна начать с `git status`, `python -m compileall -f python_client`, проверки импортов `QHeaderView` и ручного открытия вкладок «Существа», «Задания», «История экспериментов».
+- Этап 2 не коммитить, пока ручная проверка GUI не подтвердит открытие лаборатории и отсутствие `ORA-20072` после закрытия через `X`.

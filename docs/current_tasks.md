@@ -1,4 +1,4 @@
-﻿# Current Tasks
+# Current Tasks
 
 ## Статус проекта (обновлено: 2026-05-27)
 
@@ -14,7 +14,7 @@
 Актуальные объёмы seed-данных:
 - `genes`: 12
 - `alleles`: 24
-- `mutations`: 8
+- `mutations`: 12
 - `mutation_rules`: 12
 - `tasks`: 12
 - `task_markers`: 21
@@ -127,7 +127,7 @@
 Текущие объёмы seed:
 - `genes`: 12
 - `alleles`: 24
-- `mutations`: 8
+- `mutations`: 12
 - `mutation_rules`: 12
 - `tasks`: 12
 - `task_markers`: 21
@@ -191,3 +191,13 @@
 - Актуальные объёмы seed: genes=12, alleles=24, mutations=12, mutation_rules=12, tasks=12, task_markers=21.
 - Backend package/DDL/spec не менялись; правка сделана через seed + smoke-tests + display mapping.
 
+## 16) Текущая контрольная точка: GUI polish Этап 2
+- Этап 2 начат, но пока не считается закрытым до ручной проверки открытия лаборатории.
+- Затронутые GUI-файлы: `python_client/app/gui/creatures_tab.py`, `python_client/app/gui/tasks_tab.py`, `python_client/app/gui/history_tab.py`, `python_client/app/gui/app.py`.
+- Цель: разгрузить таблицы «Существа», «Задания», «История экспериментов», оставляя полные детали в карточках и tooltip.
+- Известные риски этапа: ошибки `QHeaderView` после перехода на PySide6 enum-style.
+- Проверить, что в каждом файле с `QHeaderView.ResizeMode.*` импортирован `QHeaderView` из `PySide6.QtWidgets`.
+- Не возвращать старый стиль `QHeaderView.Stretch` / `QHeaderView.ResizeToContents`.
+- Перед коммитом выполнить: `python -m compileall -f python_client`, затем ручное открытие существующей и новой лаборатории.
+- Если старая аварийная сессия оставила лабораторию занятой, использовать dev-only script `database/scripts/dev_unlock_stale_sessions.sql` для текущего игрового login.
+- Коммит после успешной проверки: `Разгрузить таблицы интерфейса`.
