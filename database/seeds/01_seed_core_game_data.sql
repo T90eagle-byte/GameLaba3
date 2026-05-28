@@ -1,4 +1,4 @@
-﻿set define off;
+set define off;
 
 declare
     -- Species type mapping used in seed:
@@ -400,8 +400,12 @@ begin
     upsert_mutation('size_shift_mutation', 4, 'Смещает размер в сторону крупного фенотипа.', 180, 1);
     upsert_mutation('nutrition_shift_mutation', 5, 'Смещает тип питания в сторону хищного.', 160, 1);
     upsert_mutation('wing_activation_mutation', 6, 'Активирует признак крыльев при наличии соответствующего гена.', 170, 1);
-    upsert_mutation('aquatic_form_mutation', 7, 'Изменяет водную морфологию плавников и черепашьего панциря.', 190, 2);
-    upsert_mutation('morphology_refine_mutation', 8, 'Тонкая корректировка клешней, клюва/носа и шерсти.', 210, 2);
+    upsert_mutation('aquatic_form_mutation', 7, 'Корректирует форму плавника у хрящевых рыб.', 190, 2);
+    upsert_mutation('morphology_refine_mutation', 8, 'Тонкая корректировка клешней у ракообразных.', 210, 2);
+    upsert_mutation('aquatic_form_bony_mutation', 9, 'Корректирует форму плавника у костных рыб.', 195, 2);
+    upsert_mutation('aquatic_form_turtle_shell_mutation', 10, 'Усиливает панцирь у черепах.', 205, 2);
+    upsert_mutation('morphology_refine_mollusk_mutation', 11, 'Тонкая корректировка формы клюва/носа у моллюсков.', 215, 2);
+    upsert_mutation('morphology_refine_mammal_mutation', 12, 'Тонкая корректировка плотности шерсти у млекопитающих.', 220, 2);
 
     -- -------------------------------------------------------------------------
     -- 4) Mutation rules
@@ -414,13 +418,40 @@ begin
     upsert_mutation_rule('nutrition_shift_mutation', 'nutrition_type', 0, 'carnivore', 'ANY');
     upsert_mutation_rule('wing_activation_mutation', 'has_wings', 0, 'wings', 'ANY');
 
+    -- cleanup legacy mixed rules so each mutation stays coherent for one creature type
+    delete from mutation_rules mr
+     where mr.mutation_id = (
+            select m.mutation_id
+              from mutations m
+             where m.mutation_name = 'aquatic_form_mutation'
+       )
+       and mr.gene_id in (
+            select g.gene_id
+              from genes g
+             where (g.gene_name = 'fin_shape' and g.species_type = 2)
+                or (g.gene_name = 'shell_armor' and g.species_type = 5)
+       );
+
+    delete from mutation_rules mr
+     where mr.mutation_id = (
+            select m.mutation_id
+              from mutations m
+             where m.mutation_name = 'morphology_refine_mutation'
+       )
+       and mr.gene_id in (
+            select g.gene_id
+              from genes g
+             where (g.gene_name = 'beak_nose_shape' and g.species_type = 4)
+                or (g.gene_name = 'fur_density' and g.species_type = 6)
+       );
+
     upsert_mutation_rule('aquatic_form_mutation', 'fin_shape', 1, 'broad_fin', 'ANY');
-    upsert_mutation_rule('aquatic_form_mutation', 'fin_shape', 2, 'forked_fin', 'ANY');
-    upsert_mutation_rule('aquatic_form_mutation', 'shell_armor', 5, 'spiked_shell', 'ANY');
+    upsert_mutation_rule('aquatic_form_bony_mutation', 'fin_shape', 2, 'forked_fin', 'ANY');
+    upsert_mutation_rule('aquatic_form_turtle_shell_mutation', 'shell_armor', 5, 'spiked_shell', 'ANY');
 
     upsert_mutation_rule('morphology_refine_mutation', 'claw_form', 3, 'long_claws', 'ANY');
-    upsert_mutation_rule('morphology_refine_mutation', 'beak_nose_shape', 4, 'sharp_beak', 'ANY');
-    upsert_mutation_rule('morphology_refine_mutation', 'fur_density', 6, 'dense_fur', 'ANY');
+    upsert_mutation_rule('morphology_refine_mollusk_mutation', 'beak_nose_shape', 4, 'sharp_beak', 'ANY');
+    upsert_mutation_rule('morphology_refine_mammal_mutation', 'fur_density', 6, 'dense_fur', 'ANY');
 
     -- -------------------------------------------------------------------------
     -- 5) Tasks
@@ -548,5 +579,4 @@ end;
 /
 
 commit;
-
 

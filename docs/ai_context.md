@@ -124,3 +124,8 @@
 - Backend/DDL/spec/body/seed/tests не менялись.
 - Python остаётся только клиентом отображения и вызова PL/SQL API.
 - Компиляция клиента подтверждена: python -m compileall -f python_client.
+
+## Update: mutation-rules coherence
+- Корень инцидента ORA-20045: apply_mutation применяет все rules мутации.
+- Смешанные мутации разделены в seed на видоспецифичные; GUI display-слой получил названия новых mutation_name.
+

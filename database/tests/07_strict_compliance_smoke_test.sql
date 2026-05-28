@@ -389,6 +389,19 @@ begin
 
     select count(*)
       into v_dummy_num
+      from (
+            select mr.mutation_id
+              from mutation_rules mr
+              join genes g
+                on g.gene_id = mr.gene_id
+             where g.species_type between 1 and 6
+             group by mr.mutation_id
+            having count(distinct g.species_type) > 1
+           );
+    assert_true(v_dummy_num = 0, 'content coverage: mutation_rules are coherent per mutation species scope', 'mixed mutations=' || v_dummy_num);
+
+    select count(*)
+      into v_dummy_num
       from task_markers tm
       left join tasks t
         on t.task_id = tm.task_id
@@ -834,7 +847,4 @@ exception
         );
 end;
 /
-
-
-
 

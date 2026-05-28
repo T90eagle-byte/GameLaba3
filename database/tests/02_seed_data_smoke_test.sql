@@ -110,11 +110,25 @@ begin
      where g.species_type between 1 and 6;
     assert_true(v_value = 6, 'mutation_rules cover species_type 1..6', 'covered species=' || v_value);
 
-    -- 10) Task count >= 12
+    -- 10) mutation_rules are coherent per mutation (no mixed exclusive species-specific rule sets)
+    select count(*)
+      into v_value
+      from (
+            select mr.mutation_id
+              from mutation_rules mr
+              join genes g
+                on g.gene_id = mr.gene_id
+             where g.species_type between 1 and 6
+             group by mr.mutation_id
+            having count(distinct g.species_type) > 1
+           );
+    assert_true(v_value = 0, 'mutation_rules are coherent per mutation species scope', 'mixed mutations=' || v_value);
+
+    -- 11) Task count >= 12
     select count(*) into v_value from tasks;
     assert_true(v_value >= 12, 'Task count >= 12', 'actual=' || v_value);
 
-    -- 11) Each task has at least one task_marker
+    -- 12) Each task has at least one task_marker
     select count(*)
       into v_value
       from (
@@ -127,7 +141,7 @@ begin
            );
     assert_true(v_value = 0, 'Each task has >= 1 task_marker', 'tasks with no markers=' || v_value);
 
-    -- 12) task_markers reference existing task and allele
+    -- 13) task_markers reference existing task and allele
     select count(*)
       into v_value
       from task_markers tm
@@ -139,7 +153,7 @@ begin
         or a.allele_id is null;
     assert_true(v_value = 0, 'task_markers references are valid', 'invalid rows=' || v_value);
 
-    -- 13) Task markers cover all species_type 1..6
+    -- 14) Task markers cover all species_type 1..6
     select count(distinct g.species_type)
       into v_value
       from task_markers tm
@@ -150,7 +164,7 @@ begin
      where g.species_type between 1 and 6;
     assert_true(v_value = 6, 'task_markers cover species_type 1..6', 'covered species=' || v_value);
 
-    -- 14) Task markers include universal traits
+    -- 15) Task markers include universal traits
     select count(distinct g.gene_name)
       into v_value
       from task_markers tm
@@ -162,7 +176,7 @@ begin
        and g.gene_name in ('color', 'size', 'nutrition_type', 'has_wings');
     assert_true(v_value = 4, 'task_markers cover universal traits color/size/nutrition_type/has_wings', 'covered=' || v_value);
 
-    -- 15) Required universal genes exist
+    -- 16) Required universal genes exist
     select count(*)
       into v_value
       from genes g
@@ -170,14 +184,14 @@ begin
        and g.gene_name in ('color', 'size', 'nutrition_type', 'has_wings');
     assert_true(v_value = 4, 'Universal genes set exists', 'actual=' || v_value);
 
-    -- 16) Data exists for all 6 species_type values
+    -- 17) Data exists for all 6 species_type values
     select count(distinct g.species_type)
       into v_value
       from genes g
      where g.species_type between 1 and 6;
     assert_true(v_value = 6, 'All species_type 1..6 are present in genes', 'distinct species_type count=' || v_value);
 
-    -- 17) Task markers do not contain conflicting alleles of the same gene in one task
+    -- 18) Task markers do not contain conflicting alleles of the same gene in one task
     select count(*)
       into v_value
       from (
@@ -199,3 +213,4 @@ begin
     end if;
 end;
 /
+

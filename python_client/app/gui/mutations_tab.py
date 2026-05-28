@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Callable
 
@@ -36,6 +36,10 @@ from app.services.session_state import SessionState
 
 
 class MutationsTab(QWidget):
+    STATUS_NO_TARGET_GENE = "NO_TARGET_GENE"
+    STATUS_HAS_TARGET_ALLELE = "HAS_TARGET_ALLELE"
+    STATUS_CAN_CHANGE = "CAN_CHANGE"
+
     def __init__(
         self,
         pkg_api: PkgApi,
@@ -55,6 +59,7 @@ class MutationsTab(QWidget):
         self._compatible_creature_ids: set[int] = set()
         self._mutation_stock_qty: int = 0
         self._selected_creature_target_warning: str = ""
+        self._creature_compatibility_state: dict[int, str] = {}
 
         self.last_purchased_mutation_id: int | None = None
 
@@ -178,8 +183,8 @@ class MutationsTab(QWidget):
         creature_title.setObjectName("subtitle")
         creature_layout.addRow("", creature_title)
 
-        self.only_compatible_checkbox = QCheckBox("Показывать только совместимых")
-        self.only_compatible_checkbox.setChecked(True)
+        self.only_compatible_checkbox = QCheckBox("Показывать несовместимых существ")
+        self.only_compatible_checkbox.setChecked(False)
         self.only_compatible_checkbox.toggled.connect(self._on_compatibility_filter_toggled)
         creature_layout.addRow("", self.only_compatible_checkbox)
 
@@ -339,6 +344,7 @@ class MutationsTab(QWidget):
             if creature_id is not None:
                 self._creature_by_id[creature_id] = creature
 
+        self._rebuild_creature_compatibility_state()
         self._update_creature_combo(current_creature_id)
 
     def buy_selected_mutation(self) -> None:
@@ -431,6 +437,7 @@ class MutationsTab(QWidget):
             self._compatible_creature_ids = set()
             self._mutation_stock_qty = 0
             self._selected_creature_target_warning = ""
+            self._creature_compatibility_state = {}
             self._fill_target_genes_table([])
             self.target_hint_label.setText("Выберите мутацию, чтобы увидеть целевые гены.")
             self._update_creature_combo(self.creature_combo.currentData())
@@ -499,6 +506,7 @@ class MutationsTab(QWidget):
             self._mutation_stock_qty = 0
 
         self.selected_mutation_stock_label.setText(str(self._mutation_stock_qty))
+        self._rebuild_creature_compatibility_state()
         self._evaluate_target_allele_overlap(self._to_int(self.creature_combo.currentData()))
 
     def _fill_target_genes_table(self, rows: list[dict[str, Any]]) -> None:
@@ -541,6 +549,60 @@ class MutationsTab(QWidget):
             f"Эта мутация действует на гены: {', '.join(names)}. Выберите существо, у которого есть эти гены."
         )
 
+    def _rebuild_creature_compatibility_state(self) -> None:
+        self._creature_compatibility_state = {}
+
+        mutation_id = self._selected_mutation_id()
+        if mutation_id is None:
+            return
+
+        for creature in self._creatures:
+            creature_id = self._to_int(creature.get("creature_id"))
+            if creature_id is None:
+                continue
+
+            try:
+                genotype_rows = self.pkg_api.get_genotype(creature_id)
+            except Exception:
+                self._creature_compatibility_state[creature_id] = self.STATUS_CAN_CHANGE
+                continue
+
+            self._creature_compatibility_state[creature_id] = self._get_creature_mutation_status(genotype_rows)
+
+    def _get_creature_mutation_status(self, genotype_rows: list[dict[str, Any]]) -> str:
+        if not self._target_genes:
+            return self.STATUS_CAN_CHANGE
+
+        genotype_by_gene: dict[int, dict[str, Any]] = {}
+        for row in genotype_rows:
+            gene_id = self._to_int(row.get("gene_id"))
+            if gene_id is not None:
+                genotype_by_gene[gene_id] = row
+
+        rules_with_genotype: list[tuple[dict[str, Any], dict[str, Any]]] = []
+
+        for rule in self._target_genes:
+            gene_id = self._to_int(rule.get("gene_id"))
+            if gene_id is None:
+                continue
+
+            genotype_row = genotype_by_gene.get(gene_id)
+            if genotype_row is None:
+                return self.STATUS_NO_TARGET_GENE
+
+            rules_with_genotype.append((genotype_row, rule))
+
+        if not rules_with_genotype:
+            return self.STATUS_NO_TARGET_GENE
+
+        all_matched = all(
+            self._matches_target_rule(genotype_row, rule)
+            for genotype_row, rule in rules_with_genotype
+        )
+        if all_matched:
+            return self.STATUS_HAS_TARGET_ALLELE
+        return self.STATUS_CAN_CHANGE
+
     def _update_creature_combo(self, selected_creature_id: Any) -> None:
         mutation_id = self._selected_mutation_id()
         selected_id_int = self._to_int(selected_creature_id)
@@ -550,15 +612,20 @@ class MutationsTab(QWidget):
         self.creature_combo.addItem("Выберите существо...", None)
 
         selected_index = 0
-        filter_only_compatible = self.only_compatible_checkbox.isChecked() and mutation_id is not None
+        show_incompatible = self.only_compatible_checkbox.isChecked() and mutation_id is not None
 
         for creature in self._creatures:
             creature_id = self._to_int(creature.get("creature_id"))
             if creature_id is None:
                 continue
 
-            is_compatible = creature_id in self._compatible_creature_ids if mutation_id is not None else True
-            if filter_only_compatible and not is_compatible:
+            status = (
+                self._creature_compatibility_state.get(creature_id, self.STATUS_CAN_CHANGE)
+                if mutation_id is not None
+                else self.STATUS_CAN_CHANGE
+            )
+            is_compatible = status != self.STATUS_NO_TARGET_GENE
+            if mutation_id is not None and not show_incompatible and not is_compatible:
                 continue
 
             name = display_creature_name(creature.get("creature_name"))
@@ -566,10 +633,12 @@ class MutationsTab(QWidget):
 
             if mutation_id is None:
                 label = f"{creature_id} | {name} | {species_text}"
-            elif is_compatible:
-                label = f"[Совместимо] {creature_id} | {name} | {species_text}"
+            elif status == self.STATUS_NO_TARGET_GENE:
+                label = f"[нет нужного гена] {creature_id} | {name} | {species_text}"
+            elif status == self.STATUS_HAS_TARGET_ALLELE:
+                label = f"[уже есть целевой аллель] {creature_id} | {name} | {species_text}"
             else:
-                label = f"[Нет нужного гена] {creature_id} | {name} | {species_text}"
+                label = f"[можно изменить] {creature_id} | {name} | {species_text}"
 
             self.creature_combo.addItem(label, creature_id)
             if selected_id_int is not None and creature_id == selected_id_int:
@@ -587,34 +656,8 @@ class MutationsTab(QWidget):
         if mutation_id is None or creature_id is None or not self._target_genes:
             return
 
-        try:
-            genotype_rows = self.pkg_api.get_genotype(creature_id)
-        except Exception:
-            return
-
-        genotype_by_gene: dict[int, dict[str, Any]] = {}
-        for row in genotype_rows:
-            gene_id = self._to_int(row.get("gene_id"))
-            if gene_id is not None:
-                genotype_by_gene[gene_id] = row
-
-        rules_checked = 0
-        rules_matched = 0
-
-        for rule in self._target_genes:
-            gene_id = self._to_int(rule.get("gene_id"))
-            if gene_id is None:
-                continue
-
-            genotype_row = genotype_by_gene.get(gene_id)
-            if genotype_row is None:
-                continue
-
-            rules_checked += 1
-            if self._matches_target_rule(genotype_row, rule):
-                rules_matched += 1
-
-        if rules_checked > 0 and rules_matched > 0:
+        status = self._creature_compatibility_state.get(creature_id, self.STATUS_CAN_CHANGE)
+        if status == self.STATUS_HAS_TARGET_ALLELE:
             self._selected_creature_target_warning = (
                 "У выбранного существа уже есть целевой аллель. "
                 "Применение может не изменить фенотип."
@@ -648,7 +691,7 @@ class MutationsTab(QWidget):
             reason = "Сначала купите выбранную мутацию."
         elif creature_id is None:
             reason = "Выберите существо для применения мутации."
-        elif creature_id not in self._compatible_creature_ids:
+        elif self._creature_compatibility_state.get(creature_id, self.STATUS_NO_TARGET_GENE) == self.STATUS_NO_TARGET_GENE:
             reason = "Выбранное существо не содержит целевой ген этой мутации."
         else:
             reason = "Можно применить."
@@ -710,3 +753,4 @@ class MutationsTab(QWidget):
     @staticmethod
     def _normalize_text(value: Any) -> str:
         return display_value(value).strip().lower()
+

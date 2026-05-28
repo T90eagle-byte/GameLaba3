@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import re
 from typing import Any
@@ -89,8 +89,12 @@ MUTATION_NAME_LABELS = {
     "size_shift_mutation": "Мутация размера",
     "nutrition_shift_mutation": "Мутация типа питания",
     "wing_activation_mutation": "Мутация активации крыльев",
-    "aquatic_form_mutation": "Мутация водной формы",
-    "morphology_refine_mutation": "Мутация морфологической корректировки",
+    "aquatic_form_mutation": "Мутация формы плавника (хрящевые рыбы)",
+    "aquatic_form_bony_mutation": "Мутация формы плавника (костные рыбы)",
+    "aquatic_form_turtle_shell_mutation": "Мутация панциря (черепахи)",
+    "morphology_refine_mutation": "Мутация клешней (ракообразные)",
+    "morphology_refine_mollusk_mutation": "Мутация профиля (моллюски)",
+    "morphology_refine_mammal_mutation": "Мутация шерсти (млекопитающие)",
 }
 
 TASK_NAME_LABELS = {
@@ -351,3 +355,4 @@ def _creature_name_label_inner(text: str) -> str:
             return f"{prefix_label} №{idx}"
 
     return text
+

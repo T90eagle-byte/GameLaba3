@@ -185,3 +185,9 @@
 - История экспериментов: empty-state при отсутствии записей.
 
 Проверка: python -m compileall -f python_client — успешно.
+
+## 15) Mutation-rules coherence pass
+- Устранён контентный источник ORA-20045: смешанные мутации разделены на видоспецифичные.
+- Актуальные объёмы seed: genes=12, alleles=24, mutations=12, mutation_rules=12, tasks=12, task_markers=21.
+- Backend package/DDL/spec не менялись; правка сделана через seed + smoke-tests + display mapping.
+
