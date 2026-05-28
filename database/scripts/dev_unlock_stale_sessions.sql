@@ -22,7 +22,7 @@ end;
 /
 
 declare
-    v_login users.login%type := 'admin'; -- TODO: укажите login пользователя
+    v_login users.login%type := 'admin2'; -- TODO: укажите login пользователя
     v_user_id users.user_id%type;
 begin
     begin
