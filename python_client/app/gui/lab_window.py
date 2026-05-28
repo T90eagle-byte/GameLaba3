@@ -53,8 +53,13 @@ class LabWindow(QWidget):
         title.setObjectName("title")
         subtitle = QLabel("Создайте новую лабораторию или откройте существующую")
         subtitle.setObjectName("subtitle")
+        context_hint = QLabel("Лаборатория хранит ваших существ, задания, мутации и историю экспериментов.")
+        context_hint.setObjectName("subtitle")
+        context_hint.setWordWrap(True)
+
         root.addWidget(title)
         root.addWidget(subtitle)
+        root.addWidget(context_hint)
 
         card = QFrame()
         card.setProperty("card", "true")
@@ -81,6 +86,11 @@ class LabWindow(QWidget):
         self.table.setAlternatingRowColors(True)
         card_layout.addWidget(self.table)
 
+        self.empty_labs_hint = QLabel("")
+        self.empty_labs_hint.setObjectName("subtitle")
+        self.empty_labs_hint.setWordWrap(True)
+        card_layout.addWidget(self.empty_labs_hint)
+
         root.addWidget(card)
 
         actions = QHBoxLayout()
@@ -89,17 +99,21 @@ class LabWindow(QWidget):
         self.refresh_btn.clicked.connect(self.refresh_labs)
 
         self.create_btn = QPushButton("Создать лабораторию")
+        self.create_btn.setToolTip("Создает новую лабораторию и стартовую коллекцию существ.")
         self.create_btn.clicked.connect(self._create_lab)
 
         self.open_btn = QPushButton("Открыть")
+        self.open_btn.setToolTip("Открывает выбранную лабораторию для текущей сессии.")
         self.open_btn.clicked.connect(self._open_selected_lab)
 
         self.delete_btn = QPushButton("Удалить лабораторию")
         self.delete_btn.setProperty("role", "secondary")
+        self.delete_btn.setToolTip("Удаляет выбранную лабораторию вместе с её данными.")
         self.delete_btn.clicked.connect(self._delete_selected_lab)
 
         self.logout_btn = QPushButton("Выйти из аккаунта")
         self.logout_btn.setProperty("role", "secondary")
+        self.logout_btn.setToolTip("Завершает текущую сессию и возвращает на экран входа.")
         self.logout_btn.clicked.connect(self.on_logout)
 
         actions.addWidget(self.refresh_btn)
@@ -144,6 +158,9 @@ class LabWindow(QWidget):
 
         if self.table.rowCount() > 0:
             self.table.selectRow(0)
+            self.empty_labs_hint.setText("")
+        else:
+            self.empty_labs_hint.setText("У вас пока нет лабораторий. Создайте первую лабораторию, чтобы начать игру.")
 
     def _set_cell(self, row: int, col: int, value) -> None:
         text = "Не указано" if value is None else str(value)
@@ -234,6 +251,4 @@ class LabWindow(QWidget):
             self.refresh_labs()
         except Exception as exc:
             QMessageBox.critical(self, "Ошибка удаления", map_oracle_error(exc))
-
-
 

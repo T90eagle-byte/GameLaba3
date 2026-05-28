@@ -106,6 +106,12 @@ class HistoryTab(QWidget):
         self.history_table.itemSelectionChanged.connect(self._on_history_selected)
 
         table_layout.addWidget(self.history_table)
+
+        self.empty_history_hint = QLabel("")
+        self.empty_history_hint.setObjectName("subtitle")
+        self.empty_history_hint.setWordWrap(True)
+        table_layout.addWidget(self.empty_history_hint)
+
         root.addWidget(table_card)
 
         detail_card = QFrame()
@@ -190,8 +196,12 @@ class HistoryTab(QWidget):
 
         if self.history_table.rowCount() > 0:
             self.history_table.selectRow(selected_row_idx)
+            self.empty_history_hint.setText("")
         else:
             self._clear_detail_card()
+            self.empty_history_hint.setText(
+                "История пока пуста. Проведите эксперимент, мутацию или мутагенное воздействие."
+            )
 
         self.history_table.blockSignals(False)
         self._on_history_selected()
@@ -319,3 +329,5 @@ class HistoryTab(QWidget):
         if value_name == "Не указано":
             return str(value_id)
         return f"{value_id} | {value_name}"
+
+

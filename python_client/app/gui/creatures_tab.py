@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
@@ -106,6 +106,11 @@ class CreaturesTab(QWidget):
         header.setSectionResizeMode(7, QHeaderView.Stretch)
 
         left_layout.addWidget(self.creatures_table)
+
+        self.empty_creatures_hint = QLabel("")
+        self.empty_creatures_hint.setObjectName("subtitle")
+        self.empty_creatures_hint.setWordWrap(True)
+        left_layout.addWidget(self.empty_creatures_hint)
         splitter.addWidget(left_panel)
 
         right_panel = QFrame()
@@ -260,8 +265,12 @@ class CreaturesTab(QWidget):
 
         if self.creatures_table.rowCount() > 0:
             self.creatures_table.selectRow(0)
+            self.empty_creatures_hint.setText("")
         else:
             self._clear_selected_creature_card()
+            self.empty_creatures_hint.setText(
+                "В лаборатории пока нет существ. Создайте новую лабораторию или обновите список."
+            )
 
     def _on_creature_selected(self) -> None:
         row = self.creatures_table.currentRow()
@@ -414,3 +423,6 @@ class CreaturesTab(QWidget):
             return int(value)
         except (TypeError, ValueError):
             return None
+
+
+

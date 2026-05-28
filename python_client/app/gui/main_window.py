@@ -106,6 +106,26 @@ class MainWindow(QWidget):
 
         root.addWidget(stats_card)
 
+        next_steps_card = QFrame()
+        next_steps_card.setProperty("card", "true")
+        next_steps_layout = QVBoxLayout(next_steps_card)
+        next_steps_layout.setContentsMargins(12, 10, 12, 10)
+        next_steps_layout.setSpacing(6)
+
+        next_steps_title = QLabel("Что делать дальше?")
+        next_steps_title.setObjectName("subtitle")
+        next_steps_text = QLabel(
+            "• Откройте вкладку «Существа», чтобы изучить стартовую коллекцию.\n"
+            "• Используйте «Генетический эксперимент» для скрещивания.\n"
+            "• Используйте «Мутации», чтобы направленно менять признаки.\n"
+            "• Выполняйте «Задания», чтобы получать монеты и рейтинг."
+        )
+        next_steps_text.setWordWrap(True)
+
+        next_steps_layout.addWidget(next_steps_title)
+        next_steps_layout.addWidget(next_steps_text)
+        root.addWidget(next_steps_card)
+
         tabs = QTabWidget()
 
         self.creatures_tab = CreaturesTab(pkg_api=self.pkg_api, state=self.state)
@@ -215,6 +235,8 @@ class MainWindow(QWidget):
         if value is None:
             return "Не указано"
         return str(value)
+
+
 
 
 

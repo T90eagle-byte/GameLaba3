@@ -2,6 +2,7 @@
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QFrame,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -44,6 +45,26 @@ class AuthWindow(QWidget):
         root_layout.addWidget(title)
         root_layout.addWidget(subtitle)
 
+        onboarding_card = QFrame()
+        onboarding_card.setProperty("card", "true")
+        onboarding_layout = QVBoxLayout(onboarding_card)
+        onboarding_layout.setContentsMargins(12, 10, 12, 10)
+        onboarding_layout.setSpacing(6)
+
+        onboarding_title = QLabel("Как начать")
+        onboarding_title.setObjectName("subtitle")
+        onboarding_text = QLabel(
+            "1) Войдите или зарегистрируйтесь.\n"
+            "2) Создайте лабораторию.\n"
+            "3) Изучайте существ, проводите эксперименты и выполняйте задания."
+        )
+        onboarding_text.setWordWrap(True)
+
+        onboarding_layout.addWidget(onboarding_title)
+        onboarding_layout.addWidget(onboarding_text)
+
+        root_layout.addWidget(onboarding_card)
+
         self.tabs = QTabWidget()
         self.tabs.addTab(self._build_login_tab(), "Вход")
         self.tabs.addTab(self._build_register_tab(), "Регистрация")
@@ -58,11 +79,11 @@ class AuthWindow(QWidget):
         form.setLabelAlignment(Qt.AlignRight)
 
         self.login_input = QLineEdit()
-        self.login_input.setPlaceholderText("Логин")
+        self.login_input.setPlaceholderText("Логин: строчные латинские буквы и цифры")
 
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setPlaceholderText("Пароль")
+        self.password_input.setPlaceholderText("Пароль (не пустой)")
 
         form.addRow("Логин:", self.login_input)
         form.addRow("Пароль:", self.password_input)
@@ -94,11 +115,11 @@ class AuthWindow(QWidget):
         self.reg_username_input.setPlaceholderText("Отображаемое имя")
 
         self.reg_login_input = QLineEdit()
-        self.reg_login_input.setPlaceholderText("Логин")
+        self.reg_login_input.setPlaceholderText("Логин: строчные латинские буквы и цифры")
 
         self.reg_password_input = QLineEdit()
         self.reg_password_input.setEchoMode(QLineEdit.Password)
-        self.reg_password_input.setPlaceholderText("Пароль")
+        self.reg_password_input.setPlaceholderText("Пароль (не пустой)")
 
         self.reg_password_repeat_input = QLineEdit()
         self.reg_password_repeat_input.setEchoMode(QLineEdit.Password)
@@ -178,5 +199,4 @@ class AuthWindow(QWidget):
             self.tabs.setCurrentIndex(0)
         except Exception as exc:
             QMessageBox.critical(self, "Ошибка регистрации", map_oracle_error(exc))
-
 

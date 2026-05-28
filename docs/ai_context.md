@@ -118,3 +118,9 @@
 - Разделение типов задач FIND/BREED/MUTATE остаётся отдельным DDL/backend-треком.
 
 
+
+## Update: UX polish stage 1
+- Добавлены onboarding-подсказки и empty-state состояния в ключевых окнах GUI.
+- Backend/DDL/spec/body/seed/tests не менялись.
+- Python остаётся только клиентом отображения и вызова PL/SQL API.
+- Компиляция клиента подтверждена: python -m compileall -f python_client.

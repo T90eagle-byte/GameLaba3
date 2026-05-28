@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any, Callable
 
@@ -523,12 +523,11 @@ class TasksTab(QWidget):
 
     def _update_empty_tasks_hint(self, filter_value: str) -> None:
         if filter_value == "ACTIVE":
-            completed_count = sum(1 for task in self._tasks if str(task.get("task_status") or "").upper() == "COMPLETED")
+            completed_count = sum(
+                1 for task in self._tasks if str(task.get("task_status") or "").upper() == "COMPLETED"
+            )
             if completed_count > 0:
-                self.empty_tasks_hint.setText(
-                    "Сейчас нет активных заданий. Возможно, все доступные задания выполнены. "
-                    "Нажмите «Обновить задания» для актуализации списка."
-                )
+                self.empty_tasks_hint.setText("Активных заданий нет. Возможно, все доступные задания выполнены.")
                 return
         self.empty_tasks_hint.setText("По выбранному фильтру нет записей.")
 
@@ -594,3 +593,5 @@ class TasksTab(QWidget):
             return int(code)
         except (TypeError, ValueError):
             return None
+
+

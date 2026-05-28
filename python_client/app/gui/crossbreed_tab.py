@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from decimal import Decimal
 from typing import Any, Callable
@@ -108,6 +108,11 @@ class CrossbreedTab(QWidget):
         selector_layout.addRow("", self.show_probabilities_btn)
 
         root.addWidget(selector_card)
+
+        self.empty_experiment_hint = QLabel("")
+        self.empty_experiment_hint.setObjectName("subtitle")
+        self.empty_experiment_hint.setWordWrap(True)
+        root.addWidget(self.empty_experiment_hint)
 
         cards_row = QHBoxLayout()
         self.parent_a_card, self.parent_a_fields = self._build_source_card("Исходное существо A")
@@ -230,6 +235,15 @@ class CrossbreedTab(QWidget):
         self._update_parent_cards()
         self._reload_genes()
 
+        if len(self._creatures) < 2:
+            self.empty_experiment_hint.setText("Для эксперимента нужны два совместимых существа.")
+        elif not self._has_shared_genes_selected_pair():
+            self.empty_experiment_hint.setText(
+                "Выберите двух существ одного вида с общими генами для расчета вероятностей."
+            )
+        else:
+            self.empty_experiment_hint.setText("")
+
     def _fill_parent_combo(self, combo: QComboBox, selected_id: Any) -> None:
         combo.blockSignals(True)
         combo.clear()
@@ -255,6 +269,15 @@ class CrossbreedTab(QWidget):
     def _on_parent_changed(self) -> None:
         self._update_parent_cards()
         self._reload_genes()
+
+        if len(self._creatures) < 2:
+            self.empty_experiment_hint.setText("Для эксперимента нужны два совместимых существа.")
+        elif not self._has_shared_genes_selected_pair():
+            self.empty_experiment_hint.setText(
+                "Выберите двух существ одного вида с общими генами для расчета вероятностей."
+            )
+        else:
+            self.empty_experiment_hint.setText("")
 
     def _update_parent_cards(self) -> None:
         self._fill_card(self.parent_a_fields, self._selected_creature(self.parent_a_combo.currentData()))
@@ -426,6 +449,16 @@ class CrossbreedTab(QWidget):
         except (TypeError, ValueError):
             return None
 
+
+    def _has_shared_genes_selected_pair(self) -> bool:
+        parent_a_id = self._to_int(self.parent_a_combo.currentData())
+        parent_b_id = self._to_int(self.parent_b_combo.currentData())
+        if parent_a_id is None or parent_b_id is None:
+            return False
+
+        gene_ids = [self.gene_combo.itemData(i) for i in range(self.gene_combo.count())]
+        return any(gid is not None for gid in gene_ids)
     @staticmethod
     def _species_text(species_value: Any) -> str:
         return species_label(species_value)
+
