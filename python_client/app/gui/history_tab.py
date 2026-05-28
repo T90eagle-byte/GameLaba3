@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Any
@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
     QFrame,
+    QHeaderView,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -81,27 +82,29 @@ class HistoryTab(QWidget):
         table_layout.setContentsMargins(12, 12, 12, 12)
         table_layout.setSpacing(8)
 
-        self.history_table = QTableWidget(0, 11)
+        self.history_table = QTableWidget(0, 6)
         self.history_table.setHorizontalHeaderLabels(
             [
-                "ID",
-                "Тип",
-                "ID существа A",
-                "Имя существа A",
-                "ID существа B",
-                "Имя существа B",
-                "ID результата",
-                "Имя результата",
-                "ID мутации",
-                "Название мутации",
                 "Дата/время",
+                "Тип",
+                "Исходное существо A",
+                "Исходное существо B",
+                "Результат",
+                "Мутация/воздействие",
             ]
         )
         self.history_table.verticalHeader().setVisible(False)
         self.history_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.history_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.history_table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.history_table.horizontalHeader().setStretchLastSection(True)
+        self.history_table.horizontalHeader().setStretchLastSection(False)
+        h_header = self.history_table.horizontalHeader()
+        h_header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        h_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        h_header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        h_header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        h_header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        h_header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
         self.history_table.setAlternatingRowColors(True)
         self.history_table.itemSelectionChanged.connect(self._on_history_selected)
 
@@ -179,17 +182,17 @@ class HistoryTab(QWidget):
             type_label = experiment_type_label(type_code, with_code=False)
             type_display = type_label if type_code == "Не указано" else f"{type_label} ({type_code})"
 
-            self._set_table_item(row_idx, 0, experiment_id, center=True)
+            parent1_name = self._entity_name(row.get("parent1_name"))
+            parent2_name = self._entity_name(row.get("parent2_name"))
+            offspring_name = self._entity_name(row.get("offspring_name"))
+            mutation_text = self._mutation_brief_text(row)
+
+            self._set_table_item(row_idx, 0, self._display_datetime(row.get("created_at")), center=True)
             self._set_table_item(row_idx, 1, type_display, center=True)
-            self._set_table_item(row_idx, 2, row.get("parent1_id"), center=True)
-            self._set_table_item(row_idx, 3, display_creature_name(row.get("parent1_name")))
-            self._set_table_item(row_idx, 4, row.get("parent2_id"), center=True)
-            self._set_table_item(row_idx, 5, display_creature_name(row.get("parent2_name")))
-            self._set_table_item(row_idx, 6, row.get("offspring_id"), center=True)
-            self._set_table_item(row_idx, 7, display_creature_name(row.get("offspring_name")))
-            self._set_table_item(row_idx, 8, row.get("mutation_id"), center=True)
-            self._set_table_item(row_idx, 9, display_mutation_name(row.get("mutation_name")))
-            self._set_table_item(row_idx, 10, self._display_datetime(row.get("created_at")), center=True)
+            self._set_table_item(row_idx, 2, parent1_name, tooltip=self._entity_text(row.get("parent1_id"), row.get("parent1_name")))
+            self._set_table_item(row_idx, 3, parent2_name, tooltip=self._entity_text(row.get("parent2_id"), row.get("parent2_name")))
+            self._set_table_item(row_idx, 4, offspring_name, tooltip=self._entity_text(row.get("offspring_id"), row.get("offspring_name")))
+            self._set_table_item(row_idx, 5, mutation_text, tooltip=self._mutation_detail_text(row))
 
             if selected_experiment_id is not None and experiment_id == selected_experiment_id:
                 selected_row_idx = row_idx
@@ -267,6 +270,32 @@ class HistoryTab(QWidget):
                 return "CHEMICAL"
         return None
 
+    def _entity_name(self, entity_name: Any) -> str:
+        name = display_creature_name(entity_name)
+        return "Нет данных" if name == "Не указано" else name
+
+    def _mutation_brief_text(self, row: dict[str, Any]) -> str:
+        mutation_name = display_mutation_name(row.get("mutation_name"))
+        if mutation_name != "Не указано":
+            return mutation_name
+
+        exp_type = self._display(row.get("experiment_type")).upper()
+        if exp_type == "MUTAGEN":
+            hint = self._detect_mutagen_subtype(row)
+            if hint == "RADIATION":
+                return "Радиационный мутаген"
+            if hint == "CHEMICAL":
+                return "Химический мутаген"
+            return "Мутагенное воздействие"
+
+        return "Без мутации"
+
+    def _mutation_detail_text(self, row: dict[str, Any]) -> str:
+        mutation_id = self._display(row.get("mutation_id"))
+        mutation_name = display_mutation_name(row.get("mutation_name"))
+        if mutation_name == "Не указано":
+            mutation_name = self._mutation_brief_text(row)
+        return f"ID мутации: {mutation_id}\nОписание: {mutation_name}"
     def _selected_row(self) -> dict[str, Any] | None:
         row_idx = self.history_table.currentRow()
         if row_idx < 0 or row_idx >= len(self._rows):
@@ -288,10 +317,19 @@ class HistoryTab(QWidget):
         self.lbl_created_at.setText("-")
         self.lbl_rating_note.setText("-")
 
-    def _set_table_item(self, row: int, col: int, value: Any, center: bool = False) -> None:
-        item = QTableWidgetItem(self._display(value))
+    def _set_table_item(
+        self,
+        row: int,
+        col: int,
+        value: Any,
+        center: bool = False,
+        tooltip: str | None = None,
+    ) -> None:
+        text = self._display(value)
+        item = QTableWidgetItem(text)
         if center:
             item.setTextAlignment(Qt.AlignCenter)
+        item.setToolTip(tooltip if tooltip else text)
         self.history_table.setItem(row, col, item)
 
     @staticmethod

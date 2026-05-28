@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Callable
 
@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
     QFrame,
+    QHeaderView,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -121,26 +122,25 @@ class TasksTab(QWidget):
 
         left_layout.addLayout(filter_row)
 
-        self.tasks_table = QTableWidget(0, 10)
+        self.tasks_table = QTableWidget(0, 4)
         self.tasks_table.setHorizontalHeaderLabels(
             [
-                "ID записи",
-                "ID задания",
                 "Название",
                 "Сложность",
-                "Описание",
-                "Награда (монеты)",
-                "Награда (рейтинг)",
                 "Статус",
-                "Назначено",
-                "Завершено",
+                "Награда",
             ]
         )
         self.tasks_table.verticalHeader().setVisible(False)
         self.tasks_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.tasks_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tasks_table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.tasks_table.horizontalHeader().setStretchLastSection(True)
+        self.tasks_table.horizontalHeader().setStretchLastSection(False)
+        t_header = self.tasks_table.horizontalHeader()
+        t_header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        t_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        t_header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        t_header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self.tasks_table.setAlternatingRowColors(True)
         self.tasks_table.itemSelectionChanged.connect(self._on_task_selected)
 
@@ -310,24 +310,28 @@ class TasksTab(QWidget):
 
         for row_idx, task in enumerate(self._visible_tasks):
             self.tasks_table.insertRow(row_idx)
-            self._set_table_item(self.tasks_table, row_idx, 0, task.get("lab_task_id"), center=True)
-            self._set_table_item(self.tasks_table, row_idx, 1, task.get("task_id"), center=True)
-            task_name_item = QTableWidgetItem(display_task_name(task.get("task_name")))
-            task_name_item.setToolTip(self._display(task.get("task_name")))
-            self.tasks_table.setItem(row_idx, 2, task_name_item)
-            self._set_table_item(self.tasks_table, row_idx, 3, display_task_difficulty(task.get("task_name")), center=True)
-            self._set_table_item(self.tasks_table, row_idx, 4, task.get("description"))
-            self._set_table_item(self.tasks_table, row_idx, 5, task.get("reward_money"), center=True)
-            self._set_table_item(self.tasks_table, row_idx, 6, task.get("reward_rating"), center=True)
-            self._set_table_item(
-                self.tasks_table,
-                row_idx,
-                7,
-                task_status_label(task.get("task_status")),
-                center=True,
+
+            reward_text = (
+                f"{self._display(task.get('reward_money'))} мон. / "
+                f"{self._display(task.get('reward_rating'))} рейтинг"
             )
-            self._set_table_item(self.tasks_table, row_idx, 8, task.get("created_at"), center=True)
-            self._set_table_item(self.tasks_table, row_idx, 9, task.get("completed_at"), center=True)
+
+            task_name_item = QTableWidgetItem(display_task_name(task.get("task_name")))
+            task_name_item.setToolTip(
+                "\n".join(
+                    [
+                        f"Техническое имя: {self._display(task.get('task_name'))}",
+                        f"ID записи: {self._display(task.get('lab_task_id'))}",
+                        f"ID задания: {self._display(task.get('task_id'))}",
+                        f"Назначено: {self._display(task.get('created_at'))}",
+                        f"Завершено: {self._display(task.get('completed_at'))}",
+                    ]
+                )
+            )
+            self.tasks_table.setItem(row_idx, 0, task_name_item)
+            self._set_table_item(self.tasks_table, row_idx, 1, display_task_difficulty(task.get("task_name")), center=True)
+            self._set_table_item(self.tasks_table, row_idx, 2, task_status_label(task.get("task_status")), center=True)
+            self._set_table_item(self.tasks_table, row_idx, 3, reward_text, center=True)
 
             if selected_task_id is not None and self._to_int(task.get("task_id")) == selected_task_id:
                 selected_row_idx = row_idx
@@ -380,7 +384,12 @@ class TasksTab(QWidget):
 
         self.task_name_label.setText(display_task_name(task.get("task_name")))
         self.task_name_label.setToolTip(self._display(task.get("task_name")))
-        self.task_desc_label.setText(self._display(task.get("description")))
+        task_description = self._display(task.get("description"))
+        task_dates = (
+            f"Назначено: {self._display(task.get('created_at'))}\n"
+            f"Завершено: {self._display(task.get('completed_at'))}"
+        )
+        self.task_desc_label.setText(f"{task_description}\n\n{task_dates}")
         self.task_reward_money_label.setText(self._display(task.get("reward_money")))
         self.task_reward_rating_label.setText(self._display(task.get("reward_rating")))
         self.task_difficulty_label.setText(display_task_difficulty(task.get("task_name")))
@@ -593,5 +602,6 @@ class TasksTab(QWidget):
             return int(code)
         except (TypeError, ValueError):
             return None
+
 
 

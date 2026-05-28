@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
@@ -75,7 +75,7 @@ class CreaturesTab(QWidget):
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(10, 10, 10, 10)
 
-        self.creatures_table = QTableWidget(0, 8)
+        self.creatures_table = QTableWidget(0, 7)
         self.creatures_table.setHorizontalHeaderLabels(
             [
                 "ID",
@@ -85,7 +85,6 @@ class CreaturesTab(QWidget):
                 "Размер",
                 "Крылья",
                 "Тип питания",
-                "Фенотип",
             ]
         )
         self.creatures_table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -96,14 +95,13 @@ class CreaturesTab(QWidget):
         self.creatures_table.itemSelectionChanged.connect(self._on_creature_selected)
 
         header = self.creatures_table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(6, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(7, QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
 
         left_layout.addWidget(self.creatures_table)
 
@@ -177,13 +175,13 @@ class CreaturesTab(QWidget):
         self.genotype_table.setAlternatingRowColors(True)
 
         g_header = self.genotype_table.horizontalHeader()
-        g_header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        g_header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        g_header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        g_header.setSectionResizeMode(3, QHeaderView.Stretch)
-        g_header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        g_header.setSectionResizeMode(5, QHeaderView.Stretch)
-        g_header.setSectionResizeMode(6, QHeaderView.ResizeToContents)
+        g_header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        g_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        g_header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        g_header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        g_header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        g_header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        g_header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
 
         right_layout.addWidget(self.genotype_table)
 
@@ -253,13 +251,6 @@ class CreaturesTab(QWidget):
                 row_idx,
                 6,
                 self._trait_display(creature.get("phenotype_nutrition_type")),
-                tooltip=True,
-            )
-            self._set_table_item(
-                self.creatures_table,
-                row_idx,
-                7,
-                self._phenotype_summary_display(creature.get("phenotype_summary")),
                 tooltip=True,
             )
 

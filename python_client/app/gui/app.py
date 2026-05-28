@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from PySide6.QtWidgets import QMessageBox
 
@@ -73,18 +73,39 @@ class GuiController:
         self.state.set_selected_lab(lab_id)
 
         self._close_windows()
-        self.main_window = MainWindow(
-            pkg_api=self.pkg_api,
-            state=self.state,
-            on_back_to_labs=self.return_to_lab_selection,
-            on_logout=self.logout_to_auth,
-            on_window_close=self.close_application,
-            is_programmatic_close=self.is_programmatic_close,
-        )
-        self.auth_window = None
-        self.lab_window = None
-        self.main_window.refresh_main_shell()
-        self.main_window.show()
+        try:
+            self.main_window = MainWindow(
+                pkg_api=self.pkg_api,
+                state=self.state,
+                on_back_to_labs=self.return_to_lab_selection,
+                on_logout=self.logout_to_auth,
+                on_window_close=self.close_application,
+                is_programmatic_close=self.is_programmatic_close,
+            )
+            self.auth_window = None
+            self.lab_window = None
+            self.main_window.refresh_main_shell()
+            self.main_window.show()
+        except Exception as exc:
+            # Аварийный cleanup: если окно не создалось, session не должна оставаться ACTIVE.
+            self.main_window = None
+            self._logout_current_session()
+            self.state.clear_session_context()
+            self._close_connection_once()
+
+            if not self._open_fresh_connection_for_auth():
+                return
+
+            QMessageBox.critical(
+                None,
+                "Ошибка открытия лаборатории",
+                (
+                    "Не удалось открыть окно лаборатории. "
+                    "Сессия была безопасно завершена. Войдите в систему снова.\n\n"
+                    f"Технические детали: {exc}"
+                ),
+            )
+            self.show_auth_window()
 
     def return_to_lab_selection(self) -> None:
         self.state.clear_lab_context()
