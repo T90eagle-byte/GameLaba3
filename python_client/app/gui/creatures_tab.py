@@ -123,7 +123,7 @@ class CreaturesTab(QWidget):
         card_title.setObjectName("subtitle")
         right_layout.addWidget(card_title)
 
-        self.creature_portrait = CreaturePortraitWidget()
+        self.creature_portrait = CreaturePortraitWidget(mode="large")
         right_layout.addWidget(self.creature_portrait, alignment=Qt.AlignHCenter)
         info_form = QFormLayout()
         info_form.setLabelAlignment(Qt.AlignRight)

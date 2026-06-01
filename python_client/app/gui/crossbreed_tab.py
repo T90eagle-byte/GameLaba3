@@ -95,6 +95,10 @@ class CrossbreedTab(QWidget):
         info_text.setObjectName("subtitle")
         info_text.setWordWrap(True)
         info_layout.addWidget(info_text)
+
+        self.crossbreed_flow_hint = QLabel('Исходное существо A -> Исходное существо B -> Вероятности признаков -> Создать результат')
+        self.crossbreed_flow_hint.setProperty("badge", True)
+        info_layout.addWidget(self.crossbreed_flow_hint)
         root.addWidget(self.crossbreed_info_panel)
 
         selector_card = QFrame()
@@ -212,7 +216,7 @@ class CrossbreedTab(QWidget):
         title.setObjectName("subtitle")
         layout.addRow("", title)
 
-        portrait = CreaturePortraitWidget()
+        portrait = CreaturePortraitWidget(mode="compact")
         layout.addRow("", portrait)
 
         fields = {

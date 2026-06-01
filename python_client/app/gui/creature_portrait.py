@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
@@ -8,11 +8,11 @@ from PySide6.QtWidgets import QWidget
 
 
 class CreaturePortraitWidget(QWidget):
-    def __init__(self, parent: QWidget | None = None) -> None:
+    MODES = {"large", "compact", "mini"}
+
+    def __init__(self, parent: QWidget | None = None, mode: str = "large") -> None:
         super().__init__(parent)
         self.setObjectName("creaturePortrait")
-        self.setMinimumSize(250, 210)
-        self.setMaximumHeight(240)
 
         self._species_label = ""
         self._phenotype_color = ""
@@ -21,11 +21,41 @@ class CreaturePortraitWidget(QWidget):
         self._phenotype_nutrition = ""
         self._phenotype_summary = ""
 
+        self._mode = "large"
+        self.set_mode(mode)
+
+    def set_mode(self, mode: str) -> None:
+        normalized = (mode or "large").strip().lower()
+        if normalized not in self.MODES:
+            normalized = "large"
+        self._mode = normalized
+
+        if normalized == "large":
+            self.setMinimumSize(252, 214)
+            self.setMaximumHeight(245)
+        elif normalized == "compact":
+            self.setMinimumSize(196, 166)
+            self.setMaximumHeight(188)
+        else:
+            self.setMinimumSize(152, 132)
+            self.setMaximumHeight(150)
+
+        self.updateGeometry()
+        self.update()
+
     def sizeHint(self) -> QSize:  # noqa: N802
-        return QSize(260, 220)
+        if self._mode == "large":
+            return QSize(264, 224)
+        if self._mode == "compact":
+            return QSize(208, 178)
+        return QSize(164, 140)
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802
-        return QSize(240, 200)
+        if self._mode == "large":
+            return QSize(242, 206)
+        if self._mode == "compact":
+            return QSize(190, 160)
+        return QSize(146, 126)
 
     def set_creature(
         self,
@@ -61,7 +91,8 @@ class CreaturePortraitWidget(QWidget):
             self._draw_empty_state(painter, card)
             return
 
-        draw_zone = card.adjusted(16, 16, -16, -62)
+        badges_space = 58 if self._mode == "large" else (42 if self._mode == "compact" else 32)
+        draw_zone = card.adjusted(14, 14, -14, -badges_space)
         body = self._scaled_body_rect(draw_zone, self._resolve_scale())
 
         if self._has_wings():
@@ -86,40 +117,41 @@ class CreaturePortraitWidget(QWidget):
         self._draw_badges(painter, card)
 
     def _draw_paper_card(self, painter: QPainter, rect: QRectF) -> None:
-        paper_color = QColor("#fffdf7")
-        border_color = QColor("#d6ccb8")
-
-        painter.setPen(QPen(border_color, 1.2))
-        painter.setBrush(paper_color)
+        painter.setPen(QPen(QColor("#d6ccb8"), 1.2))
+        painter.setBrush(QColor("#fffdf7"))
         painter.drawRoundedRect(rect, 10, 10)
 
         line_pen = QPen(QColor("#ece4d3"), 1)
         painter.setPen(line_pen)
+        step = 14 if self._mode == "large" else 16
         y = rect.top() + 18
-        while y < rect.bottom() - 58:
+        while y < rect.bottom() - (52 if self._mode != "mini" else 34):
             painter.drawLine(QPointF(rect.left() + 10, y), QPointF(rect.right() - 10, y))
-            y += 14
+            y += step
 
-        painter.setPen(QPen(QColor("#e7dcc7"), 1))
-        painter.drawLine(
-            QPointF(rect.left() + 26, rect.top() + 10),
-            QPointF(rect.left() + 26, rect.bottom() - 58),
-        )
+        if self._mode != "mini":
+            painter.setPen(QPen(QColor("#e7dcc7"), 1))
+            painter.drawLine(
+                QPointF(rect.left() + 24, rect.top() + 10),
+                QPointF(rect.left() + 24, rect.bottom() - (52 if self._mode == "large" else 38)),
+            )
 
     def _draw_empty_state(self, painter: QPainter, rect: QRectF) -> None:
         center = rect.center()
-        icon = QRectF(center.x() - 34, center.y() - 38, 68, 52)
+        icon_w = 64 if self._mode != "mini" else 52
+        icon_h = 48 if self._mode != "mini" else 38
+        icon = QRectF(center.x() - icon_w / 2, center.y() - icon_h / 2 - 8, icon_w, icon_h)
 
         painter.setPen(QPen(QColor("#9ca3af"), 1.4, Qt.DashLine))
         painter.setBrush(QColor("#f5f3ec"))
         painter.drawRoundedRect(icon, 10, 10)
 
-        painter.setPen(QPen(QColor("#9ca3af"), 1.6))
-        painter.drawEllipse(QRectF(icon.left() + 14, icon.top() + 14, 40, 24))
+        painter.setPen(QPen(QColor("#9ca3af"), 1.5))
+        painter.drawEllipse(QRectF(icon.left() + 13, icon.top() + 12, icon.width() - 26, icon.height() - 22))
 
         painter.setPen(QColor("#6b7280"))
         painter.drawText(
-            QRectF(rect.left() + 14, rect.center().y() + 18, rect.width() - 28, 24),
+            QRectF(rect.left() + 12, rect.center().y() + 16, rect.width() - 24, 24),
             Qt.AlignCenter,
             "Выберите существо",
         )
@@ -486,6 +518,16 @@ class CreaturePortraitWidget(QWidget):
         painter.drawEllipse(center, 1.2, 1.2)
 
     def _draw_badges(self, painter: QPainter, card: QRectF) -> None:
+        if self._mode == "mini":
+            text = f"{self._short_species()} | {self._color_label()} | {self._size_label()}"
+            badge = QRectF(card.left() + 10, card.bottom() - 24, card.width() - 20, 16)
+            painter.setPen(QPen(QColor("#d4c5ad"), 1))
+            painter.setBrush(QColor("#fffaf0"))
+            painter.drawRoundedRect(badge, 5, 5)
+            painter.setPen(QColor("#4b5563"))
+            painter.drawText(badge.adjusted(6, 0, -6, 0), Qt.AlignVCenter | Qt.AlignLeft, text)
+            return
+
         color = self._color_label()
         size = self._size_label()
         wings = "есть" if self._has_wings() else "нет"
@@ -498,9 +540,9 @@ class CreaturePortraitWidget(QWidget):
         ]
 
         chip_w = (card.width() - 32) / 2
-        chip_h = 20
+        chip_h = 20 if self._mode == "large" else 18
         start_x = card.left() + 10
-        start_y = card.bottom() - 48
+        start_y = card.bottom() - (48 if self._mode == "large" else 40)
 
         for idx, text in enumerate(badges):
             col = idx % 2
@@ -524,10 +566,11 @@ class CreaturePortraitWidget(QWidget):
         return all(token.casefold() in summary for token in tokens)
 
     def _short_species(self) -> str:
+        limit = 18 if self._mode == "large" else 14
         text = self._species_label.strip()
-        if len(text) <= 18:
+        if len(text) <= limit:
             return text
-        return text[:17] + "…"
+        return text[: limit - 1] + "…"
 
     def _color_label(self) -> str:
         text = self._phenotype_color.casefold()

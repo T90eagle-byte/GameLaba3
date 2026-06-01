@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.db.pkg_api import PkgApi
+from app.gui.creature_portrait import CreaturePortraitWidget
 from app.services.display_names import (
     display_creature_name,
     display_gene_name,
@@ -138,6 +139,7 @@ class MutationsTab(QWidget):
         self.selected_mutation_name_label = QLabel("-")
         self.selected_mutation_price_label = QLabel("-")
         self.selected_mutation_stock_label = QLabel("0")
+        self.selected_mutation_stock_label.setProperty("badge", True)
 
         selected_mutation_form.addRow("Выбрано (ID):", self.selected_mutation_id_label)
         selected_mutation_form.addRow("Название:", self.selected_mutation_name_label)
@@ -192,6 +194,9 @@ class MutationsTab(QWidget):
         creature_title = QLabel("3. Выбранное существо")
         creature_title.setObjectName("subtitle")
         creature_layout.addRow("", creature_title)
+
+        self.creature_portrait = CreaturePortraitWidget(mode="compact")
+        creature_layout.addRow("", self.creature_portrait)
 
         self.only_compatible_checkbox = QCheckBox("Показывать несовместимых существ")
         self.only_compatible_checkbox.setChecked(False)
@@ -280,6 +285,13 @@ class MutationsTab(QWidget):
         self.mutagen_info_label.setObjectName("subtitle")
         self.mutagen_info_label.setWordWrap(True)
         mutagen_layout.addRow("", self.mutagen_info_label)
+
+        self.mutagen_radiation_badge = QLabel('RADIATION: 50 монет, рейтинг -5, риск высокий')
+        self.mutagen_radiation_badge.setProperty("badge", True)
+        self.mutagen_chemical_badge = QLabel('CHEMICAL: 100 монет, рейтинг -2, риск ниже')
+        self.mutagen_chemical_badge.setProperty("badge", True)
+        mutagen_layout.addRow("", self.mutagen_radiation_badge)
+        mutagen_layout.addRow("", self.mutagen_chemical_badge)
 
         right_col.addWidget(mutagen_card)
 
@@ -466,6 +478,7 @@ class MutationsTab(QWidget):
             self.creature_name_label.setText("-")
             self.creature_species_label.setText("-")
             self.creature_phenotype_label.setText("-")
+            self.creature_portrait.clear()
             self._selected_creature_target_warning = ""
             self._update_apply_mutation_state()
             return
@@ -474,6 +487,14 @@ class MutationsTab(QWidget):
         self.creature_name_label.setText(f"{display_creature_name(creature.get('creature_name'))} · ID {self._display(creature.get('creature_id'))}")
         self.creature_species_label.setText(species_label(creature.get("species_type")))
         self.creature_phenotype_label.setText(format_phenotype_summary(creature.get("phenotype_summary")))
+        self.creature_portrait.set_creature(
+            species_label=species_label(creature.get("species_type")),
+            phenotype_color=display_trait_value(creature.get("phenotype_color")),
+            phenotype_size=display_trait_value(creature.get("phenotype_size")),
+            phenotype_wings=display_trait_value(creature.get("phenotype_has_wings")),
+            phenotype_nutrition=display_trait_value(creature.get("phenotype_nutrition_type")),
+            phenotype_summary=format_phenotype_summary(creature.get("phenotype_summary")),
+        )
 
         self._evaluate_target_allele_overlap(creature_id)
         self._update_apply_mutation_state()

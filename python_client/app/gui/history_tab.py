@@ -310,12 +310,40 @@ class HistoryTab(QWidget):
 
     def _clear_detail_card(self) -> None:
         self.lbl_type.setText("-")
+        self.lbl_type.setProperty("typechip", "")
+        self.lbl_type.style().unpolish(self.lbl_type)
+        self.lbl_type.style().polish(self.lbl_type)
         self.lbl_parent1.setText("-")
         self.lbl_parent2.setText("-")
         self.lbl_offspring.setText("-")
         self.lbl_mutation.setText("-")
         self.lbl_created_at.setText("-")
         self.lbl_rating_note.setText("-")
+
+
+    def _type_marker_text(self, type_code: str, type_ru: str) -> str:
+        code = (type_code or "").upper()
+        if code == "CROSS":
+            return f"[???] {type_ru}"
+        if code == "MUTATION":
+            return f"[???] {type_ru}"
+        if code == "MUTAGEN":
+            return f"[???] {type_ru}"
+        return type_ru
+
+    def _apply_type_chip(self, type_code: str) -> None:
+        code = (type_code or "").upper()
+        chip = ""
+        if code == "CROSS":
+            chip = "cross"
+        elif code == "MUTATION":
+            chip = "mutation"
+        elif code == "MUTAGEN":
+            chip = "mutagen"
+
+        self.lbl_type.setProperty("typechip", chip)
+        self.lbl_type.style().unpolish(self.lbl_type)
+        self.lbl_type.style().polish(self.lbl_type)
 
     def _set_table_item(
         self,
