@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.db.pkg_api import PkgApi
+from app.gui.creature_portrait import CreaturePortraitWidget
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
 from app.services.display_names import (
@@ -122,6 +123,8 @@ class CreaturesTab(QWidget):
         card_title.setObjectName("subtitle")
         right_layout.addWidget(card_title)
 
+        self.creature_portrait = CreaturePortraitWidget()
+        right_layout.addWidget(self.creature_portrait, alignment=Qt.AlignHCenter)
         info_form = QFormLayout()
         info_form.setLabelAlignment(Qt.AlignRight)
 
@@ -282,6 +285,14 @@ class CreaturesTab(QWidget):
         self.lbl_wings.setText(self._trait_display(creature.get("phenotype_has_wings")))
         self.lbl_nutrition.setText(self._trait_display(creature.get("phenotype_nutrition_type")))
         self.phenotype_summary.setText(self._phenotype_summary_display(creature.get("phenotype_summary")))
+        self.creature_portrait.set_creature(
+            species_label=species_text,
+            phenotype_color=self._trait_display(creature.get("phenotype_color")),
+            phenotype_size=self._trait_display(creature.get("phenotype_size")),
+            phenotype_wings=self._trait_display(creature.get("phenotype_has_wings")),
+            phenotype_nutrition=self._trait_display(creature.get("phenotype_nutrition_type")),
+            phenotype_summary=self._phenotype_summary_display(creature.get("phenotype_summary")),
+        )
 
     def _fill_genotype_table(self, rows: list[dict[str, Any]]) -> None:
         self._clear_genotype_cards()
@@ -368,6 +379,7 @@ class CreaturesTab(QWidget):
         self.lbl_wings.setText("-")
         self.lbl_nutrition.setText("-")
         self.phenotype_summary.setText("-")
+        self.creature_portrait.clear()
         self._clear_genotype_cards()
 
     @staticmethod
