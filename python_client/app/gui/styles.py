@@ -110,6 +110,22 @@ QTabBar::tab:selected {
     color: #111827;
 }
 
+
+QFrame#geneCard {
+    background-color: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+}
+
+QLabel#geneCardTitle {
+    font-weight: 700;
+    color: #111827;
+}
+
+QLabel#muted {
+    color: #6b7280;
+}
+
 QFrame[card='true'] {
     background-color: #ffffff;
     border: 1px solid #dbe1ea;

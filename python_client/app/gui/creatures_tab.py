@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -156,34 +157,18 @@ class CreaturesTab(QWidget):
         genotype_label.setObjectName("subtitle")
         right_layout.addWidget(genotype_label)
 
-        self.genotype_table = QTableWidget(0, 7)
-        self.genotype_table.setHorizontalHeaderLabels(
-            [
-                "Ген",
-                "Тип гена",
-                "Тип доминирования",
-                "Аллель 1",
-                "Значение 1",
-                "Аллель 2",
-                "Значение 2",
-            ]
-        )
-        self.genotype_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.genotype_table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.genotype_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.genotype_table.verticalHeader().setVisible(False)
-        self.genotype_table.setAlternatingRowColors(True)
+        self.genotype_scroll = QScrollArea()
+        self.genotype_scroll.setWidgetResizable(True)
+        self.genotype_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.genotype_scroll.setMinimumHeight(260)
 
-        g_header = self.genotype_table.horizontalHeader()
-        g_header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        g_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        g_header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        g_header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        g_header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
-        g_header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
-        g_header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
+        self.genotype_container = QWidget()
+        self.genotype_layout = QVBoxLayout(self.genotype_container)
+        self.genotype_layout.setContentsMargins(0, 0, 0, 0)
+        self.genotype_layout.setSpacing(8)
+        self.genotype_scroll.setWidget(self.genotype_container)
 
-        right_layout.addWidget(self.genotype_table)
+        right_layout.addWidget(self.genotype_scroll, 1)
 
         splitter.addWidget(right_panel)
         splitter.setStretchFactor(0, 3)
@@ -281,7 +266,7 @@ class CreaturesTab(QWidget):
             genotype_rows = self.pkg_api.get_genotype(creature_id)
         except Exception as exc:
             QMessageBox.critical(self, "Ошибка генотипа", map_oracle_error(exc))
-            self.genotype_table.setRowCount(0)
+            self._clear_genotype_cards()
             return
 
         self._fill_genotype_table(genotype_rows)
@@ -299,53 +284,80 @@ class CreaturesTab(QWidget):
         self.phenotype_summary.setText(self._phenotype_summary_display(creature.get("phenotype_summary")))
 
     def _fill_genotype_table(self, rows: list[dict[str, Any]]) -> None:
-        self.genotype_table.setRowCount(0)
+        self._clear_genotype_cards()
 
-        for row_idx, rec in enumerate(rows):
-            self.genotype_table.insertRow(row_idx)
-            self._set_table_item(
-                self.genotype_table,
-                row_idx,
-                0,
-                self._gene_display(rec.get("gene_name")),
-                tooltip=True,
-            )
-            self._set_table_item(self.genotype_table, row_idx, 1, display_gene_type(rec.get("gene_type")), tooltip=True)
-            self._set_table_item(
-                self.genotype_table,
-                row_idx,
-                2,
-                self._dominance_display(rec.get("dominance_type")),
-                center=True,
-            )
-            self._set_table_item(
-                self.genotype_table,
-                row_idx,
-                3,
-                self._trait_display(rec.get("allele1_description")),
-                tooltip=True,
-            )
-            self._set_table_item(
-                self.genotype_table,
-                row_idx,
-                4,
-                self._trait_display(rec.get("allele1_trait_value")),
-                tooltip=True,
-            )
-            self._set_table_item(
-                self.genotype_table,
-                row_idx,
-                5,
-                self._trait_display(rec.get("allele2_description")),
-                tooltip=True,
-            )
-            self._set_table_item(
-                self.genotype_table,
-                row_idx,
-                6,
-                self._trait_display(rec.get("allele2_trait_value")),
-                tooltip=True,
-            )
+        if not rows:
+            self._add_genotype_hint("Генотип выбранного существа не найден.")
+            return
+
+        for rec in rows:
+            self._add_genotype_card(rec)
+
+        self.genotype_layout.addStretch()
+
+    def _add_genotype_card(self, rec: dict[str, Any]) -> None:
+        gene = self._gene_display(rec.get("gene_name"))
+        gene_type = display_gene_type(rec.get("gene_type"))
+        dominance = self._dominance_display(rec.get("dominance_type"))
+        allele1 = self._trait_display(rec.get("allele1_description"))
+        allele2 = self._trait_display(rec.get("allele2_description"))
+        value1 = self._trait_display(rec.get("allele1_trait_value"))
+        value2 = self._trait_display(rec.get("allele2_trait_value"))
+
+        card = QFrame()
+        card.setObjectName("geneCard")
+        card.setToolTip(self._genotype_tooltip(rec))
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(4)
+
+        title = QLabel(f"Признак: {gene}")
+        title.setObjectName("geneCardTitle")
+        title.setWordWrap(True)
+        layout.addWidget(title)
+
+        meta = QLabel(f"Тип: {gene_type}\nДоминирование: {dominance}")
+        meta.setObjectName("muted")
+        meta.setWordWrap(True)
+        layout.addWidget(meta)
+
+        alleles = QLabel(f"Аллели: {allele1} + {allele2}")
+        alleles.setWordWrap(True)
+        layout.addWidget(alleles)
+
+        values = QLabel(f"Значения: {value1} / {value2}")
+        values.setObjectName("muted")
+        values.setWordWrap(True)
+        layout.addWidget(values)
+
+        self.genotype_layout.addWidget(card)
+
+    def _add_genotype_hint(self, text: str) -> None:
+        hint = QLabel(text)
+        hint.setObjectName("subtitle")
+        hint.setWordWrap(True)
+        self.genotype_layout.addWidget(hint)
+
+    def _clear_genotype_cards(self) -> None:
+        while self.genotype_layout.count():
+            item = self.genotype_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
+    def _genotype_tooltip(self, rec: dict[str, Any]) -> str:
+        return "\n".join(
+            [
+                f"gene_name: {self._display(rec.get('gene_name'))}",
+                f"gene_type: {self._display(rec.get('gene_type'))}",
+                f"dominance_type: {self._display(rec.get('dominance_type'))}",
+                f"allele1_description: {self._display(rec.get('allele1_description'))}",
+                f"allele1_trait_value: {self._display(rec.get('allele1_trait_value'))}",
+                f"allele2_description: {self._display(rec.get('allele2_description'))}",
+                f"allele2_trait_value: {self._display(rec.get('allele2_trait_value'))}",
+            ]
+        )
 
     def _clear_selected_creature_card(self) -> None:
         self.lbl_creature_id.setText("-")
@@ -356,7 +368,7 @@ class CreaturesTab(QWidget):
         self.lbl_wings.setText("-")
         self.lbl_nutrition.setText("-")
         self.phenotype_summary.setText("-")
-        self.genotype_table.setRowCount(0)
+        self._clear_genotype_cards()
 
     @staticmethod
     def _set_table_item(
