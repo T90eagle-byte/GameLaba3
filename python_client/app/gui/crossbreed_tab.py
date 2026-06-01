@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.db.pkg_api import PkgApi
+from app.gui.creature_portrait import CreaturePortraitWidget
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
 from app.services.display_names import (
@@ -125,8 +126,8 @@ class CrossbreedTab(QWidget):
         root.addWidget(self.empty_experiment_hint)
 
         cards_row = QHBoxLayout()
-        self.parent_a_card, self.parent_a_fields = self._build_source_card("Исходное существо A")
-        self.parent_b_card, self.parent_b_fields = self._build_source_card("Исходное существо B")
+        self.parent_a_card, self.parent_a_fields, self.parent_a_portrait = self._build_source_card("Исходное существо A")
+        self.parent_b_card, self.parent_b_fields, self.parent_b_portrait = self._build_source_card("Исходное существо B")
         cards_row.addWidget(self.parent_a_card)
         cards_row.addWidget(self.parent_b_card)
         root.addLayout(cards_row)
@@ -169,6 +170,11 @@ class CrossbreedTab(QWidget):
         probabilities_hint.setWordWrap(True)
         probabilities_layout.addWidget(probabilities_hint)
 
+        selected_gene_hint = QLabel("Выбранный ген используется только для просмотра вероятностей. Потомок наследует признаки по всему генотипу.")
+        selected_gene_hint.setObjectName("subtitle")
+        selected_gene_hint.setWordWrap(True)
+        probabilities_layout.addWidget(selected_gene_hint)
+
         root.addWidget(probabilities_card)
 
         result_card = QFrame()
@@ -195,7 +201,7 @@ class CrossbreedTab(QWidget):
 
         root.addWidget(result_card)
 
-    def _build_source_card(self, header: str) -> tuple[QFrame, dict[str, QLabel]]:
+    def _build_source_card(self, header: str) -> tuple[QFrame, dict[str, Any], CreaturePortraitWidget]:
         frame = QFrame()
         frame.setProperty("card", "true")
         layout = QFormLayout(frame)
@@ -206,11 +212,15 @@ class CrossbreedTab(QWidget):
         title.setObjectName("subtitle")
         layout.addRow("", title)
 
+        portrait = CreaturePortraitWidget()
+        layout.addRow("", portrait)
+
         fields = {
             "creature_id": QLabel("-"),
             "creature_name": QLabel("-"),
             "species_type": QLabel("-"),
             "phenotype_summary": QLabel("-"),
+            "portrait": portrait,
         }
 
         fields["phenotype_summary"].setWordWrap(True)
@@ -221,7 +231,7 @@ class CrossbreedTab(QWidget):
         layout.addRow("Вид:", fields["species_type"])
         layout.addRow("Фенотип:", fields["phenotype_summary"])
 
-        return frame, fields
+        return frame, fields, portrait
 
     def refresh_creatures(self) -> None:
         lab_id = self.state.selected_lab_id
@@ -299,18 +309,31 @@ class CrossbreedTab(QWidget):
         self._fill_card(self.parent_a_fields, self._selected_creature(self.parent_a_combo.currentData()))
         self._fill_card(self.parent_b_fields, self._selected_creature(self.parent_b_combo.currentData()))
 
-    def _fill_card(self, fields: dict[str, QLabel], creature: dict[str, Any] | None) -> None:
+    def _fill_card(self, fields: dict[str, Any], creature: dict[str, Any] | None) -> None:
+        portrait_widget = fields.get("portrait")
         if creature is None:
             fields["creature_id"].setText("-")
             fields["creature_name"].setText("Выберите существо")
             fields["species_type"].setText("-")
             fields["phenotype_summary"].setText("После выбора здесь появится фенотип.")
+            if isinstance(portrait_widget, CreaturePortraitWidget):
+                portrait_widget.clear()
             return
 
         fields["creature_id"].setText(self._display(creature.get("creature_id")))
         fields["creature_name"].setText(f"{display_creature_name(creature.get('creature_name'))} · ID {self._display(creature.get('creature_id'))}")
         fields["species_type"].setText(species_label(creature.get("species_type")))
         fields["phenotype_summary"].setText(format_phenotype_summary(creature.get("phenotype_summary")))
+
+        if isinstance(portrait_widget, CreaturePortraitWidget):
+            portrait_widget.set_creature(
+                species_label=species_label(creature.get("species_type")),
+                phenotype_color=display_trait_value(creature.get("phenotype_color")),
+                phenotype_size=display_trait_value(creature.get("phenotype_size")),
+                phenotype_wings=display_trait_value(creature.get("phenotype_has_wings")),
+                phenotype_nutrition=display_trait_value(creature.get("phenotype_nutrition_type")),
+                phenotype_summary=format_phenotype_summary(creature.get("phenotype_summary")),
+            )
 
     def _selected_creature(self, creature_id: Any) -> dict[str, Any] | None:
         cid = self._to_int(creature_id)
