@@ -160,29 +160,70 @@ class TasksTab(QWidget):
 
         task_info_card = QFrame()
         task_info_card.setProperty("card", "true")
-        task_info_layout = QFormLayout(task_info_card)
+        task_info_layout = QVBoxLayout(task_info_card)
         task_info_layout.setContentsMargins(12, 12, 12, 12)
-        task_info_layout.setLabelAlignment(Qt.AlignRight)
+        task_info_layout.setSpacing(8)
 
         task_title = QLabel("Описание задания")
         task_title.setObjectName("subtitle")
-        task_info_layout.addRow("", task_title)
+        task_info_layout.addWidget(task_title)
+
+        name_title = QLabel("Название")
+        name_title.setObjectName("subtitle")
+        task_info_layout.addWidget(name_title)
 
         self.task_name_label = QLabel("-")
-        self.task_desc_label = QLabel("-")
-        self.task_desc_label.setWordWrap(True)
-        self.task_desc_label.setMinimumHeight(54)
-        self.task_reward_money_label = QLabel("-")
-        self.task_reward_rating_label = QLabel("-")
+        self.task_name_label.setWordWrap(True)
+        self.task_name_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        task_info_layout.addWidget(self.task_name_label)
+
+        meta_form = QFormLayout()
+        meta_form.setLabelAlignment(Qt.AlignRight)
         self.task_difficulty_label = QLabel("-")
         self.task_status_label = QLabel("-")
+        meta_form.addRow("Сложность:", self.task_difficulty_label)
+        meta_form.addRow("Статус:", self.task_status_label)
+        task_info_layout.addLayout(meta_form)
 
-        task_info_layout.addRow("Название:", self.task_name_label)
-        task_info_layout.addRow("Описание:", self.task_desc_label)
-        task_info_layout.addRow("Награда (монеты):", self.task_reward_money_label)
-        task_info_layout.addRow("Награда (рейтинг):", self.task_reward_rating_label)
-        task_info_layout.addRow("Сложность:", self.task_difficulty_label)
-        task_info_layout.addRow("Статус:", self.task_status_label)
+        desc_title = QLabel("Описание")
+        desc_title.setObjectName("subtitle")
+        task_info_layout.addWidget(desc_title)
+
+        self.task_desc_label = QLabel("-")
+        self.task_desc_label.setWordWrap(True)
+        self.task_desc_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.task_desc_label.setMinimumHeight(84)
+        self.task_desc_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        task_info_layout.addWidget(self.task_desc_label)
+
+        reward_title = QLabel("Награда")
+        reward_title.setObjectName("subtitle")
+        task_info_layout.addWidget(reward_title)
+
+        reward_form = QFormLayout()
+        reward_form.setLabelAlignment(Qt.AlignRight)
+        self.task_reward_money_label = QLabel("-")
+        self.task_reward_rating_label = QLabel("-")
+        reward_form.addRow("Монеты:", self.task_reward_money_label)
+        reward_form.addRow("Рейтинг:", self.task_reward_rating_label)
+        task_info_layout.addLayout(reward_form)
+
+        dates_title = QLabel("Даты")
+        dates_title.setObjectName("subtitle")
+        task_info_layout.addWidget(dates_title)
+
+        dates_form = QFormLayout()
+        dates_form.setLabelAlignment(Qt.AlignRight)
+        self.task_assigned_at_label = QLabel("Не указано")
+        self.task_completed_at_label = QLabel("Не указано")
+        dates_form.addRow("Назначено:", self.task_assigned_at_label)
+        dates_form.addRow("Завершено:", self.task_completed_at_label)
+        task_info_layout.addLayout(dates_form)
+
+        self.task_ids_label = QLabel("ID записи: - | ID задания: -")
+        self.task_ids_label.setObjectName("subtitle")
+        self.task_ids_label.setWordWrap(True)
+        task_info_layout.addWidget(self.task_ids_label)
 
         right_layout.addWidget(task_info_card)
 
@@ -384,16 +425,26 @@ class TasksTab(QWidget):
 
         self.task_name_label.setText(display_task_name(task.get("task_name")))
         self.task_name_label.setToolTip(self._display(task.get("task_name")))
-        task_description = self._display(task.get("description"))
-        task_dates = (
-            f"Назначено: {self._display(task.get('created_at'))}\n"
-            f"Завершено: {self._display(task.get('completed_at'))}"
-        )
-        self.task_desc_label.setText(f"{task_description}\n\n{task_dates}")
+        self.task_desc_label.setText(self._display(task.get("description")))
         self.task_reward_money_label.setText(self._display(task.get("reward_money")))
         self.task_reward_rating_label.setText(self._display(task.get("reward_rating")))
         self.task_difficulty_label.setText(display_task_difficulty(task.get("task_name")))
         self.task_status_label.setText(task_status_label(task.get("task_status")))
+        self.task_assigned_at_label.setText(self._display(task.get("created_at")))
+        self.task_completed_at_label.setText(self._display(task.get("completed_at")))
+        self.task_ids_label.setText(
+            f"ID записи: {self._display(task.get('lab_task_id'))} | "
+            f"ID задания: {self._display(task.get('task_id'))}"
+        )
+        self.task_ids_label.setToolTip(
+            "\n".join(
+                [
+                    f"Техническое имя: {self._display(task.get('task_name'))}",
+                    f"ID записи: {self._display(task.get('lab_task_id'))}",
+                    f"ID задания: {self._display(task.get('task_id'))}",
+                ]
+            )
+        )
 
         self._update_status_hint()
 
@@ -559,6 +610,10 @@ class TasksTab(QWidget):
         self.task_reward_rating_label.setText("-")
         self.task_difficulty_label.setText("-")
         self.task_status_label.setText("-")
+        self.task_assigned_at_label.setText("Не указано")
+        self.task_completed_at_label.setText("Не указано")
+        self.task_ids_label.setText("ID записи: - | ID задания: -")
+        self.task_ids_label.setToolTip("")
 
     @staticmethod
     def _set_table_item(table: QTableWidget, row: int, col: int, value: Any, center: bool = False) -> None:
