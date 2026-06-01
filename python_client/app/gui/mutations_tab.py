@@ -95,6 +95,16 @@ class MutationsTab(QWidget):
 
         root.addLayout(heading_row)
 
+        self.mutations_info_panel = QFrame()
+        self.mutations_info_panel.setObjectName("infoPanel")
+        info_layout = QVBoxLayout(self.mutations_info_panel)
+        info_layout.setContentsMargins(10, 8, 10, 8)
+        info_text = QLabel("Мутация — купленное направленное изменение признака. Мутаген — экспериментальное воздействие с ценой, риском и штрафом рейтинга.")
+        info_text.setObjectName("subtitle")
+        info_text.setWordWrap(True)
+        info_layout.addWidget(info_text)
+        root.addWidget(self.mutations_info_panel)
+
         content_row = QHBoxLayout()
         content_row.setSpacing(10)
 
@@ -104,7 +114,7 @@ class MutationsTab(QWidget):
         shop_layout.setContentsMargins(12, 12, 12, 12)
         shop_layout.setSpacing(8)
 
-        shop_title = QLabel("Магазин мутаций")
+        shop_title = QLabel("1. Магазин мутаций")
         shop_title.setObjectName("subtitle")
         shop_layout.addWidget(shop_title)
 
@@ -139,7 +149,7 @@ class MutationsTab(QWidget):
         self.buy_btn.clicked.connect(self.buy_selected_mutation)
         shop_layout.addWidget(self.buy_btn)
 
-        target_genes_title = QLabel("Целевые гены мутации")
+        target_genes_title = QLabel("2. Целевые гены")
         target_genes_title.setObjectName("subtitle")
         shop_layout.addWidget(target_genes_title)
 
@@ -179,7 +189,7 @@ class MutationsTab(QWidget):
         creature_layout.setContentsMargins(12, 12, 12, 12)
         creature_layout.setLabelAlignment(Qt.AlignRight)
 
-        creature_title = QLabel("Выбранное существо")
+        creature_title = QLabel("3. Выбранное существо")
         creature_title.setObjectName("subtitle")
         creature_layout.addRow("", creature_title)
 
@@ -212,7 +222,7 @@ class MutationsTab(QWidget):
         apply_layout.setContentsMargins(12, 12, 12, 12)
         apply_layout.setSpacing(8)
 
-        apply_title = QLabel("Применение мутации")
+        apply_title = QLabel("4. Применение мутации")
         apply_title.setObjectName("subtitle")
         apply_layout.addWidget(apply_title)
 
@@ -247,7 +257,7 @@ class MutationsTab(QWidget):
         mutagen_layout.setContentsMargins(12, 12, 12, 12)
         mutagen_layout.setLabelAlignment(Qt.AlignRight)
 
-        mutagen_title = QLabel("Мутагены")
+        mutagen_title = QLabel("5. Мутагены")
         mutagen_title.setObjectName("subtitle")
         mutagen_layout.addRow("", mutagen_title)
 
@@ -265,16 +275,7 @@ class MutationsTab(QWidget):
         mutagen_layout.addRow("ID нового существа:", self.new_creature_id_label)
 
         self.mutagen_info_label = QLabel(
-            "Радиационный мутаген (RADIATION):\n"
-            "Стоимость: 50 монет\n"
-            "Рейтинг: -5\n"
-            "Риск: высокий\n"
-            "Эффект: случайное изменение, возможна дополнительная замена\n\n"
-            "Химический мутаген (CHEMICAL):\n"
-            "Стоимость: 100 монет\n"
-            "Рейтинг: -2\n"
-            "Риск: ниже\n"
-            "Эффект: более контролируемое изменение"
+            "Радиационный мутаген (RADIATION): стоимость 50 монет, рейтинг -5, риск высокий, эффект более случайный.\nХимический мутаген (CHEMICAL): стоимость 100 монет, рейтинг -2, риск ниже, эффект более контролируемый."
         )
         self.mutagen_info_label.setObjectName("subtitle")
         self.mutagen_info_label.setWordWrap(True)
@@ -470,7 +471,7 @@ class MutationsTab(QWidget):
             return
 
         self.creature_id_label.setText(self._display(creature.get("creature_id")))
-        self.creature_name_label.setText(display_creature_name(creature.get("creature_name")))
+        self.creature_name_label.setText(f"{display_creature_name(creature.get('creature_name'))} · ID {self._display(creature.get('creature_id'))}")
         self.creature_species_label.setText(species_label(creature.get("species_type")))
         self.creature_phenotype_label.setText(format_phenotype_summary(creature.get("phenotype_summary")))
 
@@ -630,15 +631,16 @@ class MutationsTab(QWidget):
 
             name = display_creature_name(creature.get("creature_name"))
             species_text = species_label(creature.get("species_type"))
+            base_label = f"{name} · ID {creature_id} | {species_text}"
 
             if mutation_id is None:
-                label = f"{creature_id} | {name} | {species_text}"
+                label = base_label
             elif status == self.STATUS_NO_TARGET_GENE:
-                label = f"[нет нужного гена] {creature_id} | {name} | {species_text}"
+                label = f"[нет нужного гена] {base_label}"
             elif status == self.STATUS_HAS_TARGET_ALLELE:
-                label = f"[уже есть целевой аллель] {creature_id} | {name} | {species_text}"
+                label = f"[уже есть целевой аллель] {base_label}"
             else:
-                label = f"[можно изменить] {creature_id} | {name} | {species_text}"
+                label = f"[можно изменить] {base_label}"
 
             self.creature_combo.addItem(label, creature_id)
             if selected_id_int is not None and creature_id == selected_id_int:

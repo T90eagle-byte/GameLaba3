@@ -111,6 +111,13 @@ QTabBar::tab:selected {
 }
 
 
+
+QFrame#infoPanel {
+    background-color: #eef6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+}
+
 QFrame#geneCard {
     background-color: #f8fafc;
     border: 1px solid #e5e7eb;

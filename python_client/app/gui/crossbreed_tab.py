@@ -86,6 +86,16 @@ class CrossbreedTab(QWidget):
 
         root.addLayout(top_row)
 
+        self.crossbreed_info_panel = QFrame()
+        self.crossbreed_info_panel.setObjectName("infoPanel")
+        info_layout = QVBoxLayout(self.crossbreed_info_panel)
+        info_layout.setContentsMargins(10, 8, 10, 8)
+        info_text = QLabel("Выберите двух исходных существ одного вида, посмотрите вероятности признаков и создайте потомка.")
+        info_text.setObjectName("subtitle")
+        info_text.setWordWrap(True)
+        info_layout.addWidget(info_text)
+        root.addWidget(self.crossbreed_info_panel)
+
         selector_card = QFrame()
         selector_card.setProperty("card", "true")
         selector_layout = QFormLayout(selector_card)
@@ -130,14 +140,13 @@ class CrossbreedTab(QWidget):
         probabilities_title.setObjectName("subtitle")
         probabilities_layout.addWidget(probabilities_title)
 
-        self.probabilities_table = QTableWidget(0, 5)
+        self.probabilities_table = QTableWidget(0, 4)
         self.probabilities_table.setHorizontalHeaderLabels(
             [
-                "Аллель 1 (ID)",
-                "Аллель 2 (ID)",
+                "Признак",
+                "Аллель 1",
+                "Аллель 2",
                 "Вероятность",
-                "Описание аллеля 1",
-                "Описание аллеля 2",
             ]
         )
         self.probabilities_table.verticalHeader().setVisible(False)
@@ -145,15 +154,21 @@ class CrossbreedTab(QWidget):
         self.probabilities_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.probabilities_table.setSelectionMode(QTableWidget.SingleSelection)
         self.probabilities_table.setAlternatingRowColors(True)
+        self.probabilities_table.setWordWrap(True)
 
         header = self.probabilities_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
 
         probabilities_layout.addWidget(self.probabilities_table)
+
+        probabilities_hint = QLabel("Вероятности рассчитываются backend-пакетом Oracle PL/SQL.")
+        probabilities_hint.setObjectName("subtitle")
+        probabilities_hint.setWordWrap(True)
+        probabilities_layout.addWidget(probabilities_hint)
+
         root.addWidget(probabilities_card)
 
         result_card = QFrame()
@@ -234,6 +249,7 @@ class CrossbreedTab(QWidget):
 
         self._update_parent_cards()
         self._reload_genes()
+        self._ensure_result_name_suggestion()
 
         if len(self._creatures) < 2:
             self.empty_experiment_hint.setText("Для эксперимента нужны два совместимых существа.")
@@ -258,7 +274,7 @@ class CrossbreedTab(QWidget):
 
             name = display_creature_name(creature.get("creature_name"))
             species_text = self._species_text(creature.get("species_type"))
-            combo.addItem(f"{creature_id} | {name} | {species_text}", creature_id)
+            combo.addItem(f"{name} · ID {creature_id} | {species_text}", creature_id)
 
             if selected_id is not None and creature_id == self._to_int(selected_id):
                 selected_index = combo.count() - 1
@@ -286,13 +302,13 @@ class CrossbreedTab(QWidget):
     def _fill_card(self, fields: dict[str, QLabel], creature: dict[str, Any] | None) -> None:
         if creature is None:
             fields["creature_id"].setText("-")
-            fields["creature_name"].setText("-")
+            fields["creature_name"].setText("Выберите существо")
             fields["species_type"].setText("-")
-            fields["phenotype_summary"].setText("-")
+            fields["phenotype_summary"].setText("После выбора здесь появится фенотип.")
             return
 
         fields["creature_id"].setText(self._display(creature.get("creature_id")))
-        fields["creature_name"].setText(display_creature_name(creature.get("creature_name")))
+        fields["creature_name"].setText(f"{display_creature_name(creature.get('creature_name'))} · ID {self._display(creature.get('creature_id'))}")
         fields["species_type"].setText(species_label(creature.get("species_type")))
         fields["phenotype_summary"].setText(format_phenotype_summary(creature.get("phenotype_summary")))
 
@@ -361,13 +377,24 @@ class CrossbreedTab(QWidget):
 
         self.probabilities_table.setRowCount(0)
 
+        gene_text = self.gene_combo.currentText().split(" (ID:")[0]
         for row_idx, row in enumerate(probabilities):
+            allele1 = display_trait_value(row.get("allele1_description"))
+            allele2 = display_trait_value(row.get("allele2_description"))
+            probability = self._format_probability(row.get("probability"))
+            tooltip = (
+                f"allele1_id: {self._display(row.get('allele1_id'))}\n"
+                f"allele2_id: {self._display(row.get('allele2_id'))}\n"
+                f"probability: {self._display(row.get('probability'))}"
+            )
+
             self.probabilities_table.insertRow(row_idx)
-            self._set_table_item(row_idx, 0, row.get("allele1_id"), center=True)
-            self._set_table_item(row_idx, 1, row.get("allele2_id"), center=True)
-            self._set_table_item(row_idx, 2, self._format_probability(row.get("probability")), center=True)
-            self._set_table_item(row_idx, 3, display_trait_value(row.get("allele1_description")), tooltip=True)
-            self._set_table_item(row_idx, 4, display_trait_value(row.get("allele2_description")), tooltip=True)
+            self._set_table_item(row_idx, 0, gene_text, tooltip=True)
+            self._set_table_item(row_idx, 1, allele1, tooltip=True)
+            self._set_table_item(row_idx, 2, allele2, tooltip=True)
+            self._set_table_item(row_idx, 3, probability, center=True, tooltip_text=tooltip)
+
+        self.probabilities_table.resizeRowsToContents()
 
         if self.probabilities_table.rowCount() == 0:
             QMessageBox.information(self, "Генетический эксперимент", "Для выбранного гена нет данных вероятностей.")
@@ -386,8 +413,13 @@ class CrossbreedTab(QWidget):
             QMessageBox.warning(self, "Генетический эксперимент", "Выберите два исходных существа.")
             return
 
-        if not result_name:
-            QMessageBox.warning(self, "Генетический эксперимент", "Введите имя результирующего существа.")
+        validation_error = self._validate_result_name(result_name)
+        if validation_error is not None:
+            suggested = self._suggest_unique_result_name()
+            if suggested:
+                self.result_name_input.setText(suggested)
+                self.result_name_input.selectAll()
+            QMessageBox.warning(self, "Генетический эксперимент", validation_error)
             return
 
         try:
@@ -404,18 +436,88 @@ class CrossbreedTab(QWidget):
             f"Результирующее существо создано. ID: {offspring_id}",
         )
 
+        self.result_name_input.clear()
         self.refresh_creatures()
 
         if self.on_experiment_completed is not None:
             self.on_experiment_completed()
 
-    def _set_table_item(self, row: int, col: int, value: Any, center: bool = False, tooltip: bool = False) -> None:
+    def _validate_result_name(self, result_name: str) -> str | None:
+        if not result_name:
+            suggested = self._suggest_unique_result_name()
+            if suggested:
+                return (
+                    "Введите имя результирующего существа. "
+                    f"Подсказка: {suggested}"
+                )
+            return "Введите имя результирующего существа."
+
+        if result_name.isdigit():
+            suggested = self._suggest_unique_result_name()
+            return (
+                "Имя не должно состоять только из цифр. "
+                f"Подсказка: {suggested}"
+            )
+
+        normalized_new = self._normalize_name(result_name)
+        if normalized_new in self._existing_creature_name_keys():
+            suggested = self._suggest_unique_result_name()
+            return (
+                "Существо с таким именем уже есть в этой лаборатории. "
+                f"Подсказка: {suggested}"
+            )
+
+        return None
+
+    def _ensure_result_name_suggestion(self) -> None:
+        if self.result_name_input.text().strip():
+            return
+        suggested = self._suggest_unique_result_name()
+        if suggested:
+            self.result_name_input.setText(suggested)
+
+    def _suggest_unique_result_name(self) -> str:
+        species_text = self._selected_species_for_result()
+        base = "Результат эксперимента"
+        if species_text and species_text != "Не указано":
+            base = f"Потомок {species_text}"
+
+        existing = self._existing_creature_name_keys()
+        idx = 1
+        while True:
+            candidate = f"{base} №{idx}"
+            if self._normalize_name(candidate) not in existing:
+                return candidate
+            idx += 1
+
+    def _selected_species_for_result(self) -> str:
+        parent_a = self._selected_creature(self.parent_a_combo.currentData())
+        if parent_a is None:
+            return ""
+        return species_label(parent_a.get("species_type"))
+
+    def _existing_creature_name_keys(self) -> set[str]:
+        names: set[str] = set()
+        for creature in self._creatures:
+            raw_name = creature.get("creature_name")
+            normalized = self._normalize_name(raw_name)
+            if normalized:
+                names.add(normalized)
+        return names
+
+    @staticmethod
+    def _normalize_name(value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).strip().casefold()
+
+    def _set_table_item(self, row: int, col: int, value: Any, center: bool = False, tooltip: bool = False, tooltip_text: str | None = None) -> None:
         text = self._display(value)
         item = QTableWidgetItem(text)
         if center:
             item.setTextAlignment(Qt.AlignCenter)
-        if tooltip:
-            item.setToolTip(text)
+        if tooltip or tooltip_text:
+            item.setToolTip(tooltip_text or text)
         self.probabilities_table.setItem(row, col, item)
 
     @staticmethod
