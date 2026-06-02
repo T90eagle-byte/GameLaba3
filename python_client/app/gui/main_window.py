@@ -65,7 +65,7 @@ class MainWindow(QWidget):
         title_col = QVBoxLayout()
         title = QLabel("Панель лаборатории")
         title.setObjectName("title")
-        subtitle = QLabel("Все игровые расчеты выполняются в Oracle PL/SQL")
+        subtitle = QLabel("Управляйте лабораторией, изучайте существ и проводите эксперименты.")
         subtitle.setObjectName("subtitle")
         title_col.addWidget(title)
         title_col.addWidget(subtitle)

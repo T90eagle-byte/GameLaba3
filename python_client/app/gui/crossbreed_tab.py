@@ -170,7 +170,7 @@ class CrossbreedTab(QWidget):
 
         probabilities_layout.addWidget(self.probabilities_table)
 
-        probabilities_hint = QLabel("Вероятности рассчитываются backend-пакетом Oracle PL/SQL.")
+        probabilities_hint = QLabel("Вероятности рассчитываются системой по генотипам выбранных существ.")
         probabilities_hint.setObjectName("subtitle")
         probabilities_hint.setWordWrap(True)
         probabilities_layout.addWidget(probabilities_hint)
