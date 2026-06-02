@@ -1,4 +1,4 @@
-set serveroutput on size unlimited;
+﻿set serveroutput on size unlimited;
 set verify off;
 
 declare
@@ -52,7 +52,9 @@ declare
     v_rating_after_mutagen            number := 0;
     v_mutagen_started_at              timestamp;
     v_mutagen_task_rating_rewards     number := 0;
+    v_mutagen_task_money_rewards      number := 0;
     v_expected_rating_after_mutagen   number := 0;
+    v_expected_wallet_after_mutagen   number := 0;
 
     v_cross_species_type              number;
     v_cross_parent1_id                number;
@@ -98,6 +100,8 @@ declare
 
     v_failed_tests                    number := 0;
     v_passed_tests                    number := 0;
+    v_root_sqlcode                    number;
+    v_root_sqlerrm                    varchar2(4000);
 
     procedure pass_test(p_test_name in varchar2) is
     begin
@@ -435,8 +439,8 @@ begin
               from labs l
              where l.lab_id = v_lab_id;
 
-            select nvl(sum(t.rating_reward), 0)
-              into v_mutagen_task_rating_rewards
+            select nvl(sum(t.rating_reward), 0), nvl(sum(t.money_reward), 0)
+              into v_mutagen_task_rating_rewards, v_mutagen_task_money_rewards
               from lab_tasks lt
               join tasks t
                 on t.task_id = lt.task_id
@@ -445,13 +449,14 @@ begin
                and lt.completed_at >= v_mutagen_started_at;
 
             v_expected_rating_after_mutagen := greatest(0, v_rating_before_mutagen - 5) + v_mutagen_task_rating_rewards;
+            v_expected_wallet_after_mutagen := v_wallet_before_mutagen - 50 + v_mutagen_task_money_rewards;
 
-            assert_true(v_wallet_after_mutagen = v_wallet_before_mutagen - 50,
-                'apply_mutagen (RADIATION) decreases wallet by fixed cost',
-                'before=' || v_wallet_before_mutagen || ', after=' || v_wallet_after_mutagen);
+            assert_true(abs(v_wallet_after_mutagen - v_expected_wallet_after_mutagen) < 0.0001,
+                'apply_mutagen (RADIATION) wallet = cost + new task rewards',
+                'before=' || v_wallet_before_mutagen || ', after=' || v_wallet_after_mutagen || ', cost=50, task_money_rewards=' || v_mutagen_task_money_rewards || ', expected=' || v_expected_wallet_after_mutagen);
             assert_true(abs(v_rating_after_mutagen - v_expected_rating_after_mutagen) < 0.0001,
                 'apply_mutagen (RADIATION) rating = penalty + new task rewards',
-                'before=' || v_rating_before_mutagen || ', rewards=' || v_mutagen_task_rating_rewards || ', expected=' || v_expected_rating_after_mutagen || ', actual=' || v_rating_after_mutagen);
+                'before=' || v_rating_before_mutagen || ', rating_penalty=5, task_rating_rewards=' || v_mutagen_task_rating_rewards || ', expected=' || v_expected_rating_after_mutagen || ', actual=' || v_rating_after_mutagen);
 
             assert_true(v_mutagen_new_creature_id is not null and v_mutagen_new_creature_id > 0, 'apply_mutagen returns new creature id');
 
@@ -816,7 +821,9 @@ if v_lab_id is not null then
     end if;
 exception
     when others then
-        dbms_output.put_line('[ERROR] Unhandled exception in 05_mutations_experiments_smoke_test: ' || sqlcode || ' / ' || sqlerrm);
+        v_root_sqlcode := sqlcode;
+        v_root_sqlerrm := sqlerrm;
+        dbms_output.put_line('[ERROR] Unhandled exception in 05_mutations_experiments_smoke_test: ' || v_root_sqlcode || ' / ' || v_root_sqlerrm);
         begin
             cleanup_test_data;
             commit;
@@ -824,6 +831,8 @@ exception
             when others then
                 dbms_output.put_line('[WARN] Cleanup after error failed: ' || sqlcode || ' / ' || sqlerrm);
         end;
-        raise;
+        raise_application_error(-20500, 'Unhandled exception in 05_mutations_experiments_smoke_test. Root error: ' || v_root_sqlcode || ' / ' || v_root_sqlerrm);
 end;
 /
+
+
