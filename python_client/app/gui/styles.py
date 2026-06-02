@@ -201,7 +201,16 @@ QScrollBar::handle:horizontal {
     border-radius: 6px;
 }
 
+QToolTip {
+    background-color: #fffdf7;
+    color: #1f2937;
+    border: 1px solid #d9cdb8;
+    padding: 5px 8px;
+}
+
 QMessageBox {
     background-color: #f8fafc;
 }
 """
+
+

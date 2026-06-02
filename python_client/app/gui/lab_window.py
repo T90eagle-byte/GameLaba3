@@ -252,3 +252,4 @@ class LabWindow(QWidget):
         except Exception as exc:
             QMessageBox.critical(self, "Ошибка удаления", map_oracle_error(exc))
 
+

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
@@ -292,6 +292,7 @@ class CreaturesTab(QWidget):
             phenotype_wings=self._trait_display(creature.get("phenotype_has_wings")),
             phenotype_nutrition=self._trait_display(creature.get("phenotype_nutrition_type")),
             phenotype_summary=self._phenotype_summary_display(creature.get("phenotype_summary")),
+            creature_key=creature.get("creature_id") or creature.get("creature_name"),
         )
 
     def _fill_genotype_table(self, rows: list[dict[str, Any]]) -> None:
@@ -312,8 +313,6 @@ class CreaturesTab(QWidget):
         dominance = self._dominance_display(rec.get("dominance_type"))
         allele1 = self._trait_display(rec.get("allele1_description"))
         allele2 = self._trait_display(rec.get("allele2_description"))
-        value1 = self._trait_display(rec.get("allele1_trait_value"))
-        value2 = self._trait_display(rec.get("allele2_trait_value"))
 
         card = QFrame()
         card.setObjectName("geneCard")
@@ -337,10 +336,6 @@ class CreaturesTab(QWidget):
         alleles.setWordWrap(True)
         layout.addWidget(alleles)
 
-        values = QLabel(f"Значения: {value1} / {value2}")
-        values.setObjectName("muted")
-        values.setWordWrap(True)
-        layout.addWidget(values)
 
         self.genotype_layout.addWidget(card)
 
@@ -358,15 +353,18 @@ class CreaturesTab(QWidget):
                 widget.deleteLater()
 
     def _genotype_tooltip(self, rec: dict[str, Any]) -> str:
+        technical_values = (
+            f"Технические значения аллелей: {self._display(rec.get('allele1_trait_value'))} / "
+            f"{self._display(rec.get('allele2_trait_value'))}"
+        )
         return "\n".join(
             [
+                technical_values,
                 f"gene_name: {self._display(rec.get('gene_name'))}",
                 f"gene_type: {self._display(rec.get('gene_type'))}",
                 f"dominance_type: {self._display(rec.get('dominance_type'))}",
                 f"allele1_description: {self._display(rec.get('allele1_description'))}",
-                f"allele1_trait_value: {self._display(rec.get('allele1_trait_value'))}",
                 f"allele2_description: {self._display(rec.get('allele2_description'))}",
-                f"allele2_trait_value: {self._display(rec.get('allele2_trait_value'))}",
             ]
         )
 
@@ -438,6 +436,8 @@ class CreaturesTab(QWidget):
             return int(value)
         except (TypeError, ValueError):
             return None
+
+
 
 
 

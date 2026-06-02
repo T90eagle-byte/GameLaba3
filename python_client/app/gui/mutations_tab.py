@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any, Callable
 
@@ -25,6 +25,7 @@ from app.services.display_names import (
     display_gene_name,
     display_gene_type,
     display_mutation_name,
+    display_task_name,
     display_trait_value,
     display_value,
     format_phenotype_summary,
@@ -396,6 +397,9 @@ class MutationsTab(QWidget):
             QMessageBox.warning(self, "Мутации", "Выберите мутацию в магазине.")
             return
 
+        lab_id = self.state.selected_lab_id
+        before_tasks = self._get_tasks_snapshot(lab_id)
+
         try:
             self.pkg_api.apply_mutation(creature_id, mutation_id)
         except Exception as exc:
@@ -413,6 +417,10 @@ class MutationsTab(QWidget):
             except Exception:
                 pass
 
+        after_tasks = self._get_tasks_snapshot(lab_id)
+        auto_completed = self._collect_auto_completed_tasks(before_tasks, after_tasks)
+        self._show_auto_completed_tasks_notice(auto_completed, "После применения мутации автоматически выполнены задания:")
+
         self._notify_lab_data_changed()
 
     def apply_selected_mutagen(self) -> None:
@@ -425,6 +433,9 @@ class MutationsTab(QWidget):
         if mutagen_type is None:
             QMessageBox.warning(self, "Мутагены", "Выберите тип мутагена.")
             return
+
+        lab_id = self.state.selected_lab_id
+        before_tasks = self._get_tasks_snapshot(lab_id)
 
         try:
             new_creature_id = self.pkg_api.apply_mutagen(creature_id, str(mutagen_type))
@@ -440,7 +451,56 @@ class MutationsTab(QWidget):
             f"{caption} мутаген применён успешно. Создано новое существо с ID: {new_creature_id}",
         )
 
+        after_tasks = self._get_tasks_snapshot(lab_id)
+        auto_completed = self._collect_auto_completed_tasks(before_tasks, after_tasks)
+        self._show_auto_completed_tasks_notice(auto_completed, "После применения мутагена автоматически выполнены задания:")
+
         self._notify_lab_data_changed()
+
+
+    def _get_tasks_snapshot(self, lab_id: int | None) -> list[dict[str, Any]]:
+        if lab_id is None:
+            return []
+        try:
+            return self.pkg_api.get_tasks(lab_id)
+        except Exception:
+            return []
+
+    def _collect_auto_completed_tasks(
+        self,
+        before_tasks: list[dict[str, Any]],
+        after_tasks: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        before_status: dict[int, str] = {}
+        for row in before_tasks:
+            assignment_id = self._to_int(row.get("lab_task_id"))
+            if assignment_id is None:
+                continue
+            before_status[assignment_id] = str(row.get("task_status") or "").upper()
+
+        completed: list[dict[str, Any]] = []
+        for row in after_tasks:
+            assignment_id = self._to_int(row.get("lab_task_id"))
+            if assignment_id is None:
+                continue
+            after = str(row.get("task_status") or "").upper()
+            before = before_status.get(assignment_id, "")
+            if after == "COMPLETED" and before != "COMPLETED":
+                completed.append(row)
+        return completed
+
+    def _show_auto_completed_tasks_notice(self, completed_tasks: list[dict[str, Any]], title: str) -> None:
+        if not completed_tasks:
+            return
+
+        lines: list[str] = [title]
+        for task in completed_tasks:
+            task_name = display_task_name(task.get("task_name"))
+            reward_money = self._display(task.get("reward_money"))
+            reward_rating = self._display(task.get("reward_rating"))
+            lines.append(f"• {task_name}: +{reward_money} монет, +{reward_rating} рейтинга")
+
+        QMessageBox.information(self, "Задания", "\n".join(lines))
 
     def _on_mutation_selected(self) -> None:
         mutation = self._selected_mutation_row()
@@ -484,7 +544,7 @@ class MutationsTab(QWidget):
             return
 
         self.creature_id_label.setText(self._display(creature.get("creature_id")))
-        self.creature_name_label.setText(f"{display_creature_name(creature.get('creature_name'))} · ID {self._display(creature.get('creature_id'))}")
+        self.creature_name_label.setText(f"{display_creature_name(creature.get('creature_name'))} В· ID {self._display(creature.get('creature_id'))}")
         self.creature_species_label.setText(species_label(creature.get("species_type")))
         self.creature_phenotype_label.setText(format_phenotype_summary(creature.get("phenotype_summary")))
         self.creature_portrait.set_creature(
@@ -494,6 +554,7 @@ class MutationsTab(QWidget):
             phenotype_wings=display_trait_value(creature.get("phenotype_has_wings")),
             phenotype_nutrition=display_trait_value(creature.get("phenotype_nutrition_type")),
             phenotype_summary=format_phenotype_summary(creature.get("phenotype_summary")),
+            creature_key=creature.get("creature_id") or creature.get("creature_name"),
         )
 
         self._evaluate_target_allele_overlap(creature_id)
@@ -652,7 +713,7 @@ class MutationsTab(QWidget):
 
             name = display_creature_name(creature.get("creature_name"))
             species_text = species_label(creature.get("species_type"))
-            base_label = f"{name} · ID {creature_id} | {species_text}"
+            base_label = f"{name} В· ID {creature_id} | {species_text}"
 
             if mutation_id is None:
                 label = base_label
@@ -776,4 +837,5 @@ class MutationsTab(QWidget):
     @staticmethod
     def _normalize_text(value: Any) -> str:
         return display_value(value).strip().lower()
+
 

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from decimal import Decimal
 from typing import Any, Callable
@@ -27,6 +27,7 @@ from app.services.session_state import SessionState
 from app.services.display_names import (
     display_creature_name,
     display_gene_name,
+    display_task_name,
     display_trait_value,
     display_value,
     format_phenotype_summary,
@@ -288,7 +289,7 @@ class CrossbreedTab(QWidget):
 
             name = display_creature_name(creature.get("creature_name"))
             species_text = self._species_text(creature.get("species_type"))
-            combo.addItem(f"{name} · ID {creature_id} | {species_text}", creature_id)
+            combo.addItem(f"{name} В· ID {creature_id} | {species_text}", creature_id)
 
             if selected_id is not None and creature_id == self._to_int(selected_id):
                 selected_index = combo.count() - 1
@@ -325,7 +326,7 @@ class CrossbreedTab(QWidget):
             return
 
         fields["creature_id"].setText(self._display(creature.get("creature_id")))
-        fields["creature_name"].setText(f"{display_creature_name(creature.get('creature_name'))} · ID {self._display(creature.get('creature_id'))}")
+        fields["creature_name"].setText(f"{display_creature_name(creature.get('creature_name'))} В· ID {self._display(creature.get('creature_id'))}")
         fields["species_type"].setText(species_label(creature.get("species_type")))
         fields["phenotype_summary"].setText(format_phenotype_summary(creature.get("phenotype_summary")))
 
@@ -337,6 +338,7 @@ class CrossbreedTab(QWidget):
                 phenotype_wings=display_trait_value(creature.get("phenotype_has_wings")),
                 phenotype_nutrition=display_trait_value(creature.get("phenotype_nutrition_type")),
                 phenotype_summary=format_phenotype_summary(creature.get("phenotype_summary")),
+                creature_key=creature.get("creature_id") or creature.get("creature_name"),
             )
 
     def _selected_creature(self, creature_id: Any) -> dict[str, Any] | None:
@@ -431,6 +433,7 @@ class CrossbreedTab(QWidget):
         parent_a_id = self._to_int(self.parent_a_combo.currentData())
         parent_b_id = self._to_int(self.parent_b_combo.currentData())
         result_name = self.result_name_input.text().strip()
+        before_tasks = self._get_tasks_snapshot(lab_id)
 
         if lab_id is None:
             QMessageBox.warning(self, "Генетический эксперимент", "Сначала выберите лабораторию.")
@@ -462,6 +465,9 @@ class CrossbreedTab(QWidget):
             "Генетический эксперимент",
             f"Результирующее существо создано. ID: {offspring_id}",
         )
+        after_tasks = self._get_tasks_snapshot(lab_id)
+        auto_completed = self._collect_auto_completed_tasks(before_tasks, after_tasks)
+        self._show_auto_completed_tasks_notice(auto_completed, "После эксперимента автоматически выполнены задания:")
 
         self.result_name_input.clear()
         self.refresh_creatures()
@@ -578,7 +584,49 @@ class CrossbreedTab(QWidget):
         except (TypeError, ValueError):
             return None
 
+    def _get_tasks_snapshot(self, lab_id: int | None) -> list[dict[str, Any]]:
+        if lab_id is None:
+            return []
+        try:
+            return self.pkg_api.get_tasks(lab_id)
+        except Exception:
+            return []
 
+    def _collect_auto_completed_tasks(
+        self,
+        before_tasks: list[dict[str, Any]],
+        after_tasks: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        before_status: dict[int, str] = {}
+        for row in before_tasks:
+            assignment_id = self._to_int(row.get("lab_task_id"))
+            if assignment_id is None:
+                continue
+            before_status[assignment_id] = str(row.get("task_status") or "").upper()
+
+        completed: list[dict[str, Any]] = []
+        for row in after_tasks:
+            assignment_id = self._to_int(row.get("lab_task_id"))
+            if assignment_id is None:
+                continue
+            after = str(row.get("task_status") or "").upper()
+            before = before_status.get(assignment_id, "")
+            if after == "COMPLETED" and before != "COMPLETED":
+                completed.append(row)
+        return completed
+
+    def _show_auto_completed_tasks_notice(self, completed_tasks: list[dict[str, Any]], title: str) -> None:
+        if not completed_tasks:
+            return
+
+        lines: list[str] = [title]
+        for task in completed_tasks:
+            task_name = display_task_name(task.get("task_name"))
+            reward_money = self._display(task.get("reward_money"))
+            reward_rating = self._display(task.get("reward_rating"))
+            lines.append(f"• {task_name}: +{reward_money} монет, +{reward_rating} рейтинга")
+
+        QMessageBox.information(self, "Задания", "\n".join(lines))
     def _has_shared_genes_selected_pair(self) -> bool:
         parent_a_id = self._to_int(self.parent_a_combo.currentData())
         parent_b_id = self._to_int(self.parent_b_combo.currentData())
@@ -590,4 +638,10 @@ class CrossbreedTab(QWidget):
     @staticmethod
     def _species_text(species_value: Any) -> str:
         return species_label(species_value)
+
+
+
+
+
+
 

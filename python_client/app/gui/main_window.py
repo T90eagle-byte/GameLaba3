@@ -108,6 +108,7 @@ class MainWindow(QWidget):
 
         next_steps_card = QFrame()
         next_steps_card.setProperty("card", "true")
+        next_steps_card.setObjectName("infoPanel")
         next_steps_layout = QVBoxLayout(next_steps_card)
         next_steps_layout.setContentsMargins(12, 10, 12, 10)
         next_steps_layout.setSpacing(6)
@@ -235,6 +236,7 @@ class MainWindow(QWidget):
         if value is None:
             return "Не указано"
         return str(value)
+
 
 
 

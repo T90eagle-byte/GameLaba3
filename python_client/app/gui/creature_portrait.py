@@ -20,6 +20,7 @@ class CreaturePortraitWidget(QWidget):
         self._phenotype_wings = ""
         self._phenotype_nutrition = ""
         self._phenotype_summary = ""
+        self._variant_seed = 0
 
         self._mode = "large"
         self.set_mode(mode)
@@ -59,12 +60,13 @@ class CreaturePortraitWidget(QWidget):
 
     def set_creature(
         self,
-        species_label: str,
-        phenotype_color: str | None,
-        phenotype_size: str | None,
-        phenotype_wings: str | None,
-        phenotype_nutrition: str | None,
-        phenotype_summary: str | None,
+        species_label: str | None = None,
+        phenotype_color: str | None = None,
+        phenotype_size: str | None = None,
+        phenotype_wings: str | None = None,
+        phenotype_nutrition: str | None = None,
+        phenotype_summary: str | None = None,
+        creature_key: object | None = None,
     ) -> None:
         self._species_label = (species_label or "").strip()
         self._phenotype_color = (phenotype_color or "").strip()
@@ -72,10 +74,13 @@ class CreaturePortraitWidget(QWidget):
         self._phenotype_wings = (phenotype_wings or "").strip()
         self._phenotype_nutrition = (phenotype_nutrition or "").strip()
         self._phenotype_summary = (phenotype_summary or "").strip()
+
+        self._variant_seed = self._build_variant_seed(creature_key)
+
         self.update()
 
     def clear(self) -> None:
-        self.set_creature("", None, None, None, None, None)
+        self.set_creature()
 
     def paintEvent(self, event: Any) -> None:  # noqa: N802
         super().paintEvent(event)
@@ -159,10 +164,22 @@ class CreaturePortraitWidget(QWidget):
     def _base_fill_color(self) -> QColor:
         color = self._phenotype_color.casefold()
         if "зел" in color:
-            return QColor("#7ebf8b")
-        if "син" in color:
-            return QColor("#7fa8cf")
-        return QColor("#9dafaa")
+            base = QColor("#7ebf8b")
+        elif "син" in color:
+            base = QColor("#7fa8cf")
+        else:
+            base = QColor("#9dafaa")
+
+        variant = self._variant_seed % 5
+        if variant == 0:
+            return base.lighter(106)
+        if variant == 1:
+            return base.darker(106)
+        if variant == 2:
+            return base.lighter(112)
+        if variant == 3:
+            return base.darker(112)
+        return base
 
     def _outline_pen(self, width: float = 1.8) -> QPen:
         return QPen(QColor("#334155"), width)
@@ -517,6 +534,43 @@ class CreaturePortraitWidget(QWidget):
         painter.setBrush(QColor("#111827"))
         painter.drawEllipse(center, 1.2, 1.2)
 
+    def _build_variant_seed(self, creature_key: Any | None) -> int:
+        text = ""
+        if creature_key is not None:
+            text = str(creature_key)
+        if not text:
+            text = f"{self._species_label}|{self._phenotype_summary}"
+        return sum(ord(ch) for ch in text) % 97
+
+    def _draw_texture_overlay(self, painter: QPainter, body: QRectF, kind: str) -> None:
+        seed = self._variant_seed
+        accent = QColor("#4b5563")
+        accent.setAlpha(60)
+        painter.setPen(QPen(accent, 1.0))
+
+        pattern = seed % 3
+        if pattern == 0:
+            for idx in range(3):
+                y = body.top() + body.height() * (0.28 + idx * 0.18)
+                painter.drawLine(
+                    QPointF(body.left() + body.width() * 0.18, y),
+                    QPointF(body.right() - body.width() * 0.14, y),
+                )
+        elif pattern == 1:
+            for idx in range(4):
+                x = body.left() + body.width() * (0.22 + idx * 0.16)
+                painter.drawEllipse(QPointF(x, body.center().y()), 2.0, 1.6)
+        else:
+            for idx in range(3):
+                shift = 0.2 + idx * 0.22
+                painter.drawLine(
+                    QPointF(body.left() + body.width() * shift, body.top() + body.height() * 0.2),
+                    QPointF(body.left() + body.width() * (shift + 0.08), body.bottom() - body.height() * 0.18),
+                )
+
+        if kind == "turtle":
+            painter.setPen(QPen(QColor("#64748b"), 1.1))
+            painter.drawEllipse(body.adjusted(body.width() * 0.18, body.height() * 0.2, -body.width() * 0.22, -body.height() * 0.24))
     def _draw_badges(self, painter: QPainter, card: QRectF) -> None:
         if self._mode == "mini":
             text = f"{self._short_species()} | {self._color_label()} | {self._size_label()}"
@@ -589,3 +643,4 @@ class CreaturePortraitWidget(QWidget):
         if "сред" in text or "промеж" in text:
             return "средний"
         return "не указан"
+
