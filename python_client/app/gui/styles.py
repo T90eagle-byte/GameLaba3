@@ -244,6 +244,112 @@ QScrollBar::handle:horizontal:hover {
     background: #b8c9e5;
 }
 
+
+QFrame#missionListCard, QFrame#journalListCard {
+    background-color: #fffdf7;
+    border: 1px solid #e4d3b7;
+    border-radius: 8px;
+}
+
+QFrame#missionCard, QFrame#journalCard {
+    background-color: #fffaf0;
+    border: 1px solid #dec9a4;
+    border-radius: 8px;
+}
+
+QFrame#missionCreatureCard {
+    background-color: #fbfff7;
+    border: 1px solid #d7e5c5;
+    border-radius: 8px;
+}
+
+QFrame#resultStatusCard {
+    background-color: #f8fbff;
+    border: 1px solid #d4dfef;
+    border-radius: 8px;
+}
+
+QLabel#missionSectionTitle, QLabel#journalTitle {
+    color: #1f2937;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+QLabel#missionTitle {
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+QLabel#missionDescription {
+    background-color: #fffdf7;
+    border: 1px solid #eadfce;
+    border-radius: 6px;
+    padding: 8px;
+    color: #334155;
+}
+
+QLabel[badgeType='difficulty'] {
+    background-color: #fef3c7;
+    border-color: #e7c66b;
+    color: #4b3b12;
+}
+
+QLabel[badgeType='status'] {
+    background-color: #e8f1ff;
+    border-color: #bdd4fb;
+    color: #1e3a8a;
+}
+
+QLabel[badgeType='reward'] {
+    background-color: #eafaf2;
+    border-color: #c5e8d2;
+    color: #14532d;
+}
+
+QLabel[resultStatus='neutral'] {
+    background-color: #fffdf7;
+    border: 1px solid #e2d6c2;
+    border-radius: 6px;
+    padding: 8px;
+    color: #475569;
+}
+
+QLabel[resultStatus='success'] {
+    background-color: #ecfdf3;
+    border: 1px solid #bbebcd;
+    border-radius: 6px;
+    padding: 8px;
+    color: #166534;
+    font-weight: 600;
+}
+
+QLabel[resultStatus='error'] {
+    background-color: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 6px;
+    padding: 8px;
+    color: #9f1239;
+    font-weight: 600;
+}
+
+QLabel[resultStatus='done'] {
+    background-color: #f5f0ff;
+    border: 1px solid #d8c9ff;
+    border-radius: 6px;
+    padding: 8px;
+    color: #5b21b6;
+    font-weight: 600;
+}
+
+QLabel[emptyState='true'] {
+    background-color: #fffaf0;
+    border: 1px dashed #dec9a4;
+    border-radius: 8px;
+    padding: 8px;
+    color: #64748b;
+}
+
 QToolTip {
     background-color: #fffdf7;
     color: #1f2937;

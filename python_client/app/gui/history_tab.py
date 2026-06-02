@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Any
@@ -78,6 +78,7 @@ class HistoryTab(QWidget):
 
         table_card = QFrame()
         table_card.setProperty("card", "true")
+        table_card.setObjectName("journalListCard")
         table_layout = QVBoxLayout(table_card)
         table_layout.setContentsMargins(12, 12, 12, 12)
         table_layout.setSpacing(8)
@@ -94,6 +95,7 @@ class HistoryTab(QWidget):
             ]
         )
         self.history_table.verticalHeader().setVisible(False)
+        self.history_table.verticalHeader().setDefaultSectionSize(38)
         self.history_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.history_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.history_table.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -112,6 +114,7 @@ class HistoryTab(QWidget):
 
         self.empty_history_hint = QLabel("")
         self.empty_history_hint.setObjectName("subtitle")
+        self.empty_history_hint.setProperty("emptyState", True)
         self.empty_history_hint.setWordWrap(True)
         table_layout.addWidget(self.empty_history_hint)
 
@@ -119,12 +122,13 @@ class HistoryTab(QWidget):
 
         detail_card = QFrame()
         detail_card.setProperty("card", "true")
+        detail_card.setObjectName("journalCard")
         detail_layout = QFormLayout(detail_card)
         detail_layout.setContentsMargins(12, 12, 12, 12)
         detail_layout.setLabelAlignment(Qt.AlignRight)
 
-        detail_title = QLabel("Карточка записи")
-        detail_title.setObjectName("subtitle")
+        detail_title = QLabel("Запись лабораторного журнала")
+        detail_title.setObjectName("journalTitle")
         detail_layout.addRow("", detail_title)
 
         self.lbl_type = QLabel("-")
@@ -262,7 +266,7 @@ class HistoryTab(QWidget):
         return "Итоговое изменение рейтинга может включать награды за задания."
 
     def _detect_mutagen_subtype(self, row: dict[str, Any]) -> str | None:
-        # В истории backend может не отдавать subtype явно.
+        # Mutagen subtype can be absent as a separate field.
         for key in ("mutagen_type", "mutation_name", "offspring_name"):
             value = self._display(row.get(key)).lower()
             if "radiation" in value:

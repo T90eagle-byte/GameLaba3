@@ -102,6 +102,7 @@ class TasksTab(QWidget):
 
         left_card = QFrame()
         left_card.setProperty("card", "true")
+        left_card.setObjectName("missionListCard")
         left_layout = QVBoxLayout(left_card)
         left_layout.setContentsMargins(12, 12, 12, 12)
         left_layout.setSpacing(8)
@@ -134,6 +135,7 @@ class TasksTab(QWidget):
             ]
         )
         self.tasks_table.verticalHeader().setVisible(False)
+        self.tasks_table.verticalHeader().setDefaultSectionSize(42)
         self.tasks_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.tasks_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tasks_table.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -150,6 +152,7 @@ class TasksTab(QWidget):
 
         self.empty_tasks_hint = QLabel("")
         self.empty_tasks_hint.setObjectName("subtitle")
+        self.empty_tasks_hint.setProperty("emptyState", True)
         self.empty_tasks_hint.setWordWrap(True)
         left_layout.addWidget(self.empty_tasks_hint)
 
@@ -162,12 +165,13 @@ class TasksTab(QWidget):
 
         task_info_card = QFrame()
         task_info_card.setProperty("card", "true")
+        task_info_card.setObjectName("missionCard")
         task_info_layout = QVBoxLayout(task_info_card)
         task_info_layout.setContentsMargins(12, 12, 12, 12)
         task_info_layout.setSpacing(8)
 
-        task_title = QLabel("Описание задания")
-        task_title.setObjectName("subtitle")
+        task_title = QLabel("Карточка миссии")
+        task_title.setObjectName("missionSectionTitle")
         task_info_layout.addWidget(task_title)
 
         name_title = QLabel("Название")
@@ -175,6 +179,7 @@ class TasksTab(QWidget):
         task_info_layout.addWidget(name_title)
 
         self.task_name_label = QLabel("-")
+        self.task_name_label.setObjectName("missionTitle")
         self.task_name_label.setWordWrap(True)
         self.task_name_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         task_info_layout.addWidget(self.task_name_label)
@@ -183,8 +188,10 @@ class TasksTab(QWidget):
         meta_form.setLabelAlignment(Qt.AlignRight)
         self.task_difficulty_label = QLabel("-")
         self.task_difficulty_label.setProperty("badge", True)
+        self.task_difficulty_label.setProperty("badgeType", "difficulty")
         self.task_status_label = QLabel("-")
         self.task_status_label.setProperty("badge", True)
+        self.task_status_label.setProperty("badgeType", "status")
         meta_form.addRow("Сложность:", self.task_difficulty_label)
         meta_form.addRow("Статус:", self.task_status_label)
         task_info_layout.addLayout(meta_form)
@@ -194,6 +201,7 @@ class TasksTab(QWidget):
         task_info_layout.addWidget(desc_title)
 
         self.task_desc_label = QLabel("-")
+        self.task_desc_label.setObjectName("missionDescription")
         self.task_desc_label.setWordWrap(True)
         self.task_desc_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.task_desc_label.setMinimumHeight(84)
@@ -208,8 +216,10 @@ class TasksTab(QWidget):
         reward_form.setLabelAlignment(Qt.AlignRight)
         self.task_reward_money_label = QLabel("-")
         self.task_reward_money_label.setProperty("badge", True)
+        self.task_reward_money_label.setProperty("badgeType", "reward")
         self.task_reward_rating_label = QLabel("-")
         self.task_reward_rating_label.setProperty("badge", True)
+        self.task_reward_rating_label.setProperty("badgeType", "reward")
         reward_form.addRow("Монеты:", self.task_reward_money_label)
         reward_form.addRow("Рейтинг:", self.task_reward_rating_label)
         task_info_layout.addLayout(reward_form)
@@ -235,6 +245,7 @@ class TasksTab(QWidget):
 
         creature_card = QFrame()
         creature_card.setProperty("card", "true")
+        creature_card.setObjectName("missionCreatureCard")
         creature_layout = QFormLayout(creature_card)
         creature_layout.setContentsMargins(12, 12, 12, 12)
         creature_layout.setLabelAlignment(Qt.AlignRight)
@@ -266,6 +277,7 @@ class TasksTab(QWidget):
 
         action_card = QFrame()
         action_card.setProperty("card", "true")
+        action_card.setObjectName("resultStatusCard")
         action_layout = QVBoxLayout(action_card)
         action_layout.setContentsMargins(12, 12, 12, 12)
         action_layout.setSpacing(8)
@@ -288,6 +300,7 @@ class TasksTab(QWidget):
 
         self.status_hint_label = QLabel("Выберите активное задание и существо.")
         self.status_hint_label.setObjectName("subtitle")
+        self.status_hint_label.setProperty("resultStatus", "neutral")
         self.status_hint_label.setWordWrap(True)
         action_layout.addWidget(self.status_hint_label)
 
@@ -577,28 +590,34 @@ class TasksTab(QWidget):
         creature_id = self._to_int(self.creature_combo.currentData())
 
         if task is None or creature_id is None:
-            self.status_hint_label.setText("Выберите активное задание и существо.")
+            self._set_status_hint("Выберите активное задание и существо.", "neutral")
             self.complete_btn.setEnabled(False)
             return
 
         task_status = str(task.get("task_status") or "").upper()
         if task_status == "COMPLETED":
-            self.status_hint_label.setText("Задание уже выполнено.")
+            self._set_status_hint("Задание уже выполнено.", "done")
             self.complete_btn.setEnabled(False)
             return
 
         if self._last_check_result == 1:
-            self.status_hint_label.setText("Существо подходит для выполнения задания.")
+            self._set_status_hint("Существо подходит для выполнения задания.", "success")
             self.complete_btn.setEnabled(True)
             return
 
         if self._last_check_result == 0:
-            self.status_hint_label.setText("Существо не подходит для выполнения задания.")
+            self._set_status_hint("Существо не подходит для выполнения задания.", "error")
             self.complete_btn.setEnabled(False)
             return
 
-        self.status_hint_label.setText("Выберите активное задание и существо.")
+            self._set_status_hint("Выберите активное задание и существо.", "neutral")
         self.complete_btn.setEnabled(True)
+
+    def _set_status_hint(self, text: str, status: str) -> None:
+        self.status_hint_label.setText(text)
+        self.status_hint_label.setProperty("resultStatus", status)
+        self.status_hint_label.style().unpolish(self.status_hint_label)
+        self.status_hint_label.style().polish(self.status_hint_label)
 
     def _update_empty_tasks_hint(self, filter_value: str) -> None:
         if filter_value == "ACTIVE":
