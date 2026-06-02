@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Any
@@ -50,7 +50,7 @@ class HistoryTab(QWidget):
 
         title = QLabel("История экспериментов")
         title.setObjectName("title")
-        subtitle = QLabel("Журнал генетических экспериментов, мутаций и мутагенных воздействий")
+        subtitle = QLabel("Лабораторный журнал скрещиваний, мутаций и мутагенных воздействий")
         subtitle.setObjectName("subtitle")
         heading.addWidget(title)
         heading.addWidget(subtitle)
@@ -180,7 +180,7 @@ class HistoryTab(QWidget):
             experiment_id = self._to_int(row.get("experiment_id"))
             type_code = self._display(row.get("experiment_type"))
             type_label = experiment_type_label(type_code, with_code=False)
-            type_display = type_label if type_code == "Не указано" else f"{type_label} ({type_code})"
+            type_display = self._type_marker_text(type_code, type_label)
 
             parent1_name = self._entity_name(row.get("parent1_name"))
             parent2_name = self._entity_name(row.get("parent2_name"))
@@ -217,7 +217,8 @@ class HistoryTab(QWidget):
 
         type_code = self._display(row.get("experiment_type"))
         type_ru = experiment_type_label(type_code, with_code=False)
-        self.lbl_type.setText(type_ru if type_code == "Не указано" else f"{type_ru} ({type_code})")
+        self.lbl_type.setText(self._type_marker_text(type_code, type_ru))
+        self._apply_type_chip(type_code)
 
         self.lbl_parent1.setText(self._entity_text(row.get("parent1_id"), row.get("parent1_name")))
         self.lbl_parent2.setText(self._entity_text(row.get("parent2_id"), row.get("parent2_name")))
@@ -261,7 +262,7 @@ class HistoryTab(QWidget):
         return "Итоговое изменение рейтинга может включать награды за задания."
 
     def _detect_mutagen_subtype(self, row: dict[str, Any]) -> str | None:
-        # В истории экспериментов backend может не отдавать subtype явно.
+        # В истории backend может не отдавать subtype явно.
         for key in ("mutagen_type", "mutation_name", "offspring_name"):
             value = self._display(row.get(key)).lower()
             if "radiation" in value:
@@ -296,6 +297,7 @@ class HistoryTab(QWidget):
         if mutation_name == "Не указано":
             mutation_name = self._mutation_brief_text(row)
         return f"ID мутации: {mutation_id}\nОписание: {mutation_name}"
+
     def _selected_row(self) -> dict[str, Any] | None:
         row_idx = self.history_table.currentRow()
         if row_idx < 0 or row_idx >= len(self._rows):
@@ -320,15 +322,14 @@ class HistoryTab(QWidget):
         self.lbl_created_at.setText("-")
         self.lbl_rating_note.setText("-")
 
-
     def _type_marker_text(self, type_code: str, type_ru: str) -> str:
         code = (type_code or "").upper()
         if code == "CROSS":
-            return f"[???] {type_ru}"
+            return f"[СКР] {type_ru}"
         if code == "MUTATION":
-            return f"[???] {type_ru}"
+            return f"[МУТ] {type_ru}"
         if code == "MUTAGEN":
-            return f"[???] {type_ru}"
+            return f"[МГН] {type_ru}"
         return type_ru
 
     def _apply_type_chip(self, type_code: str) -> None:
@@ -395,5 +396,3 @@ class HistoryTab(QWidget):
         if value_name == "Не указано":
             return str(value_id)
         return f"{value_id} | {value_name}"
-
-

@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.db.pkg_api import PkgApi
+from app.gui.creature_portrait import CreaturePortraitWidget
 from app.services.oracle_errors import map_oracle_error
 from app.services.session_state import SessionState
 from app.services.display_names import (
@@ -31,6 +32,7 @@ from app.services.display_names import (
     species_label,
     display_task_name,
     display_task_difficulty,
+    display_trait_value,
     task_status_label,
 )
 
@@ -240,6 +242,9 @@ class TasksTab(QWidget):
         creature_title = QLabel("Проверка существа")
         creature_title.setObjectName("subtitle")
         creature_layout.addRow("", creature_title)
+
+        self.creature_portrait = CreaturePortraitWidget(mode="mini")
+        creature_layout.addRow("", self.creature_portrait)
 
         self.creature_combo = QComboBox()
         self.creature_combo.currentIndexChanged.connect(self._on_creature_changed)
@@ -463,6 +468,7 @@ class TasksTab(QWidget):
             self.creature_name_label.setText("-")
             self.creature_species_label.setText("-")
             self.creature_phenotype_label.setText("-")
+            self.creature_portrait.clear()
             self._update_status_hint()
             return
 
@@ -470,6 +476,15 @@ class TasksTab(QWidget):
         self.creature_name_label.setText(creature_name_label(creature.get("creature_name")))
         self.creature_species_label.setText(species_label(creature.get("species_type")))
         self.creature_phenotype_label.setText(phenotype_summary_label(creature.get("phenotype_summary")))
+        self.creature_portrait.set_creature(
+            species_label=species_label(creature.get("species_type")),
+            phenotype_color=display_trait_value(creature.get("phenotype_color")),
+            phenotype_size=display_trait_value(creature.get("phenotype_size")),
+            phenotype_wings=display_trait_value(creature.get("phenotype_has_wings")),
+            phenotype_nutrition=display_trait_value(creature.get("phenotype_nutrition_type")),
+            phenotype_summary=phenotype_summary_label(creature.get("phenotype_summary")),
+            creature_key=creature.get("creature_id") or creature.get("creature_name"),
+        )
 
         self._update_status_hint()
 
