@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from decimal import Decimal
 from typing import Any, Callable
@@ -89,7 +89,7 @@ class CrossbreedTab(QWidget):
         root.addLayout(top_row)
 
         self.crossbreed_info_panel = QFrame()
-        self.crossbreed_info_panel.setObjectName("infoPanel")
+        self.crossbreed_info_panel.setObjectName("experimentFlowCard")
         info_layout = QVBoxLayout(self.crossbreed_info_panel)
         info_layout.setContentsMargins(10, 8, 10, 8)
         info_text = QLabel("Выберите двух исходных существ одного вида, посмотрите вероятности признаков и создайте потомка.")
@@ -97,13 +97,15 @@ class CrossbreedTab(QWidget):
         info_text.setWordWrap(True)
         info_layout.addWidget(info_text)
 
-        self.crossbreed_flow_hint = QLabel('Исходное существо A -> Исходное существо B -> Вероятности признаков -> Создать результат')
+        self.crossbreed_flow_hint = QLabel('1) Выберите родителей   2) Посмотрите вероятность признака   3) Создайте потомка')
         self.crossbreed_flow_hint.setProperty("badge", True)
+        self.crossbreed_flow_hint.setObjectName("flowSteps")
         info_layout.addWidget(self.crossbreed_flow_hint)
         root.addWidget(self.crossbreed_info_panel)
 
         selector_card = QFrame()
         selector_card.setProperty("card", "true")
+        selector_card.setObjectName("experimentSelectorCard")
         selector_layout = QFormLayout(selector_card)
         selector_layout.setContentsMargins(12, 12, 12, 12)
         selector_layout.setLabelAlignment(Qt.AlignRight)
@@ -139,6 +141,7 @@ class CrossbreedTab(QWidget):
 
         probabilities_card = QFrame()
         probabilities_card.setProperty("card", "true")
+        probabilities_card.setObjectName("probabilityCard")
         probabilities_layout = QVBoxLayout(probabilities_card)
         probabilities_layout.setContentsMargins(12, 12, 12, 12)
 
@@ -156,6 +159,7 @@ class CrossbreedTab(QWidget):
             ]
         )
         self.probabilities_table.verticalHeader().setVisible(False)
+        self.probabilities_table.verticalHeader().setDefaultSectionSize(40)
         self.probabilities_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.probabilities_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.probabilities_table.setSelectionMode(QTableWidget.SingleSelection)
@@ -184,6 +188,7 @@ class CrossbreedTab(QWidget):
 
         result_card = QFrame()
         result_card.setProperty("card", "true")
+        result_card.setObjectName("experimentResultCard")
         result_layout = QFormLayout(result_card)
         result_layout.setContentsMargins(12, 12, 12, 12)
         result_layout.setLabelAlignment(Qt.AlignRight)
@@ -197,6 +202,7 @@ class CrossbreedTab(QWidget):
         self.result_id_label = QLabel("-")
         self.result_hint_label = QLabel("После создания результата статистика лаборатории обновится автоматически.")
         self.result_hint_label.setObjectName("subtitle")
+        self.result_hint_label.setProperty("resultStatus", "neutral")
         self.result_hint_label.setWordWrap(True)
 
         result_layout.addRow("Имя результата:", self.result_name_input)
@@ -209,6 +215,7 @@ class CrossbreedTab(QWidget):
     def _build_source_card(self, header: str) -> tuple[QFrame, dict[str, Any], CreaturePortraitWidget]:
         frame = QFrame()
         frame.setProperty("card", "true")
+        frame.setObjectName("parentCard")
         layout = QFormLayout(frame)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setLabelAlignment(Qt.AlignRight)
@@ -289,7 +296,7 @@ class CrossbreedTab(QWidget):
 
             name = display_creature_name(creature.get("creature_name"))
             species_text = self._species_text(creature.get("species_type"))
-            combo.addItem(f"{name} В· ID {creature_id} | {species_text}", creature_id)
+            combo.addItem(f"{name} · ID {creature_id} | {species_text}", creature_id)
 
             if selected_id is not None and creature_id == self._to_int(selected_id):
                 selected_index = combo.count() - 1
@@ -326,7 +333,7 @@ class CrossbreedTab(QWidget):
             return
 
         fields["creature_id"].setText(self._display(creature.get("creature_id")))
-        fields["creature_name"].setText(f"{display_creature_name(creature.get('creature_name'))} В· ID {self._display(creature.get('creature_id'))}")
+        fields["creature_name"].setText(f"{display_creature_name(creature.get('creature_name'))} · ID {self._display(creature.get('creature_id'))}")
         fields["species_type"].setText(species_label(creature.get("species_type")))
         fields["phenotype_summary"].setText(format_phenotype_summary(creature.get("phenotype_summary")))
 
@@ -463,7 +470,7 @@ class CrossbreedTab(QWidget):
         QMessageBox.information(
             self,
             "Генетический эксперимент",
-            f"Результирующее существо создано. ID: {offspring_id}",
+                f"Создан потомок: {result_name}. ID: {offspring_id}",
         )
         after_tasks = self._get_tasks_snapshot(lab_id)
         auto_completed = self._collect_auto_completed_tasks(before_tasks, after_tasks)

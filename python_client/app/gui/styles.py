@@ -350,6 +350,104 @@ QLabel[emptyState='true'] {
     color: #64748b;
 }
 
+
+QFrame#experimentFlowCard,
+QFrame#mutationStandInfo {
+    background-color: #fff7e8;
+    border: 1px solid #e8d4ad;
+    border-radius: 8px;
+}
+
+QFrame#experimentSelectorCard,
+QFrame#parentCard,
+QFrame#probabilityCard,
+QFrame#experimentResultCard,
+QFrame#mutationShopCard,
+QFrame#mutationCreatureCard,
+QFrame#mutationApplyCard,
+QFrame#mutagenCard {
+    background-color: #fffdf7;
+    border: 1px solid #e4d7c3;
+    border-radius: 8px;
+}
+
+QLabel#flowSteps {
+    background-color: #f5ead7;
+    border: 1px solid #d7bd92;
+    color: #4b3b25;
+    font-weight: 700;
+    padding: 7px 10px;
+    border-radius: 6px;
+}
+
+QLabel#mutationTitle {
+    color: #293241;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+QLabel[badgeType='stock'] {
+    background-color: #eef7ff;
+    border-color: #bedaf7;
+    color: #1d4f7a;
+}
+
+QLabel[badgeType='radiation'] {
+    background-color: #fff3d8;
+    border-color: #e8bd62;
+    color: #7a4b00;
+}
+
+QLabel[badgeType='chemical'] {
+    background-color: #eafaf2;
+    border-color: #b8e4cd;
+    color: #14532d;
+}
+
+QLabel[resultStatus='warning'] {
+    background-color: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 6px;
+    padding: 8px;
+    color: #9a3412;
+    font-weight: 600;
+}
+
+QLabel[compatibilityStatus='neutral'] {
+    background-color: #fffdf7;
+    border: 1px solid #e2d6c2;
+    border-radius: 6px;
+    padding: 7px;
+    color: #64748b;
+}
+
+QLabel[compatibilityStatus='ready'] {
+    background-color: #ecfdf3;
+    border: 1px solid #bbebcd;
+    border-radius: 6px;
+    padding: 7px;
+    color: #166534;
+    font-weight: 600;
+}
+
+QLabel[compatibilityStatus='warning'] {
+    background-color: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 6px;
+    padding: 7px;
+    color: #9a3412;
+    font-weight: 600;
+}
+
+QLabel[compatibilityStatus='blocked'] {
+    background-color: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 6px;
+    padding: 7px;
+    color: #9f1239;
+    font-weight: 600;
+}
+
 QToolTip {
     background-color: #fffdf7;
     color: #1f2937;

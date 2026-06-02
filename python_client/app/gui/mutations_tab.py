@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Callable
 
@@ -98,7 +98,7 @@ class MutationsTab(QWidget):
         root.addLayout(heading_row)
 
         self.mutations_info_panel = QFrame()
-        self.mutations_info_panel.setObjectName("infoPanel")
+        self.mutations_info_panel.setObjectName("mutationStandInfo")
         info_layout = QVBoxLayout(self.mutations_info_panel)
         info_layout.setContentsMargins(10, 8, 10, 8)
         info_text = QLabel("Мутация — купленное направленное изменение признака. Мутаген — экспериментальное воздействие с ценой, риском и штрафом рейтинга.")
@@ -112,6 +112,7 @@ class MutationsTab(QWidget):
 
         shop_card = QFrame()
         shop_card.setProperty("card", "true")
+        shop_card.setObjectName("mutationShopCard")
         shop_layout = QVBoxLayout(shop_card)
         shop_layout.setContentsMargins(12, 12, 12, 12)
         shop_layout.setSpacing(8)
@@ -125,6 +126,8 @@ class MutationsTab(QWidget):
             ["ID", "Название", "Тип", "Описание", "Цена", "Эффект рейтинга"]
         )
         self.shop_table.verticalHeader().setVisible(False)
+        self.shop_table.verticalHeader().setDefaultSectionSize(38)
+        self.shop_table.setWordWrap(True)
         self.shop_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.shop_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.shop_table.setSelectionMode(QTableWidget.SingleSelection)
@@ -138,9 +141,12 @@ class MutationsTab(QWidget):
 
         self.selected_mutation_id_label = QLabel("-")
         self.selected_mutation_name_label = QLabel("-")
+        self.selected_mutation_name_label.setObjectName("mutationTitle")
+        self.selected_mutation_name_label.setWordWrap(True)
         self.selected_mutation_price_label = QLabel("-")
         self.selected_mutation_stock_label = QLabel("0")
         self.selected_mutation_stock_label.setProperty("badge", True)
+        self.selected_mutation_stock_label.setProperty("badgeType", "stock")
 
         selected_mutation_form.addRow("Выбрано (ID):", self.selected_mutation_id_label)
         selected_mutation_form.addRow("Название:", self.selected_mutation_name_label)
@@ -169,6 +175,8 @@ class MutationsTab(QWidget):
             ]
         )
         self.target_genes_table.verticalHeader().setVisible(False)
+        self.target_genes_table.verticalHeader().setDefaultSectionSize(36)
+        self.target_genes_table.setWordWrap(True)
         self.target_genes_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.target_genes_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.target_genes_table.setSelectionMode(QTableWidget.SingleSelection)
@@ -188,6 +196,7 @@ class MutationsTab(QWidget):
 
         creature_card = QFrame()
         creature_card.setProperty("card", "true")
+        creature_card.setObjectName("mutationCreatureCard")
         creature_layout = QFormLayout(creature_card)
         creature_layout.setContentsMargins(12, 12, 12, 12)
         creature_layout.setLabelAlignment(Qt.AlignRight)
@@ -213,17 +222,22 @@ class MutationsTab(QWidget):
         self.creature_phenotype_label = QLabel("-")
         self.creature_phenotype_label.setWordWrap(True)
         self.creature_phenotype_label.setMinimumHeight(48)
+        self.creature_compatibility_label = QLabel("Выберите мутацию и существо.")
+        self.creature_compatibility_label.setProperty("compatibilityStatus", "neutral")
+        self.creature_compatibility_label.setWordWrap(True)
 
         creature_layout.addRow("Существо:", self.creature_combo)
         creature_layout.addRow("ID:", self.creature_id_label)
         creature_layout.addRow("Имя:", self.creature_name_label)
         creature_layout.addRow("Вид:", self.creature_species_label)
         creature_layout.addRow("Фенотип:", self.creature_phenotype_label)
+        creature_layout.addRow("Совместимость:", self.creature_compatibility_label)
 
         right_col.addWidget(creature_card)
 
         apply_card = QFrame()
         apply_card.setProperty("card", "true")
+        apply_card.setObjectName("mutationApplyCard")
         apply_layout = QVBoxLayout(apply_card)
         apply_layout.setContentsMargins(12, 12, 12, 12)
         apply_layout.setSpacing(8)
@@ -252,13 +266,16 @@ class MutationsTab(QWidget):
 
         self.target_allele_warning_label = QLabel("")
         self.target_allele_warning_label.setObjectName("subtitle")
+        self.target_allele_warning_label.setProperty("resultStatus", "warning")
         self.target_allele_warning_label.setWordWrap(True)
+        self.target_allele_warning_label.setVisible(False)
         apply_layout.addWidget(self.target_allele_warning_label)
 
         right_col.addWidget(apply_card)
 
         mutagen_card = QFrame()
         mutagen_card.setProperty("card", "true")
+        mutagen_card.setObjectName("mutagenCard")
         mutagen_layout = QFormLayout(mutagen_card)
         mutagen_layout.setContentsMargins(12, 12, 12, 12)
         mutagen_layout.setLabelAlignment(Qt.AlignRight)
@@ -289,8 +306,10 @@ class MutationsTab(QWidget):
 
         self.mutagen_radiation_badge = QLabel('RADIATION: 50 монет, рейтинг -5, риск высокий')
         self.mutagen_radiation_badge.setProperty("badge", True)
+        self.mutagen_radiation_badge.setProperty("badgeType", "radiation")
         self.mutagen_chemical_badge = QLabel('CHEMICAL: 100 монет, рейтинг -2, риск ниже')
         self.mutagen_chemical_badge.setProperty("badge", True)
+        self.mutagen_chemical_badge.setProperty("badgeType", "chemical")
         mutagen_layout.addRow("", self.mutagen_radiation_badge)
         mutagen_layout.addRow("", self.mutagen_chemical_badge)
 
@@ -538,15 +557,17 @@ class MutationsTab(QWidget):
             self.creature_name_label.setText("-")
             self.creature_species_label.setText("-")
             self.creature_phenotype_label.setText("-")
+            self._set_compatibility_status("Выберите существо", "neutral")
             self.creature_portrait.clear()
             self._selected_creature_target_warning = ""
             self._update_apply_mutation_state()
             return
 
         self.creature_id_label.setText(self._display(creature.get("creature_id")))
-        self.creature_name_label.setText(f"{display_creature_name(creature.get('creature_name'))} В· ID {self._display(creature.get('creature_id'))}")
+        self.creature_name_label.setText(f"{display_creature_name(creature.get('creature_name'))} · ID {self._display(creature.get('creature_id'))}")
         self.creature_species_label.setText(species_label(creature.get("species_type")))
         self.creature_phenotype_label.setText(format_phenotype_summary(creature.get("phenotype_summary")))
+        self._set_compatibility_status(*self._compatibility_status_display(creature_id))
         self.creature_portrait.set_creature(
             species_label=species_label(creature.get("species_type")),
             phenotype_color=display_trait_value(creature.get("phenotype_color")),
@@ -713,7 +734,7 @@ class MutationsTab(QWidget):
 
             name = display_creature_name(creature.get("creature_name"))
             species_text = species_label(creature.get("species_type"))
-            base_label = f"{name} В· ID {creature_id} | {species_text}"
+            base_label = f"{name} · ID {creature_id} | {species_text}"
 
             if mutation_id is None:
                 label = base_label
@@ -782,8 +803,39 @@ class MutationsTab(QWidget):
             can_apply = True
 
         self.apply_mutation_btn.setEnabled(can_apply)
-        self.apply_state_label.setText(reason)
+        if can_apply:
+            state = "success"
+        elif creature_id is not None and self._creature_compatibility_state.get(creature_id) == self.STATUS_NO_TARGET_GENE:
+            state = "error"
+        else:
+            state = "neutral"
+        self._set_apply_state(reason, state)
         self.target_allele_warning_label.setText(self._selected_creature_target_warning)
+        self.target_allele_warning_label.setVisible(bool(self._selected_creature_target_warning))
+
+    def _set_apply_state(self, text: str, status: str) -> None:
+        self.apply_state_label.setText(text)
+        self.apply_state_label.setProperty("resultStatus", status)
+        self.apply_state_label.style().unpolish(self.apply_state_label)
+        self.apply_state_label.style().polish(self.apply_state_label)
+
+    def _compatibility_status_display(self, creature_id: int | None) -> tuple[str, str]:
+        mutation_id = self._selected_mutation_id()
+        if mutation_id is None or creature_id is None:
+            return "Выберите мутацию и существо.", "neutral"
+
+        status = self._creature_compatibility_state.get(creature_id, self.STATUS_CAN_CHANGE)
+        if status == self.STATUS_NO_TARGET_GENE:
+            return "[нет нужного гена] У существа нет целевого гена этой мутации.", "blocked"
+        if status == self.STATUS_HAS_TARGET_ALLELE:
+            return "[уже есть целевой аллель] Применение может не изменить фенотип.", "warning"
+        return "[можно изменить] Существо содержит целевой ген выбранной мутации.", "ready"
+
+    def _set_compatibility_status(self, text: str, status: str) -> None:
+        self.creature_compatibility_label.setText(text)
+        self.creature_compatibility_label.setProperty("compatibilityStatus", status)
+        self.creature_compatibility_label.style().unpolish(self.creature_compatibility_label)
+        self.creature_compatibility_label.style().polish(self.creature_compatibility_label)
 
     def _notify_lab_data_changed(self) -> None:
         if self.on_lab_data_changed is not None:
