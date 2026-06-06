@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
@@ -115,6 +115,7 @@ class CreaturesTab(QWidget):
 
         right_panel = QFrame()
         right_panel.setProperty("card", "true")
+        right_panel.setObjectName("creaturePassportCard")
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(10, 10, 10, 10)
         right_layout.setSpacing(10)
@@ -125,6 +126,44 @@ class CreaturesTab(QWidget):
 
         self.creature_portrait = CreaturePortraitWidget(mode="large")
         right_layout.addWidget(self.creature_portrait, alignment=Qt.AlignHCenter)
+
+        self.creature_name_title = QLabel("Выберите существо")
+        self.creature_name_title.setObjectName("creatureNameTitle")
+        self.creature_name_title.setWordWrap(True)
+        self.creature_id_badge = QLabel("ID: -")
+        self.creature_id_badge.setObjectName("creatureIdBadge")
+        self.creature_id_badge.setProperty("badge", True)
+
+        creature_header = QHBoxLayout()
+        creature_header.setSpacing(8)
+        creature_header.addWidget(self.creature_name_title, 1)
+        creature_header.addWidget(self.creature_id_badge, 0, Qt.AlignTop)
+        right_layout.addLayout(creature_header)
+
+        self.phenotype_badges_frame = QFrame()
+        self.phenotype_badges_frame.setObjectName("phenotypeBadgePanel")
+        phenotype_badges_layout = QVBoxLayout(self.phenotype_badges_frame)
+        phenotype_badges_layout.setContentsMargins(8, 8, 8, 8)
+        phenotype_badges_layout.setSpacing(6)
+        self.phenotype_badges = {}
+        badge_rows = [QHBoxLayout(), QHBoxLayout()]
+        for row_layout in badge_rows:
+            row_layout.setSpacing(6)
+            phenotype_badges_layout.addLayout(row_layout)
+
+        badge_specs = [
+            ("species", "Вид"),
+            ("color", "Цвет"),
+            ("size", "Размер"),
+            ("wings", "Крылья"),
+            ("nutrition", "Питание"),
+            ("details", "Детали"),
+        ]
+        for idx, (key, title_text) in enumerate(badge_specs):
+            badge = self._make_phenotype_badge(title_text, "-")
+            self.phenotype_badges[key] = badge
+            badge_rows[idx // 3].addWidget(badge, 1)
+        right_layout.addWidget(self.phenotype_badges_frame)
         info_form = QFormLayout()
         info_form.setLabelAlignment(Qt.AlignRight)
 
@@ -179,6 +218,21 @@ class CreaturesTab(QWidget):
 
         root.addWidget(splitter)
 
+    @staticmethod
+    def _make_phenotype_badge(title: str, value: str) -> QLabel:
+        badge = QLabel(f"{title}: {value}")
+        badge.setProperty("phenotypeBadge", True)
+        badge.setWordWrap(True)
+        return badge
+
+    def _set_phenotype_badge(self, key: str, title: str, value: str) -> None:
+        badge = self.phenotype_badges.get(key)
+        if badge is None:
+            return
+        text = f"{title}: {value}"
+        badge.setText(text)
+        badge.setToolTip(text)
+
     def refresh_data(self) -> None:
         lab_id = self.state.selected_lab_id
         if lab_id is None:
@@ -203,7 +257,7 @@ class CreaturesTab(QWidget):
                 self.creatures_table,
                 row_idx,
                 1,
-                self._creature_name_display(creature.get("creature_name")),
+                f"{self._creature_name_display(creature.get('creature_name'))} \u00b7 ID {self._display(creature.get('creature_id'))}",
                 tooltip=True,
             )
             self._set_table_item(
@@ -277,21 +331,33 @@ class CreaturesTab(QWidget):
     def _fill_selected_creature_card(self, creature: dict[str, Any]) -> None:
         species_text = self._species_name(creature.get("species_type"))
 
-        self.lbl_creature_id.setText(self._display(creature.get("creature_id")))
-        self.lbl_creature_name.setText(self._creature_name_display(creature.get("creature_name")))
+        creature_id_text = self._display(creature.get("creature_id"))
+        creature_name_text = self._creature_name_display(creature.get("creature_name"))
+
+        self.lbl_creature_id.setText(creature_id_text)
+        self.lbl_creature_name.setText(creature_name_text)
+        self.creature_name_title.setText(creature_name_text)
+        self.creature_id_badge.setText(f"ID: {creature_id_text}")
         self.lbl_species.setText(species_text)
         self.lbl_color.setText(self._trait_display(creature.get("phenotype_color")))
         self.lbl_size.setText(self._trait_display(creature.get("phenotype_size")))
         self.lbl_wings.setText(self._trait_display(creature.get("phenotype_has_wings")))
         self.lbl_nutrition.setText(self._trait_display(creature.get("phenotype_nutrition_type")))
-        self.phenotype_summary.setText(self._phenotype_summary_display(creature.get("phenotype_summary")))
+        phenotype_summary_text = self._phenotype_summary_display(creature.get("phenotype_summary"))
+        self.phenotype_summary.setText(phenotype_summary_text)
+        self._set_phenotype_badge("species", "Вид", species_text)
+        self._set_phenotype_badge("color", "Цвет", self._trait_display(creature.get("phenotype_color")))
+        self._set_phenotype_badge("size", "Размер", self._trait_display(creature.get("phenotype_size")))
+        self._set_phenotype_badge("wings", "Крылья", self._trait_display(creature.get("phenotype_has_wings")))
+        self._set_phenotype_badge("nutrition", "Питание", self._trait_display(creature.get("phenotype_nutrition_type")))
+        self._set_phenotype_badge("details", "Детали", self._phenotype_detail_display(phenotype_summary_text))
         self.creature_portrait.set_creature(
             species_label=species_text,
             phenotype_color=self._trait_display(creature.get("phenotype_color")),
             phenotype_size=self._trait_display(creature.get("phenotype_size")),
             phenotype_wings=self._trait_display(creature.get("phenotype_has_wings")),
             phenotype_nutrition=self._trait_display(creature.get("phenotype_nutrition_type")),
-            phenotype_summary=self._phenotype_summary_display(creature.get("phenotype_summary")),
+            phenotype_summary=phenotype_summary_text,
             creature_key=creature.get("creature_id") or creature.get("creature_name"),
         )
 
@@ -371,12 +437,23 @@ class CreaturesTab(QWidget):
     def _clear_selected_creature_card(self) -> None:
         self.lbl_creature_id.setText("-")
         self.lbl_creature_name.setText("-")
+        self.creature_name_title.setText("Выберите существо")
+        self.creature_id_badge.setText("ID: -")
         self.lbl_species.setText("-")
         self.lbl_color.setText("-")
         self.lbl_size.setText("-")
         self.lbl_wings.setText("-")
         self.lbl_nutrition.setText("-")
         self.phenotype_summary.setText("-")
+        for key, title_text in (
+            ("species", "Вид"),
+            ("color", "Цвет"),
+            ("size", "Размер"),
+            ("wings", "Крылья"),
+            ("nutrition", "Питание"),
+            ("details", "Детали"),
+        ):
+            self._set_phenotype_badge(key, title_text, "-")
         self.creature_portrait.clear()
         self._clear_genotype_cards()
 
@@ -419,6 +496,24 @@ class CreaturesTab(QWidget):
     @staticmethod
     def _gene_display(value: Any) -> str:
         return display_gene_name(value)
+
+    @staticmethod
+    def _phenotype_detail_display(summary: Any) -> str:
+        text = CreaturesTab._display(summary).casefold()
+        labels = []
+        checks = [
+            ("плавник", ("плавник",)),
+            ("панцирь", ("панцир",)),
+            ("клешни", ("клеш",)),
+            ("раковина", ("раков", "моллюск")),
+            ("шерсть", ("шерст",)),
+            ("скорость", ("скор", "быстр")),
+            ("шипы", ("шип",)),
+        ]
+        for label, tokens in checks:
+            if any(token in text for token in tokens):
+                labels.append(label)
+        return ", ".join(labels[:3]) if labels else "см. описание"
 
     @staticmethod
     def _creature_name_display(value: Any) -> str:

@@ -1,4 +1,4 @@
-﻿# Current Tasks
+# Current Tasks
 
 ## РЎС‚Р°С‚СѓСЃ РїСЂРѕРµРєС‚Р° (РѕР±РЅРѕРІР»РµРЅРѕ: 2026-05-27)
 
@@ -237,4 +237,20 @@
 - Roadmap docs отдельно при необходимости: `git commit -m "Обновить план развития интерфейса"`.
 <!-- biosborka-stabilization-2026-06-02:end -->
 
+## Creature Display / Creature Art checkpoint, 2026-06-06
 
+Status: emergency UTF-8 fix is complete. First Creature Art block is implemented; manual GUI confirmation is pending.
+
+Keep this phase GUI/display-layer only:
+- do not change backend, DDL, package spec/body, seed, tests, or `pkg_api.py`;
+- do not move genetics, mutation, task, economy, rating, or statistics logic into Python;
+- do not move to final acceptance polish before checking the GUI manually.
+
+Manual check before continuing:
+1. Start GUI.
+2. Open a lab.
+3. Open Creatures and select several species.
+4. Open Crossbreed, Mutations, and Tasks.
+5. Confirm portraits render and no broken text is visible.
+
+After confirmation: fix any visual regressions if needed, then continue to final acceptance polish.

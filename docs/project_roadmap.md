@@ -1,4 +1,4 @@
-﻿# Project Roadmap
+# Project Roadmap
 
 ## РўРµРєСѓС‰РёР№ СЌС‚Р°Рї (2026-05-27)
 
@@ -148,4 +148,18 @@
 - финальная инструкция запуска.
 <!-- biosborka-roadmap-2026-06-02:end -->
 
+## Roadmap checkpoint: Creature Art -> Acceptance polish
 
+1. Creature Display / Creature Art polish is the current stage.
+   - GUI/display-layer only.
+   - No backend, DDL, package, seed, or test changes.
+   - Emergency UTF-8 fix in `creature_portrait.py` is complete.
+   - First Creature Art block is implemented: improved shared portraits and the Creatures passport card.
+   - Continue to final acceptance polish after manual GUI confirmation.
+
+2. Final acceptance polish follows Creature Art polish.
+   - Full manual GUI pass.
+   - Close via X and reopen lab without ORA-20072.
+   - No broken UTF-8 text in GUI.
+   - `python -m compileall -f python_client`.
+   - Oracle 01..08 only if SQL/seed/tests are touched later.

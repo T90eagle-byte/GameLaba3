@@ -1,4 +1,4 @@
-﻿# AI Context: Р‘РёРѕРЎР±РѕСЂРєР°
+# AI Context: Р‘РёРѕРЎР±РѕСЂРєР°
 
 ## Р‘Р°Р·РѕРІР°СЏ Р°СЂС…РёС‚РµРєС‚СѓСЂР°
 - Backend РїРѕР»РЅРѕСЃС‚СЊСЋ СЂРµР°Р»РёР·РѕРІР°РЅ РІ Oracle PL/SQL.
@@ -172,4 +172,26 @@
 - Не продолжать Dashboard/graphics roadmap, пока не закрыты mojibake в «Мутациях», backup files, стабильный `05`, GUI-check без mojibake и Oracle `01..08` или минимум подтверждённые `02/05/06/07/08` после seed/test правок.
 <!-- biosborka-checkpoint-2026-06-02:end -->
 
+<!-- biosborka-creature-art-checkpoint-2026-06-06:start -->
 
+## Creature Display / Creature Art checkpoint, 2026-06-06
+
+Workspace: `C:\GameLR3`. Do not use the old `C:\Users\User\DATA\...` path.
+
+Current phase: Creature Display / Creature Art polish. This phase is GUI/display-layer only.
+
+Current status:
+- `python_client/app/gui/creature_portrait.py` has display-only portrait improvements in progress.
+- Emergency UTF-8 fix for new `creature_portrait.py` strings is complete.
+- `python -m compileall -f python_client` passes.
+- Marker-check over `python_client/app/gui/*.py` is clean for broken UTF-8 markers.
+- Backend, DDL, package spec/body, seed, tests, and `pkg_api.py` were not changed.
+
+First Creature Art block is implemented: shared portraits were improved and the Creatures tab now has a passport-style card. Manual GUI confirmation is still pending before final acceptance polish.
+
+Next after confirmation:
+- manually check portraits in Creatures, Crossbreed, Mutations, and Tasks;
+- fix any visual/layout regressions if found;
+- then move to final acceptance polish.
+
+<!-- biosborka-creature-art-checkpoint-2026-06-06:end -->

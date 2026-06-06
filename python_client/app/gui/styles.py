@@ -157,6 +157,43 @@ QFrame[card='true'] {
     border-radius: 8px;
 }
 
+
+QFrame#creaturePassportCard {
+    background-color: #fffdf7;
+    border: 1px solid #dfd2bd;
+    border-radius: 10px;
+}
+
+QLabel#creatureNameTitle {
+    color: #253247;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+QLabel#creatureIdBadge {
+    background-color: #f4ead8;
+    border: 1px solid #d9c6a6;
+    border-radius: 7px;
+    padding: 4px 9px;
+    color: #5b4630;
+    font-weight: 700;
+}
+
+QFrame#phenotypeBadgePanel {
+    background-color: #fffaf0;
+    border: 1px dashed #dec9a4;
+    border-radius: 8px;
+}
+
+QLabel[phenotypeBadge='true'] {
+    background-color: #fffdf7;
+    border: 1px solid #eadfce;
+    border-radius: 7px;
+    padding: 5px 8px;
+    color: #344154;
+    font-size: 12px;
+}
+
 QFrame#statCard {
     background-color: #fffaf0;
     border: 1px solid #e6d6b8;

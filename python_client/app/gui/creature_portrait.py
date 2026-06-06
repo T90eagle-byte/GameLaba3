@@ -3,7 +3,7 @@
 from typing import Any
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QWidget
 
 
@@ -13,6 +13,7 @@ class CreaturePortraitWidget(QWidget):
     def __init__(self, parent: QWidget | None = None, mode: str = "large") -> None:
         super().__init__(parent)
         self.setObjectName("creaturePortrait")
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
 
         self._species_label = ""
         self._phenotype_color = ""
@@ -96,9 +97,12 @@ class CreaturePortraitWidget(QWidget):
             self._draw_empty_state(painter, card)
             return
 
-        badges_space = 58 if self._mode == "large" else (42 if self._mode == "compact" else 32)
-        draw_zone = card.adjusted(14, 14, -14, -badges_space)
+        badges_space = 76 if self._mode == "large" else (48 if self._mode == "compact" else 32)
+        margin = 18 if self._mode == "large" else (14 if self._mode == "compact" else 10)
+        draw_zone = card.adjusted(margin, margin, -margin, -badges_space)
         body = self._scaled_body_rect(draw_zone, self._resolve_scale())
+
+        self._draw_sketch_shadow(painter, body)
 
         if self._has_wings():
             self._draw_wings(painter, body)
@@ -119,12 +123,19 @@ class CreaturePortraitWidget(QWidget):
         else:
             self._draw_unknown(painter, body)
 
+        self._draw_texture_overlay(painter, body, kind)
+        self._draw_nutrition_marker(painter, card)
         self._draw_badges(painter, card)
 
     def _draw_paper_card(self, painter: QPainter, rect: QRectF) -> None:
         painter.setPen(QPen(QColor("#d6ccb8"), 1.2))
         painter.setBrush(QColor("#fffdf7"))
         painter.drawRoundedRect(rect, 10, 10)
+
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor("#f8ecd4"))
+        painter.drawEllipse(QPointF(rect.left() + 18, rect.top() + 16), 3.2, 3.2)
+        painter.drawEllipse(QPointF(rect.right() - 18, rect.top() + 16), 3.2, 3.2)
 
         line_pen = QPen(QColor("#ece4d3"), 1)
         painter.setPen(line_pen)
@@ -221,6 +232,22 @@ class CreaturePortraitWidget(QWidget):
         w = min(w, area.width() * 0.86)
         h = min(h, area.height() * 0.75)
         return QRectF(area.center().x() - w / 2, area.center().y() - h / 2, w, h)
+
+    def _draw_sketch_shadow(self, painter: QPainter, body: QRectF) -> None:
+        painter.save()
+        shadow = QColor("#d8c7ad")
+        shadow.setAlpha(80)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(shadow)
+        painter.drawEllipse(
+            QRectF(
+                body.left() + body.width() * 0.08,
+                body.bottom() - body.height() * 0.04,
+                body.width() * 0.84,
+                body.height() * 0.18,
+            )
+        )
+        painter.restore()
 
     def _draw_cartilaginous_fish(self, painter: QPainter, body: QRectF) -> None:
         painter.setPen(self._outline_pen())
@@ -568,9 +595,39 @@ class CreaturePortraitWidget(QWidget):
                     QPointF(body.left() + body.width() * (shift + 0.08), body.bottom() - body.height() * 0.18),
                 )
 
+        if self._summary_has("скорость", "высок") or self._summary_has("быстр"):
+            painter.setPen(QPen(QColor("#8aa2b8"), 1.1))
+            for offset in (0.18, 0.32, 0.46):
+                painter.drawLine(
+                    QPointF(body.left() - body.width() * offset, body.center().y() - body.height() * 0.12),
+                    QPointF(body.left() - body.width() * (offset - 0.08), body.center().y() - body.height() * 0.12),
+                )
+
         if kind == "turtle":
             painter.setPen(QPen(QColor("#64748b"), 1.1))
             painter.drawEllipse(body.adjusted(body.width() * 0.18, body.height() * 0.2, -body.width() * 0.22, -body.height() * 0.24))
+
+    def _draw_nutrition_marker(self, painter: QPainter, card: QRectF) -> None:
+        if self._mode == "mini":
+            return
+
+        label = self._nutrition_label()
+        if label == "не указано":
+            return
+
+        marker = QRectF(card.right() - 54, card.top() + 12, 38, 22)
+        painter.save()
+        painter.setPen(QPen(QColor("#d4c5ad"), 1))
+        painter.setBrush(QColor("#fffaf0"))
+        painter.drawRoundedRect(marker, 7, 7)
+        painter.setPen(QColor("#4b5563"))
+        font = QFont(painter.font())
+        font.setPointSize(8 if self._mode == "compact" else 9)
+        font.setBold(True)
+        painter.setFont(font)
+        painter.drawText(marker, Qt.AlignCenter, self._nutrition_short_label(label))
+        painter.restore()
+
     def _draw_badges(self, painter: QPainter, card: QRectF) -> None:
         if self._mode == "mini":
             text = f"{self._short_species()} | {self._color_label()} | {self._size_label()}"
@@ -614,6 +671,42 @@ class CreaturePortraitWidget(QWidget):
 
             painter.setPen(QColor("#4b5563"))
             painter.drawText(chip.adjusted(6, 0, -6, 0), Qt.AlignVCenter | Qt.AlignLeft, text)
+
+    def _nutrition_label(self) -> str:
+        text = self._phenotype_nutrition.casefold()
+        if "смеш" in text or ("хищ" in text and "трав" in text):
+            return "смешанный"
+        if "хищ" in text:
+            return "хищный"
+        if "трав" in text:
+            return "травоядный"
+        return "не указано"
+
+    @staticmethod
+    def _nutrition_short_label(label: str) -> str:
+        if label == "хищный":
+            return "Х"
+        if label == "травоядный":
+            return "Т"
+        if label == "смешанный":
+            return "С"
+        return "?"
+
+    def _detail_label(self) -> str:
+        summary = self._phenotype_summary.casefold()
+        details = [
+            ("плавник", ("плавник",)),
+            ("панцирь", ("панцир",)),
+            ("клешни", ("клеш",)),
+            ("раковина", ("раков", "моллюск")),
+            ("шерсть", ("шерст",)),
+            ("скорость", ("скор", "быстр")),
+            ("шипы", ("шип",)),
+        ]
+        for label, tokens in details:
+            if any(token in summary for token in tokens):
+                return label
+        return "см. фенотип"
 
     def _summary_has(self, *tokens: str) -> bool:
         summary = self._phenotype_summary.casefold()
