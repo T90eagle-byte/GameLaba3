@@ -225,12 +225,27 @@ class CreaturePortraitWidget(QWidget):
             return "bony_fish"
         return "unknown"
 
-    @staticmethod
-    def _scaled_body_rect(area: QRectF, scale: float) -> QRectF:
-        w = area.width() * 0.55 * scale
-        h = area.height() * 0.40 * scale
-        w = min(w, area.width() * 0.86)
-        h = min(h, area.height() * 0.75)
+    def _scaled_body_rect(self, area: QRectF, scale: float) -> QRectF:
+        kind = self._species_kind()
+        if kind == "cartilaginous_fish":
+            width_factor, height_factor = 0.66, 0.34
+        elif kind == "bony_fish":
+            width_factor, height_factor = 0.58, 0.44
+        elif kind == "crustacean":
+            width_factor, height_factor = 0.60, 0.48
+        elif kind == "mollusk":
+            width_factor, height_factor = 0.60, 0.46
+        elif kind == "turtle":
+            width_factor, height_factor = 0.58, 0.48
+        elif kind == "mammal":
+            width_factor, height_factor = 0.60, 0.46
+        else:
+            width_factor, height_factor = 0.56, 0.42
+
+        w = area.width() * width_factor * scale
+        h = area.height() * height_factor * scale
+        w = min(w, area.width() * 0.82)
+        h = min(h, area.height() * 0.72)
         return QRectF(area.center().x() - w / 2, area.center().y() - h / 2, w, h)
 
     def _draw_sketch_shadow(self, painter: QPainter, body: QRectF) -> None:
@@ -250,263 +265,318 @@ class CreaturePortraitWidget(QWidget):
         painter.restore()
 
     def _draw_cartilaginous_fish(self, painter: QPainter, body: QRectF) -> None:
-        painter.setPen(self._outline_pen())
-        painter.setBrush(self._base_fill_color())
+        painter.save()
+        fill = self._base_fill_color()
+        painter.setPen(self._outline_pen(1.7))
+        painter.setBrush(fill)
 
-        path = QPainterPath()
-        path.moveTo(body.left() + body.width() * 0.06, body.center().y())
-        path.cubicTo(
-            body.left() + body.width() * 0.22,
-            body.top() - body.height() * 0.18,
-            body.right() - body.width() * 0.28,
-            body.top() + body.height() * 0.05,
+        core = QPainterPath()
+        core.moveTo(body.left() + body.width() * 0.02, body.center().y())
+        core.cubicTo(
+            body.left() + body.width() * 0.18,
+            body.top() + body.height() * 0.03,
+            body.right() - body.width() * 0.22,
+            body.top() - body.height() * 0.08,
             body.right(),
+            body.center().y() - body.height() * 0.02,
+        )
+        core.cubicTo(
+            body.right() - body.width() * 0.2,
+            body.bottom() + body.height() * 0.06,
+            body.left() + body.width() * 0.18,
+            body.bottom() - body.height() * 0.02,
+            body.left() + body.width() * 0.02,
             body.center().y(),
         )
-        path.cubicTo(
-            body.right() - body.width() * 0.28,
-            body.bottom() - body.height() * 0.05,
-            body.left() + body.width() * 0.22,
-            body.bottom() + body.height() * 0.18,
-            body.left() + body.width() * 0.06,
-            body.center().y(),
-        )
-        painter.drawPath(path)
+        painter.drawPath(core)
 
         tail = QPainterPath()
-        tail.moveTo(body.left() + body.width() * 0.05, body.center().y())
-        tail.lineTo(body.left() - body.width() * 0.22, body.top() + body.height() * 0.12)
-        tail.lineTo(body.left() - body.width() * 0.2, body.bottom() - body.height() * 0.12)
+        tail.moveTo(body.left() + body.width() * 0.04, body.center().y())
+        tail.lineTo(body.left() - body.width() * 0.22, body.top() + body.height() * 0.04)
+        tail.lineTo(body.left() - body.width() * 0.15, body.center().y())
+        tail.lineTo(body.left() - body.width() * 0.22, body.bottom() - body.height() * 0.04)
         tail.closeSubpath()
         painter.drawPath(tail)
 
-        fin_height = 0.45 if self._summary_has("заостр") else 0.32
-        fin = QPainterPath()
-        fin.moveTo(body.center().x() - body.width() * 0.04, body.top() + body.height() * 0.08)
-        fin.lineTo(body.center().x() + body.width() * 0.08, body.top() - body.height() * fin_height)
-        fin.lineTo(body.center().x() + body.width() * 0.18, body.top() + body.height() * 0.1)
-        fin.closeSubpath()
-        painter.drawPath(fin)
+        fin_height = 0.55 if self._summary_has("заостр") else 0.38
+        dorsal = QPainterPath()
+        dorsal.moveTo(body.left() + body.width() * 0.42, body.top() + body.height() * 0.08)
+        dorsal.lineTo(body.left() + body.width() * 0.52, body.top() - body.height() * fin_height)
+        dorsal.lineTo(body.left() + body.width() * 0.64, body.top() + body.height() * 0.12)
+        dorsal.closeSubpath()
+        painter.drawPath(dorsal)
 
-        self._draw_eye(painter, QPointF(body.right() - body.width() * 0.18, body.center().y() - body.height() * 0.12))
-        painter.drawArc(
-            QRectF(body.right() - body.width() * 0.26, body.center().y() - body.height() * 0.2, body.width() * 0.12, body.height() * 0.4),
-            70 * 16,
-            220 * 16,
+        painter.setBrush(fill.lighter(110))
+        for x_mul, y_mul, sign in ((0.44, 0.72, -1), (0.66, 0.70, 1)):
+            fin = QPainterPath()
+            x = body.left() + body.width() * x_mul
+            y = body.top() + body.height() * y_mul
+            fin.moveTo(x, y)
+            fin.lineTo(x + body.width() * 0.12 * sign, y + body.height() * 0.34)
+            fin.lineTo(x + body.width() * 0.19 * sign, y + body.height() * 0.05)
+            fin.closeSubpath()
+            painter.drawPath(fin)
+
+        painter.setPen(QPen(QColor("#4b6475"), 1.0))
+        for offset in (0.11, 0.16, 0.21):
+            painter.drawLine(
+                QPointF(body.right() - body.width() * 0.25, body.center().y() - body.height() * offset),
+                QPointF(body.right() - body.width() * 0.2, body.center().y() + body.height() * (offset - 0.04)),
+            )
+        painter.drawLine(
+            QPointF(body.right() - body.width() * 0.08, body.center().y() + body.height() * 0.12),
+            QPointF(body.right() - body.width() * 0.01, body.center().y() + body.height() * 0.09),
         )
+        painter.setPen(self._outline_pen())
+        self._draw_eye(painter, QPointF(body.right() - body.width() * 0.16, body.center().y() - body.height() * 0.13))
+        painter.restore()
 
     def _draw_bony_fish(self, painter: QPainter, body: QRectF) -> None:
-        painter.setPen(self._outline_pen())
-        painter.setBrush(self._base_fill_color())
+        painter.save()
+        fill = self._base_fill_color()
+        painter.setPen(self._outline_pen(1.7))
+        painter.setBrush(fill)
 
-        painter.drawEllipse(body)
+        fish_body = QRectF(body.left() + body.width() * 0.08, body.top(), body.width() * 0.78, body.height())
+        shape = QPainterPath()
+        shape.moveTo(fish_body.left(), fish_body.center().y())
+        shape.cubicTo(
+            fish_body.left() + fish_body.width() * 0.18,
+            fish_body.top() - fish_body.height() * 0.05,
+            fish_body.right() - fish_body.width() * 0.18,
+            fish_body.top() - fish_body.height() * 0.08,
+            fish_body.right(),
+            fish_body.center().y(),
+        )
+        shape.cubicTo(
+            fish_body.right() - fish_body.width() * 0.18,
+            fish_body.bottom() + fish_body.height() * 0.08,
+            fish_body.left() + fish_body.width() * 0.18,
+            fish_body.bottom() + fish_body.height() * 0.05,
+            fish_body.left(),
+            fish_body.center().y(),
+        )
+        painter.drawPath(shape)
 
+        painter.setBrush(fill.lighter(108))
         tail = QPainterPath()
-        tail.moveTo(body.left(), body.center().y())
-        tail.lineTo(body.left() - body.width() * 0.24, body.top() + body.height() * 0.07)
-        tail.lineTo(body.left() - body.width() * 0.24, body.bottom() - body.height() * 0.07)
-        tail.closeSubpath()
+        tail.moveTo(fish_body.left(), fish_body.center().y())
+        tail.cubicTo(body.left() - body.width() * 0.12, fish_body.top(), body.left() - body.width() * 0.18, fish_body.top() + fish_body.height() * 0.18, fish_body.left() - body.width() * 0.02, fish_body.center().y())
+        tail.cubicTo(body.left() - body.width() * 0.18, fish_body.bottom() - fish_body.height() * 0.18, body.left() - body.width() * 0.12, fish_body.bottom(), fish_body.left(), fish_body.center().y())
         painter.drawPath(tail)
 
         top_fin = QPainterPath()
-        top_fin.moveTo(body.center().x() - body.width() * 0.1, body.top() + body.height() * 0.06)
-        top_fin.quadTo(
-            body.center().x(),
-            body.top() - body.height() * 0.26,
-            body.center().x() + body.width() * 0.16,
-            body.top() + body.height() * 0.12,
-        )
+        top_fin.moveTo(fish_body.center().x() - fish_body.width() * 0.14, fish_body.top() + fish_body.height() * 0.08)
+        top_fin.quadTo(fish_body.center().x(), fish_body.top() - fish_body.height() * 0.24, fish_body.center().x() + fish_body.width() * 0.18, fish_body.top() + fish_body.height() * 0.11)
         painter.drawPath(top_fin)
 
-        painter.setPen(QPen(QColor("#5b7088"), 1))
-        for shift in (0.18, 0.34, 0.5):
-            arc = QRectF(
-                body.left() + body.width() * shift,
-                body.top() + body.height() * 0.2,
-                body.width() * 0.3,
-                body.height() * 0.6,
-            )
-            painter.drawArc(arc, 65 * 16, 230 * 16)
+        bottom_fin = QPainterPath()
+        bottom_fin.moveTo(fish_body.center().x() - fish_body.width() * 0.02, fish_body.bottom() - fish_body.height() * 0.1)
+        bottom_fin.quadTo(fish_body.center().x() + fish_body.width() * 0.08, fish_body.bottom() + fish_body.height() * 0.24, fish_body.center().x() + fish_body.width() * 0.18, fish_body.bottom() - fish_body.height() * 0.12)
+        painter.drawPath(bottom_fin)
 
+        painter.setPen(QPen(QColor("#5b7088"), 1.0))
+        for shift in (0.20, 0.34, 0.48, 0.62):
+            arc = QRectF(fish_body.left() + fish_body.width() * shift, fish_body.top() + fish_body.height() * 0.17, fish_body.width() * 0.23, fish_body.height() * 0.66)
+            painter.drawArc(arc, 70 * 16, 220 * 16)
         painter.setPen(self._outline_pen())
-        self._draw_eye(painter, QPointF(body.right() - body.width() * 0.2, body.center().y() - body.height() * 0.1))
+        self._draw_eye(painter, QPointF(fish_body.right() - fish_body.width() * 0.17, fish_body.center().y() - fish_body.height() * 0.12))
+        painter.restore()
 
     def _draw_crustacean(self, painter: QPainter, body: QRectF) -> None:
-        painter.setPen(self._outline_pen())
-        painter.setBrush(self._base_fill_color())
+        painter.save()
+        fill = self._base_fill_color()
+        painter.setPen(self._outline_pen(1.6))
+        painter.setBrush(fill)
 
-        left_seg = QRectF(body.left(), body.top() + body.height() * 0.2, body.width() * 0.3, body.height() * 0.6)
-        mid_seg = QRectF(body.left() + body.width() * 0.24, body.top() + body.height() * 0.15, body.width() * 0.34, body.height() * 0.7)
-        right_seg = QRectF(body.left() + body.width() * 0.54, body.top() + body.height() * 0.2, body.width() * 0.3, body.height() * 0.6)
-        painter.drawEllipse(left_seg)
-        painter.drawEllipse(mid_seg)
-        painter.drawEllipse(right_seg)
+        segments = []
+        for idx, scale in enumerate((0.74, 0.86, 0.98, 0.84)):
+            x = body.left() + body.width() * (0.14 + idx * 0.17)
+            seg = QRectF(x, body.top() + body.height() * (0.5 - scale * 0.28), body.width() * 0.22, body.height() * scale * 0.56)
+            segments.append(seg)
+            painter.drawEllipse(seg)
 
-        claw_len = 0.26 if self._summary_has("длин") else 0.2
-        for direction in (-1, 1):
-            base_x = mid_seg.center().x() + direction * mid_seg.width() * 0.48
-            base_y = mid_seg.top() + mid_seg.height() * 0.35
-            painter.drawLine(
-                QPointF(base_x, base_y),
-                QPointF(base_x + direction * body.width() * claw_len, base_y - body.height() * 0.25),
-            )
+        tail = QPainterPath()
+        tail.moveTo(body.left() + body.width() * 0.1, body.center().y())
+        tail.lineTo(body.left() - body.width() * 0.1, body.top() + body.height() * 0.26)
+        tail.lineTo(body.left() + body.width() * 0.04, body.center().y())
+        tail.lineTo(body.left() - body.width() * 0.1, body.bottom() - body.height() * 0.26)
+        tail.closeSubpath()
+        painter.drawPath(tail)
 
+        claw_len = 0.28 if self._summary_has("длин") else 0.22
+        head = segments[-1]
+        for side in (-1, 1):
+            arm_base = QPointF(head.center().x() + side * head.width() * 0.28, head.center().y() - head.height() * 0.18)
+            arm_tip = QPointF(arm_base.x() + side * body.width() * claw_len, arm_base.y() - body.height() * 0.18)
+            painter.drawLine(arm_base, arm_tip)
             claw = QPainterPath()
-            claw.moveTo(base_x + direction * body.width() * claw_len, base_y - body.height() * 0.25)
-            claw.lineTo(base_x + direction * body.width() * (claw_len + 0.1), base_y - body.height() * 0.35)
-            claw.lineTo(base_x + direction * body.width() * (claw_len + 0.02), base_y - body.height() * 0.12)
+            claw.moveTo(arm_tip)
+            claw.quadTo(arm_tip.x() + side * body.width() * 0.08, arm_tip.y() - body.height() * 0.16, arm_tip.x() + side * body.width() * 0.16, arm_tip.y() - body.height() * 0.04)
+            claw.lineTo(arm_tip.x() + side * body.width() * 0.06, arm_tip.y() + body.height() * 0.04)
+            claw.quadTo(arm_tip.x() + side * body.width() * 0.14, arm_tip.y() + body.height() * 0.13, arm_tip.x() + side * body.width() * 0.02, arm_tip.y() + body.height() * 0.12)
             claw.closeSubpath()
             painter.drawPath(claw)
 
-        painter.setPen(QPen(QColor("#334155"), 1.3))
+        painter.setPen(QPen(QColor("#334155"), 1.2))
         for idx in range(4):
-            y = body.top() + body.height() * (0.22 + idx * 0.18)
-            painter.drawLine(
-                QPointF(mid_seg.left() - body.width() * 0.02, y),
-                QPointF(body.left() - body.width() * 0.2, y + 5),
-            )
-            painter.drawLine(
-                QPointF(mid_seg.right() + body.width() * 0.02, y),
-                QPointF(body.right() + body.width() * 0.2, y + 5),
-            )
+            seg = segments[min(idx, len(segments) - 1)]
+            for side in (-1, 1):
+                start = QPointF(seg.center().x(), seg.bottom() - seg.height() * 0.16)
+                mid = QPointF(start.x() + side * body.width() * 0.12, start.y() + body.height() * 0.16)
+                end = QPointF(mid.x() + side * body.width() * 0.08, mid.y() + body.height() * 0.06)
+                painter.drawLine(start, mid)
+                painter.drawLine(mid, end)
+
+        painter.drawLine(QPointF(head.right() - head.width() * 0.18, head.top() + head.height() * 0.18), QPointF(head.right() + body.width() * 0.12, head.top() - body.height() * 0.12))
+        painter.drawLine(QPointF(head.right() - head.width() * 0.08, head.top() + head.height() * 0.24), QPointF(head.right() + body.width() * 0.16, head.top() + body.height() * 0.02))
+        self._draw_eye(painter, QPointF(head.right() - head.width() * 0.24, head.center().y() - head.height() * 0.16))
+        painter.restore()
 
     def _draw_mollusk(self, painter: QPainter, body: QRectF) -> None:
-        painter.setPen(self._outline_pen())
-        painter.setBrush(self._base_fill_color())
+        painter.save()
+        fill = self._base_fill_color()
+        shell_fill = fill.darker(106)
+        painter.setPen(self._outline_pen(1.6))
+        painter.setBrush(shell_fill)
 
-        shell = QRectF(body.left() + body.width() * 0.08, body.top() + body.height() * 0.08, body.width() * 0.54, body.height() * 0.82)
-        painter.drawEllipse(shell)
+        shell = QRectF(body.left() + body.width() * 0.03, body.top() + body.height() * 0.04, body.width() * 0.52, body.height() * 0.76)
+        shell_path = QPainterPath()
+        shell_path.moveTo(shell.left() + shell.width() * 0.18, shell.center().y())
+        shell_path.cubicTo(shell.left() + shell.width() * 0.1, shell.top() + shell.height() * 0.1, shell.right() - shell.width() * 0.1, shell.top() - shell.height() * 0.02, shell.right(), shell.center().y())
+        shell_path.cubicTo(shell.right() - shell.width() * 0.04, shell.bottom() + shell.height() * 0.06, shell.left() + shell.width() * 0.16, shell.bottom() - shell.height() * 0.02, shell.left() + shell.width() * 0.18, shell.center().y())
+        painter.drawPath(shell_path)
 
         painter.setPen(QPen(QColor("#64748b"), 1.2))
+        center = shell.center()
         spiral = QPainterPath()
-        spiral.moveTo(shell.center())
-        spiral.cubicTo(
-            shell.center().x() + shell.width() * 0.22,
-            shell.center().y() - shell.height() * 0.12,
-            shell.center().x() + shell.width() * 0.1,
-            shell.top() + shell.height() * 0.05,
-            shell.left() + shell.width() * 0.22,
-            shell.top() + shell.height() * 0.2,
-        )
-        spiral.cubicTo(
-            shell.left() + shell.width() * 0.02,
-            shell.top() + shell.height() * 0.34,
-            shell.left() + shell.width() * 0.14,
-            shell.bottom() - shell.height() * 0.14,
-            shell.center().x() + shell.width() * 0.06,
-            shell.bottom() - shell.height() * 0.12,
-        )
+        spiral.moveTo(center)
+        spiral.cubicTo(center.x() + shell.width() * 0.22, center.y() - shell.height() * 0.12, center.x() + shell.width() * 0.12, shell.top() + shell.height() * 0.12, shell.left() + shell.width() * 0.34, shell.top() + shell.height() * 0.18)
+        spiral.cubicTo(shell.left() + shell.width() * 0.02, shell.top() + shell.height() * 0.34, shell.left() + shell.width() * 0.16, shell.bottom() - shell.height() * 0.18, center.x() + shell.width() * 0.08, shell.bottom() - shell.height() * 0.12)
         painter.drawPath(spiral)
+        for shift in (0.28, 0.46, 0.64):
+            painter.drawArc(shell.adjusted(shell.width() * shift * 0.25, shell.height() * 0.08, -shell.width() * 0.08, -shell.height() * 0.1), 110 * 16, 105 * 16)
 
-        painter.setPen(self._outline_pen())
-        soft = QRectF(body.left() + body.width() * 0.46, body.top() + body.height() * 0.46, body.width() * 0.5, body.height() * 0.32)
-        painter.setBrush(self._base_fill_color().lighter(108))
-        painter.drawRoundedRect(soft, 9, 9)
-        self._draw_eye(painter, QPointF(soft.right() - soft.width() * 0.14, soft.center().y() - soft.height() * 0.18))
+        painter.setPen(self._outline_pen(1.5))
+        painter.setBrush(fill.lighter(112))
+        soft = QPainterPath()
+        soft.moveTo(body.left() + body.width() * 0.42, body.center().y() + body.height() * 0.08)
+        soft.cubicTo(body.left() + body.width() * 0.55, body.top() + body.height() * 0.42, body.right() - body.width() * 0.1, body.top() + body.height() * 0.42, body.right(), body.center().y() + body.height() * 0.03)
+        soft.cubicTo(body.right() - body.width() * 0.04, body.bottom() - body.height() * 0.06, body.left() + body.width() * 0.54, body.bottom() - body.height() * 0.12, body.left() + body.width() * 0.42, body.center().y() + body.height() * 0.08)
+        painter.drawPath(soft)
+
+        head = QRectF(body.right() - body.width() * 0.16, body.center().y() - body.height() * 0.08, body.width() * 0.16, body.height() * 0.16)
+        painter.drawEllipse(head)
+        painter.drawLine(QPointF(head.center().x(), head.top()), QPointF(head.center().x() + body.width() * 0.08, head.top() - body.height() * 0.16))
+        painter.drawLine(QPointF(head.center().x() - head.width() * 0.15, head.top() + head.height() * 0.12), QPointF(head.center().x() - body.width() * 0.02, head.top() - body.height() * 0.12))
+        self._draw_eye(painter, QPointF(head.right() - head.width() * 0.28, head.center().y() - head.height() * 0.12))
+        painter.restore()
 
     def _draw_turtle(self, painter: QPainter, body: QRectF) -> None:
-        painter.setPen(self._outline_pen())
-        painter.setBrush(self._base_fill_color())
+        painter.save()
+        fill = self._base_fill_color()
+        painter.setPen(self._outline_pen(1.7))
+        painter.setBrush(fill)
 
-        shell = QRectF(body.left() + body.width() * 0.08, body.top() + body.height() * 0.14, body.width() * 0.72, body.height() * 0.68)
-        painter.drawEllipse(shell)
+        shell = QRectF(body.left() + body.width() * 0.12, body.top() + body.height() * 0.08, body.width() * 0.64, body.height() * 0.72)
+        shell_path = QPainterPath()
+        shell_path.moveTo(shell.left(), shell.center().y())
+        shell_path.cubicTo(shell.left() + shell.width() * 0.12, shell.top() - shell.height() * 0.08, shell.right() - shell.width() * 0.1, shell.top() - shell.height() * 0.08, shell.right(), shell.center().y())
+        shell_path.cubicTo(shell.right() - shell.width() * 0.08, shell.bottom() + shell.height() * 0.08, shell.left() + shell.width() * 0.12, shell.bottom() + shell.height() * 0.05, shell.left(), shell.center().y())
+        painter.drawPath(shell_path)
 
         painter.setPen(QPen(QColor("#5f7288"), 1.1))
-        painter.drawArc(shell.adjusted(shell.width() * 0.14, shell.height() * 0.2, -shell.width() * 0.14, -shell.height() * 0.2), 0, 360 * 16)
-        painter.drawLine(
-            QPointF(shell.left() + shell.width() * 0.25, shell.center().y()),
-            QPointF(shell.right() - shell.width() * 0.25, shell.center().y()),
-        )
-        painter.drawLine(
-            QPointF(shell.center().x(), shell.top() + shell.height() * 0.18),
-            QPointF(shell.center().x(), shell.bottom() - shell.height() * 0.18),
-        )
+        inner = shell.adjusted(shell.width() * 0.15, shell.height() * 0.18, -shell.width() * 0.15, -shell.height() * 0.18)
+        painter.drawEllipse(inner)
+        painter.drawLine(QPointF(shell.left() + shell.width() * 0.18, shell.center().y()), QPointF(shell.right() - shell.width() * 0.18, shell.center().y()))
+        painter.drawLine(QPointF(shell.center().x(), shell.top() + shell.height() * 0.16), QPointF(shell.center().x(), shell.bottom() - shell.height() * 0.14))
+        painter.drawLine(QPointF(shell.left() + shell.width() * 0.33, shell.top() + shell.height() * 0.22), QPointF(shell.left() + shell.width() * 0.26, shell.bottom() - shell.height() * 0.2))
+        painter.drawLine(QPointF(shell.left() + shell.width() * 0.67, shell.top() + shell.height() * 0.22), QPointF(shell.left() + shell.width() * 0.74, shell.bottom() - shell.height() * 0.2))
 
         if self._summary_has("шип"):
-            painter.setPen(self._outline_pen(1.4))
-            for shift in (0.2, 0.35, 0.5, 0.65):
+            painter.setPen(self._outline_pen(1.2))
+            for shift in (0.18, 0.34, 0.5, 0.66):
                 x = shell.left() + shell.width() * shift
                 spike = QPainterPath()
                 spike.moveTo(x, shell.top() + shell.height() * 0.08)
-                spike.lineTo(x + shell.width() * 0.04, shell.top() - shell.height() * 0.08)
-                spike.lineTo(x + shell.width() * 0.08, shell.top() + shell.height() * 0.1)
+                spike.lineTo(x + shell.width() * 0.04, shell.top() - shell.height() * 0.07)
+                spike.lineTo(x + shell.width() * 0.08, shell.top() + shell.height() * 0.09)
                 spike.closeSubpath()
                 painter.drawPath(spike)
 
-        painter.setPen(self._outline_pen())
-        head = QRectF(shell.right() - shell.width() * 0.02, shell.center().y() - shell.height() * 0.14, shell.width() * 0.24, shell.height() * 0.28)
+        painter.setPen(self._outline_pen(1.5))
+        painter.setBrush(fill.lighter(112))
+        head = QRectF(shell.right() - shell.width() * 0.02, shell.center().y() - shell.height() * 0.15, shell.width() * 0.23, shell.height() * 0.30)
         painter.drawEllipse(head)
         self._draw_eye(painter, QPointF(head.center().x() + head.width() * 0.14, head.center().y() - head.height() * 0.12))
 
-        foot_w = shell.width() * 0.2
-        foot_h = shell.height() * 0.2
+        foot_w = shell.width() * 0.18
+        foot_h = shell.height() * 0.22
         feet = [
-            QRectF(shell.left() + shell.width() * 0.08, shell.top() - foot_h * 0.22, foot_w, foot_h),
-            QRectF(shell.right() - shell.width() * 0.28, shell.top() - foot_h * 0.22, foot_w, foot_h),
-            QRectF(shell.left() + shell.width() * 0.08, shell.bottom() - foot_h * 0.76, foot_w, foot_h),
-            QRectF(shell.right() - shell.width() * 0.28, shell.bottom() - foot_h * 0.76, foot_w, foot_h),
+            QRectF(shell.left() + shell.width() * 0.02, shell.top() + shell.height() * 0.08, foot_w, foot_h),
+            QRectF(shell.right() - shell.width() * 0.18, shell.top() + shell.height() * 0.08, foot_w, foot_h),
+            QRectF(shell.left() + shell.width() * 0.04, shell.bottom() - shell.height() * 0.22, foot_w, foot_h),
+            QRectF(shell.right() - shell.width() * 0.2, shell.bottom() - shell.height() * 0.22, foot_w, foot_h),
         ]
         for foot in feet:
             painter.drawRoundedRect(foot, 7, 7)
 
         tail = QPainterPath()
-        tail.moveTo(shell.left() - shell.width() * 0.02, shell.center().y())
-        tail.lineTo(shell.left() - shell.width() * 0.14, shell.center().y() - shell.height() * 0.08)
-        tail.lineTo(shell.left() - shell.width() * 0.14, shell.center().y() + shell.height() * 0.08)
+        tail.moveTo(shell.left() - shell.width() * 0.01, shell.center().y())
+        tail.lineTo(shell.left() - shell.width() * 0.13, shell.center().y() - shell.height() * 0.07)
+        tail.lineTo(shell.left() - shell.width() * 0.12, shell.center().y() + shell.height() * 0.08)
         tail.closeSubpath()
         painter.drawPath(tail)
+        painter.restore()
 
     def _draw_mammal(self, painter: QPainter, body: QRectF) -> None:
-        painter.setPen(self._outline_pen())
-        painter.setBrush(self._base_fill_color())
+        painter.save()
+        fill = self._base_fill_color()
+        painter.setPen(self._outline_pen(1.7))
+        painter.setBrush(fill)
 
-        trunk = QRectF(body.left() + body.width() * 0.04, body.top() + body.height() * 0.12, body.width() * 0.66, body.height() * 0.62)
-        head = QRectF(trunk.right() - trunk.width() * 0.02, trunk.top() + trunk.height() * 0.08, trunk.width() * 0.38, trunk.height() * 0.5)
-
+        trunk = QRectF(body.left() + body.width() * 0.08, body.top() + body.height() * 0.18, body.width() * 0.58, body.height() * 0.54)
         painter.drawRoundedRect(trunk, 18, 18)
+
+        head = QRectF(trunk.right() - trunk.width() * 0.02, trunk.top() - trunk.height() * 0.02, trunk.width() * 0.42, trunk.height() * 0.55)
         painter.drawEllipse(head)
 
-        ear_l = QPainterPath()
-        ear_l.moveTo(head.left() + head.width() * 0.22, head.top() + head.height() * 0.12)
-        ear_l.lineTo(head.left() + head.width() * 0.1, head.top() - head.height() * 0.26)
-        ear_l.lineTo(head.left() + head.width() * 0.35, head.top() - head.height() * 0.04)
-        ear_l.closeSubpath()
-        painter.drawPath(ear_l)
+        for x_mul in (0.24, 0.72):
+            ear = QPainterPath()
+            x = head.left() + head.width() * x_mul
+            ear.moveTo(x, head.top() + head.height() * 0.16)
+            ear.lineTo(x + head.width() * (0.14 if x_mul > 0.5 else -0.14), head.top() - head.height() * 0.24)
+            ear.lineTo(x + head.width() * (0.22 if x_mul < 0.5 else -0.22), head.top() + head.height() * 0.02)
+            ear.closeSubpath()
+            painter.drawPath(ear)
 
-        ear_r = QPainterPath()
-        ear_r.moveTo(head.right() - head.width() * 0.2, head.top() + head.height() * 0.12)
-        ear_r.lineTo(head.right() - head.width() * 0.05, head.top() - head.height() * 0.24)
-        ear_r.lineTo(head.right() - head.width() * 0.3, head.top() - head.height() * 0.04)
-        ear_r.closeSubpath()
-        painter.drawPath(ear_r)
+        tail = QPainterPath()
+        tail.moveTo(trunk.left() + trunk.width() * 0.04, trunk.center().y() - trunk.height() * 0.04)
+        tail.cubicTo(trunk.left() - trunk.width() * 0.22, trunk.top() + trunk.height() * 0.12, trunk.left() - trunk.width() * 0.28, trunk.bottom() - trunk.height() * 0.22, trunk.left() - trunk.width() * 0.1, trunk.bottom() - trunk.height() * 0.18)
+        painter.drawPath(tail)
 
         self._draw_eye(painter, QPointF(head.center().x() + head.width() * 0.16, head.center().y() - head.height() * 0.12))
+        painter.setPen(QPen(QColor("#334155"), 1.0))
+        painter.drawLine(QPointF(head.right() - head.width() * 0.14, head.center().y() + head.height() * 0.08), QPointF(head.right() - head.width() * 0.03, head.center().y() + head.height() * 0.1))
 
-        for shift in (0.12, 0.36, 0.58, 0.8):
-            leg = QRectF(
-                trunk.left() + trunk.width() * shift,
-                trunk.bottom() - trunk.height() * 0.12,
-                trunk.width() * 0.12,
-                trunk.height() * 0.3,
-            )
-            painter.drawRoundedRect(leg, 4, 4)
+        painter.setPen(self._outline_pen(1.5))
+        for shift in (0.14, 0.44, 0.66, 0.86):
+            leg = QRectF(trunk.left() + trunk.width() * shift, trunk.bottom() - trunk.height() * 0.08, trunk.width() * 0.11, trunk.height() * 0.34)
+            painter.drawRoundedRect(leg, 5, 5)
 
-        if self._summary_has("шерсть"):
-            painter.setPen(QPen(QColor("#516274"), 1))
-            for shift in (0.15, 0.25, 0.35, 0.45, 0.55):
-                x = trunk.left() + trunk.width() * shift
-                painter.drawLine(
-                    QPointF(x, trunk.top() + trunk.height() * 0.03),
-                    QPointF(x + trunk.width() * 0.05, trunk.top() - trunk.height() * 0.1),
-                )
+        painter.setPen(QPen(QColor("#516274"), 1.0))
+        fur_shifts = (0.12, 0.22, 0.32, 0.46, 0.58, 0.7)
+        if self._summary_has("шерст"):
+            fur_shifts = (0.08, 0.16, 0.24, 0.32, 0.44, 0.56, 0.68, 0.8)
+        for shift in fur_shifts:
+            x = trunk.left() + trunk.width() * shift
+            painter.drawLine(QPointF(x, trunk.top() + trunk.height() * 0.03), QPointF(x + trunk.width() * 0.04, trunk.top() - trunk.height() * 0.08))
 
         if self._summary_has("скорость", "высок") or self._summary_has("быстр"):
             painter.setPen(QPen(QColor("#94a3b8"), 1.3))
             for offset in (0.18, 0.32, 0.46):
-                painter.drawLine(
-                    QPointF(trunk.left() - trunk.width() * offset, trunk.center().y()),
-                    QPointF(trunk.left() - trunk.width() * (offset - 0.08), trunk.center().y()),
-                )
+                painter.drawLine(QPointF(trunk.left() - trunk.width() * offset, trunk.center().y()), QPointF(trunk.left() - trunk.width() * (offset - 0.08), trunk.center().y()))
+        painter.restore()
 
     def _draw_unknown(self, painter: QPainter, body: QRectF) -> None:
         painter.setPen(self._outline_pen())
@@ -524,34 +594,35 @@ class CreaturePortraitWidget(QWidget):
         painter.drawText(body, Qt.AlignCenter, "?")
 
     def _draw_wings(self, painter: QPainter, body: QRectF) -> None:
+        painter.save()
         wing_fill = QColor("#e7eefb")
-        wing_fill.setAlpha(230)
+        wing_fill.setAlpha(205)
         painter.setBrush(wing_fill)
-        painter.setPen(QPen(QColor("#7b8da8"), 1.4))
+        painter.setPen(QPen(QColor("#7b8da8"), 1.2))
 
-        left = QPainterPath()
-        left.moveTo(body.left() + body.width() * 0.2, body.top() + body.height() * 0.18)
-        left.cubicTo(
-            body.left() - body.width() * 0.32,
-            body.top() - body.height() * 0.25,
-            body.left() - body.width() * 0.24,
-            body.bottom() - body.height() * 0.14,
-            body.left() + body.width() * 0.24,
-            body.center().y(),
-        )
-        painter.drawPath(left)
-
-        right = QPainterPath()
-        right.moveTo(body.right() - body.width() * 0.2, body.top() + body.height() * 0.18)
-        right.cubicTo(
-            body.right() + body.width() * 0.32,
-            body.top() - body.height() * 0.25,
-            body.right() + body.width() * 0.24,
-            body.bottom() - body.height() * 0.14,
-            body.right() - body.width() * 0.24,
-            body.center().y(),
-        )
-        painter.drawPath(right)
+        for side in (-1, 1):
+            wing = QPainterPath()
+            anchor_x = body.center().x() + side * body.width() * 0.18
+            wing.moveTo(anchor_x, body.top() + body.height() * 0.24)
+            wing.cubicTo(
+                anchor_x + side * body.width() * 0.34,
+                body.top() - body.height() * 0.18,
+                anchor_x + side * body.width() * 0.44,
+                body.center().y() + body.height() * 0.05,
+                anchor_x + side * body.width() * 0.1,
+                body.center().y() + body.height() * 0.2,
+            )
+            wing.cubicTo(
+                anchor_x + side * body.width() * 0.24,
+                body.center().y(),
+                anchor_x + side * body.width() * 0.12,
+                body.top() + body.height() * 0.36,
+                anchor_x,
+                body.top() + body.height() * 0.24,
+            )
+            painter.drawPath(wing)
+            painter.drawLine(QPointF(anchor_x + side * body.width() * 0.1, body.center().y() + body.height() * 0.02), QPointF(anchor_x + side * body.width() * 0.32, body.top() + body.height() * 0.04))
+        painter.restore()
 
     @staticmethod
     def _draw_eye(painter: QPainter, center: QPointF) -> None:
