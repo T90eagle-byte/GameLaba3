@@ -16,6 +16,7 @@ Python GUI only calls backend API and displays returned data.
 - Phenotype and genotype come from backend.
 - GUI may translate technical values into Russian display labels, but it must not calculate genetics.
 - `CreaturePortraitWidget` is display-layer only: it visualizes existing species and phenotype data without adding gameplay traits.
+- Portrait details and display-only variation are not new genes, alleles, colors, or mechanics.
 
 ## Crossbreeding
 - Player selects two parent creatures.
@@ -28,6 +29,7 @@ Python GUI only calls backend API and displays returned data.
 - `buy_mutation` spends coins and increases lab mutation stock.
 - `apply_mutation` applies rules, decreases stock, creates experiment, and updates rating through backend.
 - If target allele is already present, phenotype may not visibly change; backend still owns the operation result.
+- GUI compatibility hints are display-level explanations based on backend data already loaded by the GUI.
 
 ## Mutagens
 - Mutagens are experimental impacts.
@@ -41,6 +43,7 @@ Python GUI only calls backend API and displays returned data.
 - Simple tasks are find/tutorial goals: find, select, or present a matching creature.
 - Strict FIND/BREED/MUTATE task typing would be a separate DDL/backend track.
 - Task difficulty in GUI is display-layer hint and is not stored in DB.
+- Checked-creature portrait in the Tasks tab is display-only and does not affect `check_task` or `complete_task`.
 
 ## History
 - Experiment history displays backend records.

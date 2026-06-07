@@ -38,21 +38,38 @@
 - Scenario flow for experiments and mutations.
 - Creature portraits and Creature Art Pass 2.
 
-## Current Stage: Acceptance polish
-Goal: final verification before submission without adding large new features.
+### 7. Post-polish stabilization
+- Mutations compact portrait balanced: readable, centered, not full-width stretched.
+- Tasks checked-creature portrait replaced with compact-thumbnail and empty text state.
+- GUI logic for tasks and mutations was not changed; these are display-layer fixes only.
+
+## Current Stage: Final delivery preparation
+Goal: prepare the repository and instructions for submission/transfer without adding large new features.
 
 Allowed:
-- small GUI/UX/stability fixes;
-- style cleanup;
-- documentation cleanup.
+- docs cleanup;
+- run instructions cleanup;
+- repository hygiene fixes;
+- small GUI/UX/stability fixes only if a blocker is found.
 
 Not allowed without a separate decision:
 - backend changes;
 - DDL changes;
 - seed/test changes;
 - new dependencies;
-- new real genes, alleles, or mechanics;
+- new real genes, alleles, colors, or mechanics;
 - moving business logic into Python.
+
+## Final Delivery Tasks
+- Verify `.gitignore`.
+- Verify `requirements.txt`.
+- Verify `database/README_RUN.md`.
+- Verify no temporary repair files are present.
+- Final `python -m compileall -f python_client`.
+- Final mojibake marker-check.
+- Final manual GUI check.
+- Final Oracle `01..08` if required for submission or if SQL files changed.
+- Prepare for GitLab/university PC transfer.
 
 ## Future Optional Tracks
 - Expand dashboard into a richer progress panel.
