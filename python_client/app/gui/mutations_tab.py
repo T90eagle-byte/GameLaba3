@@ -206,7 +206,13 @@ class MutationsTab(QWidget):
         creature_layout.addRow("", creature_title)
 
         self.creature_portrait = CreaturePortraitWidget(mode="compact")
-        creature_layout.addRow("", self.creature_portrait)
+        self.creature_portrait.set_compact_canvas_limit(560, 260)
+        self.creature_portrait.setMinimumSize(500, 230)
+        portrait_row = QHBoxLayout()
+        portrait_row.addStretch()
+        portrait_row.addWidget(self.creature_portrait)
+        portrait_row.addStretch()
+        creature_layout.addRow("", portrait_row)
 
         self.only_compatible_checkbox = QCheckBox("Показывать несовместимых существ")
         self.only_compatible_checkbox.setChecked(False)
