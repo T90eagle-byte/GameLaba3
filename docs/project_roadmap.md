@@ -1,165 +1,62 @@
-# Project Roadmap
+# Project Roadmap: GameLR3 / BioAssembly
 
-## РўРµРєСѓС‰РёР№ СЌС‚Р°Рї (2026-05-27)
+## Completed Stages
 
-### Р—Р°РІРµСЂС€С‘РЅРЅС‹Рµ backend-pass СЌС‚Р°РїС‹
-1. **Backend strict-pass**
-- PL/SQL backend Р·Р°РІРµСЂС€С‘РЅ.
-- Р¦РµРЅС‚СЂР°Р»СЊРЅС‹Р№ API: `pkg_genetics_game`.
-- spec/body РєРѕРјРїРёР»РёСЂСѓСЋС‚СЃСЏ, `user_errors` РїСѓСЃС‚РѕР№.
-- smoke-tests `01..08` РїСЂРѕС€Р»Рё (`Failed: 0`).
+### 1. Backend strict-pass
+- `pkg_genetics_game` is the central backend API.
+- Package spec/body compile.
+- `user_errors` is empty.
+- Smoke tests `01..08` were green after stabilization.
 
-2. **Content compliance pass (Р›Р 2/KB)**
-- Р Р°СЃС€РёСЂРµРЅ seed-РєРѕРЅС‚РµРЅС‚ РїРѕ РїСЂРёР·РЅР°РєР°Рј, РјСѓС‚Р°С†РёСЏРј Рё Р·Р°РґР°РЅРёСЏРј.
-- РўРµРєСѓС‰РёРµ РѕР±СЉС‘РјС‹: `genes=12`, `alleles=24`, `mutations=12`, `mutation_rules=12`, `tasks=12`, `task_markers=21`.
-- РџРѕРєСЂС‹С‚РёРµ: СѓРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Рµ РїСЂРёР·РЅР°РєРё + `species_type 1..6`.
+### 2. Content compliance
+- Seed covers the required species, genes, alleles, mutations, tasks, and markers.
+- `mutation_rules` and `task_markers` cover universal traits and `species_type 1..6`.
+- Mixed mutation rules were split into coherent species-specific mutations.
 
-3. **Economy pass**
-- `apply_mutation` РїСЂРёРјРµРЅСЏРµС‚ `mutations.rating_effect` Рє СЂРµР№С‚РёРЅРіСѓ Р»Р°Р±РѕСЂР°С‚РѕСЂРёРё.
-- `apply_mutagen` РїРѕР»СѓС‡РёР» СЌРєРѕРЅРѕРјРёРєСѓ:
-  - `RADIATION`: `cost=50`, `rating_delta=-5`.
-  - `CHEMICAL`: `cost=100`, `rating_delta=-2`.
-- Р РµР№С‚РёРЅРі РѕРіСЂР°РЅРёС‡РµРЅ СЃРЅРёР·Сѓ С‡РµСЂРµР· `greatest(0, ...)`.
-- Auto-complete Р·Р°РґР°С‡ РјРѕР¶РµС‚ РєРѕРјРїРµРЅСЃРёСЂРѕРІР°С‚СЊ С€С‚СЂР°С„С‹.
+### 3. Economy
+- `buy_mutation`, `apply_mutation`, and `apply_mutagen` are handled by PL/SQL.
+- RADIATION: cost 50, rating_delta -5.
+- CHEMICAL: cost 100, rating_delta -2.
+- Task auto-complete can add wallet/rating rewards after experiments.
 
-4. **Multiuser strict-pass**
-- Session-bound РґРѕСЃС‚СѓРї Рє Р»Р°Р±РѕСЂР°С‚РѕСЂРёРё СѓСЃРёР»РµРЅ.
-- РћРґРЅР° Р»Р°Р±РѕСЂР°С‚РѕСЂРёСЏ РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РѕС‚РєСЂС‹С‚Р° РІ РґРІСѓС… ACTIVE sessions РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ.
-- РћС€РёР±РєРё:
-  - `-20072` lab already opened in another active session;
-  - `-20073` selected lab is not active in current session.
-- Р”РѕР±Р°РІР»РµРЅ `08_multiuser_sessions_smoke_test.sql`.
+### 4. Multiuser
+- Session-bound lab access is complete.
+- One lab cannot be opened in two ACTIVE sessions.
+- `ORA-20072` and `ORA-20073` have Russian GUI messages.
+- Dev-only stale session script exists.
 
-### GUI РіРѕС‚РѕРІРЅРѕСЃС‚СЊ
-Р РµР°Р»РёР·РѕРІР°РЅС‹ СЌРєСЂР°РЅС‹:
-- Auth
-- Lab Selection
-- Main Shell
-- РЎСѓС‰РµСЃС‚РІР°
-- Р“РµРЅРµС‚РёС‡РµСЃРєРёР№ СЌРєСЃРїРµСЂРёРјРµРЅС‚
-- РњСѓС‚Р°С†РёРё
-- Р—Р°РґР°РЅРёСЏ
-- РСЃС‚РѕСЂРёСЏ СЌРєСЃРїРµСЂРёРјРµРЅС‚РѕРІ
+### 5. GUI foundation
+- Main screens and tabs are implemented.
+- Python remains GUI/display-layer.
+- All gameplay operations go through `pkg_genetics_game`.
 
-### Р›РѕРєР°Р»РёР·Р°С†РёСЏ Рё display-layer
-- РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РµРґРёРЅС‹Р№ mapping РІ `python_client/app/services/display_names.py`.
-- РџРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРѕРµ РѕС‚РѕР±СЂР°Р¶РµРЅРёРµ СЂСѓСЃРёС„РёС†РёСЂРѕРІР°РЅРѕ.
-- Р‘РёР·РЅРµСЃ-Р»РѕРіРёРєР° РѕСЃС‚Р°С‘С‚СЃСЏ РІ PL/SQL.
+### 6. User-friendly polish
+- Onboarding and empty states.
+- Lighter tables.
+- Mission screen for tasks.
+- Laboratory journal for history.
+- Scenario flow for experiments and mutations.
+- Creature portraits and Creature Art Pass 2.
 
-### Р—Р°РєСЂС‹С‚С‹Р№ РёРЅС†РёРґРµРЅС‚
-- РСЃРїСЂР°РІР»РµРЅР° СЃР»РѕРјР°РЅРЅР°СЏ РєРѕРґРёСЂРѕРІРєР° РІРѕ РІРєР»Р°РґРєРµ В«Р—Р°РґР°РЅРёСЏВ» (`tasks_tab.py`, `display_names.py`).
-- Р’РѕСЃСЃС‚Р°РЅРѕРІР»РµРЅС‹ РєРѕСЂСЂРµРєС‚РЅС‹Рµ UTF-8 СЃС‚СЂРѕРєРё Рё mapping task names.
+## Current Stage: Acceptance polish
+Goal: final verification before submission without adding large new features.
 
-## РђРєС‚СѓР°Р»СЊРЅС‹Р№ СЃР»РµРґСѓСЋС‰РёР№ СЌС‚Р°Рї
-**РђСѓРґРёС‚ СЂР°СЃС€РёСЂРµРЅРёСЏ РїСЂРёР·РЅР°РєРѕРІ/РєРѕРЅС‚РµРЅС‚Р° РїРѕ Р›Р 1/Р›Р 2 Рё KB вЂ” РІС‹РїРѕР»РЅРµРЅ.**
+Allowed:
+- small GUI/UX/stability fixes;
+- style cleanup;
+- documentation cleanup.
 
-Р’С‹РІРѕРґ: С‚РµРєСѓС‰РёР№ seed РґРѕСЃС‚Р°С‚РѕС‡РµРЅ РґР»СЏ Р±Р°Р·РѕРІРѕРіРѕ СЃС‚СЂРѕРіРѕРіРѕ СЃРѕРѕС‚РІРµС‚СЃС‚РІРёСЏ Р›Р 1/Р›Р 2, РЅРѕ РґР»СЏ Р±РѕР»РµРµ СЃРёР»СЊРЅРѕРіРѕ СѓС‡РµР±РЅРѕРіРѕ РІРїРµС‡Р°С‚Р»РµРЅРёСЏ РјРѕР¶РЅРѕ РІС‹РїРѕР»РЅРёС‚СЊ РѕС‚РґРµР»СЊРЅС‹Р№ С‚РѕС‡РµС‡РЅС‹Р№ content-pass.
+Not allowed without a separate decision:
+- backend changes;
+- DDL changes;
+- seed/test changes;
+- new dependencies;
+- new real genes, alleles, or mechanics;
+- moving business logic into Python.
 
-Р РµРєРѕРјРµРЅРґСѓРµРјС‹Р№ РїРѕСЂСЏРґРѕРє, РµСЃР»Рё СЂР°СЃС€РёСЂРµРЅРёРµ Р±СѓРґРµС‚ РїРѕРґС‚РІРµСЂР¶РґРµРЅРѕ:
-1. РЎРѕРіР»Р°СЃРѕРІР°С‚СЊ РєРѕРЅРєСЂРµС‚РЅС‹Рµ РїСЂРёР·РЅР°РєРё/Р°Р»Р»РµР»Рё РёР· KB-С‚Р°Р±Р»РёС†С‹, РЅРµ РґРѕР±Р°РІР»СЏСЏ РєРѕРЅС‚РµРЅС‚ РЅР°СѓРіР°Рґ.
-2. Р Р°СЃС€РёСЂРёС‚СЊ С‚РѕР»СЊРєРѕ seed-РґР°РЅРЅС‹Рµ, РµСЃР»Рё РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ: `genes`, `alleles`, `mutations`, `mutation_rules`, `tasks`, `task_markers`.
-3. РћР±РЅРѕРІРёС‚СЊ `display_names.py` РґР»СЏ РЅРѕРІС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёС… РїРѕРґРїРёСЃРµР№.
-4. РћР±РЅРѕРІРёС‚СЊ smoke-tests `02` Рё `07` РїРѕРґ РЅРѕРІРѕРµ РїРѕРєСЂС‹С‚РёРµ.
-5. РџСЂРѕРіРЅР°С‚СЊ seed, `02`, `07`, Р·Р°С‚РµРј РїРѕР»РЅС‹Р№ smoke-РїСЂРѕРіРѕРЅ `01..08`.
-
-## Р§С‚Рѕ СѓР¶Рµ Р·Р°РєСЂС‹С‚Рѕ РїРѕСЃР»Рµ РїСЂРµРґС‹РґСѓС‰РёС… СЌС‚Р°РїРѕРІ
-- GUI closeEvent/logout fix Р·Р°РІРµСЂС€С‘РЅ: Р·Р°РєСЂС‹С‚РёРµ С‡РµСЂРµР· `X` Р±РѕР»СЊС€Рµ РЅРµ РґРѕР»Р¶РЅРѕ РѕСЃС‚Р°РІР»СЏС‚СЊ Р»Р°Р±РѕСЂР°С‚РѕСЂРёСЋ Р·Р°РЅСЏС‚РѕР№.
-- Dev-only СЃРєСЂРёРїС‚ СЂР°Р·Р±Р»РѕРєРёСЂРѕРІРєРё СЃС‚Р°СЂС‹С… Р·Р°РІРёСЃС€РёС… sessions РґРѕР±Р°РІР»РµРЅ: `database/scripts/dev_unlock_stale_sessions.sql`.
-- РСЃС‚РѕСЂРёСЏ СЌРєСЃРїРµСЂРёРјРµРЅС‚РѕРІ РїРѕР»СѓС‡Р°РµС‚ СЂРµР°Р»СЊРЅС‹Р№ `experiments.created_at`.
-
-## Р’РѕР·РјРѕР¶РЅС‹Рµ РѕС‚РґРµР»СЊРЅС‹Рµ С‚СЂРµРєРё
-1. **Seed-only content enrichment**:
-- СѓСЃРёР»РёС‚СЊ РґРµРјРѕРЅСЃС‚СЂР°С†РёСЋ `linkage_group` С‚Р°Рј, РіРґРµ РіСЂСѓРїРїР° СЃРѕРґРµСЂР¶РёС‚ С‚РѕР»СЊРєРѕ РѕРґРёРЅ РіРµРЅ;
-- РґРѕР±Р°РІРёС‚СЊ Р·Р°РґР°РЅРёСЏ/РјСѓС‚Р°С†РёРё С‚РѕР»СЊРєРѕ РїРѕРґ РїРѕРґС‚РІРµСЂР¶РґС‘РЅРЅС‹Рµ KB-РїСЂРёР·РЅР°РєРё;
-- СЂР°СЃС€РёСЂРёС‚СЊ display mappings Рё С‚РµСЃС‚С‹.
-
-2. **Backend/DDL history enrichment**:
-- С…СЂР°РЅРёС‚СЊ С‚РёРї РјСѓС‚Р°РіРµРЅР° Рё/РёР»Рё РёР·РјРµРЅС‘РЅРЅС‹Р№ РіРµРЅ РґР»СЏ MUTAGEN history, РµСЃР»Рё СЌС‚Рѕ РїРѕС‚СЂРµР±СѓРµС‚СЃСЏ РґР»СЏ Р·Р°С‰РёС‚С‹/РґРµРјРѕРЅСЃС‚СЂР°С†РёРё.
-
-3. **DDL generation track**:
-- РґРѕР±Р°РІРёС‚СЊ РїРѕРєРѕР»РµРЅРёРµ СЃСѓС‰РµСЃС‚РІР° (`generation`), РµСЃР»Рё РЅСѓР¶РЅРѕ СЃС‚СЂРѕРіРѕ РїРѕРєР°Р·С‹РІР°С‚СЊ РїРѕРєРѕР»РµРЅРёРµ РІ РєРѕР»Р»РµРєС†РёРё, РєР°Рє РІ СЂР°СЃС€РёСЂРµРЅРЅРѕРј GUI-С‚СЂРµР±РѕРІР°РЅРёРё Р›Р .
-
-4. **Р¤РёРЅР°Р»СЊРЅС‹Р№ UX polish**:
-- dashboard;
-- Р±РѕР»СЊС€Рµ РєР°СЂС‚РѕС‡РµРє РІРјРµСЃС‚Рѕ РїРµСЂРµРіСЂСѓР¶РµРЅРЅС‹С… С‚Р°Р±Р»РёС†;
-- РєРѕРјС„РѕСЂС‚РЅС‹Р№ РїРµСЂРІС‹Р№ Р·Р°РїСѓСЃРє РґР»СЏ РїСЂРµРїРѕРґР°РІР°С‚РµР»СЏ.
-
-## Content/GUI pass: С„РѕСЂРјСѓР»РёСЂРѕРІРєРё Р·Р°РґР°РЅРёР№
-- РћР±РЅРѕРІР»РµРЅС‹ РѕРїРёСЃР°РЅРёСЏ Р·Р°РґР°РЅРёР№ РІ seed Р±РµР· РёР·РјРµРЅРµРЅРёСЏ backend-РјРѕРґРµР»Рё.
-- Р”Р»СЏ Р·Р°РґР°С‡, РІС‹РїРѕР»РЅРёРјС‹С… СЃС‚Р°СЂС‚РѕРІС‹РјРё СЃСѓС‰РµСЃС‚РІР°РјРё, РїСЂРёРјРµРЅРµРЅС‹ С„РѕСЂРјСѓР»РёСЂРѕРІРєРё РќР°Р№РґРёС‚Рµ/РћС‚Р±РµСЂРёС‚Рµ/РїСЂРµРґСЉСЏРІРёС‚Рµ РІРјРµСЃС‚Рѕ РџРѕР»СѓС‡РёС‚Рµ.
-- Р’ roadmap Р·Р°С„РёРєСЃРёСЂРѕРІР°РЅРѕ: СЏРІРЅС‹Рµ С‚РёРїС‹ Р·Р°РґР°С‡ (FIND/BREED/MUTATE) вЂ” РѕС‚РґРµР»СЊРЅС‹Р№ DDL/backend-С‚СЂРµРє РїСЂРё РѕС‚РґРµР»СЊРЅРѕРј РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРё.
-
-
-## Р¤РёРЅР°Р»СЊРЅС‹Р№ UX polish вЂ” Р­С‚Р°Рї 1 Р·Р°РєСЂС‹С‚
-РЎРґРµР»Р°РЅ РїРµСЂРІС‹Р№ Р±РµР·РѕРїР°СЃРЅС‹Р№ РїСЂРѕС…РѕРґ user-friendly polish (onboarding + РїСѓСЃС‚С‹Рµ СЃРѕСЃС‚РѕСЏРЅРёСЏ) Р±РµР· РёР·РјРµРЅРµРЅРёСЏ backend-Р»РѕРіРёРєРё.
-РЎР»РµРґСѓСЋС‰РёР№ С€Р°Рі: Р­С‚Р°Рї 2 вЂ” СЂР°Р·РіСЂСѓР·РєР° С‚Р°Р±Р»РёС† Рё РїРѕРІС‹С€РµРЅРёРµ С‡РёС‚Р°Р±РµР»СЊРЅРѕСЃС‚Рё (Р±РµР· РёР·РјРµРЅРµРЅРёСЏ Р±РёР·РЅРµСЃ-Р»РѕРіРёРєРё).
-
-## РћР±РЅРѕРІР»РµРЅРёРµ: coherence pass
-- Р Р°Р·РґРµР»РµРЅС‹ СЃРјРµС€Р°РЅРЅС‹Рµ РјСѓС‚Р°С†РёРё РїРѕ РІРёРґР°Рј, С‡С‚РѕР±С‹ apply_mutation РЅРµ С‚СЂРµР±РѕРІР°Р» РЅРµРІРѕР·РјРѕР¶РЅС‹Р№ РЅР°Р±РѕСЂ gene_id.
-- Р”РѕР±Р°РІР»РµРЅС‹ РїСЂРѕРІРµСЂРєРё РІ tests 02/07 РЅР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ mixed species-specific rule sets РІ РѕРґРЅРѕР№ РјСѓС‚Р°С†РёРё.
-
-## Р¤РёРЅР°Р»СЊРЅС‹Р№ UX polish вЂ” Р­С‚Р°Рї 2 РІ СЂР°Р±РѕС‚Рµ
-- РќР°РїСЂР°РІР»РµРЅРёРµ: СЂР°Р·РіСЂСѓР·РєР° С‚Р°Р±Р»РёС† Рё РїРѕРІС‹С€РµРЅРёРµ С‡РёС‚Р°РµРјРѕСЃС‚Рё Р±РµР· РёР·РјРµРЅРµРЅРёСЏ backend/DDL/seed/tests.
-- РўР°Р±Р»РёС†С‹ В«РЎСѓС‰РµСЃС‚РІР°В», В«Р—Р°РґР°РЅРёСЏВ», В«РСЃС‚РѕСЂРёСЏ СЌРєСЃРїРµСЂРёРјРµРЅС‚РѕРІВ» РґРѕР»Р¶РЅС‹ РїРѕРєР°Р·С‹РІР°С‚СЊ РєР»СЋС‡РµРІС‹Рµ РёРіСЂРѕРІС‹Рµ РїРѕР»СЏ, Р° С‚РµС…РЅРёС‡РµСЃРєРёРµ ID/РґР°С‚С‹/РїРѕРґСЂРѕР±РЅРѕСЃС‚Рё вЂ” РІ РєР°СЂС‚РѕС‡РєР°С… РёР»Рё tooltip.
-- РџРµСЂРµРґ Р·Р°РєСЂС‹С‚РёРµРј СЌС‚Р°РїР° РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ РїСЂРѕРІРµСЂРёС‚СЊ PySide6 `QHeaderView.ResizeMode.*`, РёРјРїРѕСЂС‚С‹ `QHeaderView`, `compileall` Рё СЂСѓС‡РЅРѕР№ Р·Р°РїСѓСЃРє GUI.
-- Р­С‚Р°Рї РЅРµ РєРѕРјРјРёС‚РёС‚СЊ, РїРѕРєР° Р»Р°Р±РѕСЂР°С‚РѕСЂРёСЏ РЅРµ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ СЃС‚Р°Р±РёР»СЊРЅРѕ Рё Р·Р°РєСЂС‹С‚РёРµ С‡РµСЂРµР· `X` РЅРµ РѕСЃС‚Р°РІР»СЏРµС‚ ACTIVE session.
-
-<!-- biosborka-roadmap-2026-06-02:start -->
-## Ускоренный roadmap после стабилизации
-
-Сначала закрыть stabilization-блок:
-- проверить seed/БД на mojibake в `mutations.description`;
-- восстановить русские описания мутаций и повторно применить seed при необходимости;
-- удалить `*.bak_mojibake` / `*.bak_mojibake2`;
-- обновить `05_mutations_experiments_smoke_test.sql` под reward-aware RADIATION wallet/rating assert;
-- подтвердить GUI-check и Oracle smoke-tests.
-
-Этап 1 — Stabilization + Dashboard/Main Shell:
-- проверить все вкладки после GUI/graphics pass;
-- убрать визуальные съезды;
-- сделать Main Shell игровой панелью лаборатории;
-- инфокарточки статистики;
-- улучшить «Что делать дальше?»;
-- быстрые действия: Существа / Генетический эксперимент / Мутации / Задания;
-- без backend-изменений.
-
-Этап 2 — Missions + Journal:
-- «Задания» как панель миссий;
-- «История экспериментов» как лабораторный журнал;
-- бейджи сложности, статуса, наград;
-- mini-портреты там, где уместно;
-- не переносить бизнес-логику в Python.
-
-Этап 3 — Experiment + Mutations:
-- сценарный flow: Родитель A + Родитель B → Вероятности → Потомок;
-- результат эксперимента визуально;
-- «Мутации» как лабораторный стенд: Существо → Мутация/Мутаген → Результат;
-- портреты и уведомления только display-layer;
-- backend-вызовы не менять.
-
-Этап 4 — Acceptance polish:
-- финальный ручной прогон GUI;
-- масштабирование;
-- закрытие через X;
-- отсутствие `ORA-20072`;
-- отсутствие mojibake/`????`;
-- `python -m compileall -f python_client`;
-- Oracle `01..08` при необходимости;
-- финальная инструкция запуска.
-<!-- biosborka-roadmap-2026-06-02:end -->
-
-## Roadmap checkpoint: Creature Art -> Acceptance polish
-
-1. Creature Display / Creature Art polish is the current stage.
-   - GUI/display-layer only.
-   - No backend, DDL, package, seed, or test changes.
-   - Emergency UTF-8 fix in `creature_portrait.py` is complete.
-   - First Creature Art block is implemented: improved shared portraits and the Creatures passport card.
-   - Continue to final acceptance polish after manual GUI confirmation.
-
-2. Final acceptance polish follows Creature Art polish.
-   - Full manual GUI pass.
-   - Close via X and reopen lab without ORA-20072.
-   - No broken UTF-8 text in GUI.
-   - `python -m compileall -f python_client`.
-   - Oracle 01..08 only if SQL/seed/tests are touched later.
+## Future Optional Tracks
+- Expand dashboard into a richer progress panel.
+- Content expansion: more alleles, colors, traits, and tasks.
+- Mutagen diversity pass: more mutagen scenarios.
+- Economy balancing: tune penalties and rewards.
+- Strict task typing: a separate DDL/backend track for FIND/BREED/MUTATE if creature origin must be checked.

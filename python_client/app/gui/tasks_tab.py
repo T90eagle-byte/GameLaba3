@@ -254,8 +254,21 @@ class TasksTab(QWidget):
         creature_title.setObjectName("subtitle")
         creature_layout.addRow("", creature_title)
 
-        self.creature_portrait = CreaturePortraitWidget(mode="mini")
-        creature_layout.addRow("", self.creature_portrait)
+        self.creature_portrait = CreaturePortraitWidget(mode="compact")
+        self.creature_portrait.set_compact_canvas_limit(340, 190)
+        self.creature_portrait.setMinimumSize(300, 170)
+        self.creature_portrait.hide()
+
+        portrait_row = QHBoxLayout()
+        portrait_row.addStretch()
+        portrait_row.addWidget(self.creature_portrait)
+        portrait_row.addStretch()
+        creature_layout.addRow("", portrait_row)
+
+        self.creature_empty_label = QLabel("Выберите существо для проверки задания.")
+        self.creature_empty_label.setObjectName("subtitle")
+        self.creature_empty_label.setWordWrap(True)
+        creature_layout.addRow("", self.creature_empty_label)
 
         self.creature_combo = QComboBox()
         self.creature_combo.currentIndexChanged.connect(self._on_creature_changed)
@@ -482,6 +495,8 @@ class TasksTab(QWidget):
             self.creature_species_label.setText("-")
             self.creature_phenotype_label.setText("-")
             self.creature_portrait.clear()
+            self.creature_portrait.hide()
+            self.creature_empty_label.show()
             self._update_status_hint()
             return
 
@@ -489,6 +504,8 @@ class TasksTab(QWidget):
         self.creature_name_label.setText(creature_name_label(creature.get("creature_name")))
         self.creature_species_label.setText(species_label(creature.get("species_type")))
         self.creature_phenotype_label.setText(phenotype_summary_label(creature.get("phenotype_summary")))
+        self.creature_empty_label.hide()
+        self.creature_portrait.show()
         self.creature_portrait.set_creature(
             species_label=species_label(creature.get("species_type")),
             phenotype_color=display_trait_value(creature.get("phenotype_color")),

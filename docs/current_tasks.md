@@ -1,256 +1,53 @@
 # Current Tasks
 
-## РЎС‚Р°С‚СѓСЃ РїСЂРѕРµРєС‚Р° (РѕР±РЅРѕРІР»РµРЅРѕ: 2026-05-27)
+## Current Status
+The project is in final Acceptance polish before submission.
 
-### 1) Backend strict-pass вЂ” Р·Р°РІРµСЂС€С‘РЅ
-- Backend РїРѕР»РЅРѕСЃС‚СЊСЋ СЂРµР°Р»РёР·РѕРІР°РЅ РЅР° Oracle PL/SQL.
-- Р¦РµРЅС‚СЂР°Р»СЊРЅР°СЏ backend-С‚РѕС‡РєР°: `pkg_genetics_game`.
-- `pkg_genetics_game` (spec/body) РєРѕРјРїРёР»РёСЂСѓСЋС‚СЃСЏ Р±РµР· РѕС€РёР±РѕРє.
-- `user_errors` РїСѓСЃС‚РѕР№.
-- Smoke-tests `01..08` РїСЂРѕС€Р»Рё СЃ `Failed: 0`.
-- Python РѕСЃС‚Р°С‘С‚СЃСЏ С‚РѕР»СЊРєРѕ GUI-РєР»РёРµРЅС‚РѕРј.
+Closed stages:
+- Backend strict-pass.
+- Content compliance pass.
+- Economy pass.
+- Multiuser strict-pass.
+- History `created_at` fix.
+- Display localization.
+- Session/logout GUI fixes.
+- Mixed `mutation_rules` split.
+- Reward-aware stabilization of test `05`.
+- Dashboard/Stabilization GUI polish.
+- Missions + Journal polish.
+- Experiment + Mutations polish.
+- Creature Display / Art Pass 2.
 
-### 2) Content compliance pass вЂ” Р·Р°РІРµСЂС€С‘РЅ
-РђРєС‚СѓР°Р»СЊРЅС‹Рµ РѕР±СЉС‘РјС‹ seed-РґР°РЅРЅС‹С…:
-- `genes`: 12
-- `alleles`: 24
-- `mutations`: 12
-- `mutation_rules`: 12
-- `tasks`: 12
-- `task_markers`: 21
+## Current Work
+- Verify the full GUI without adding large new features.
+- Fix only small UX, stability, or documentation issues.
+- Keep the paper-lab visual style.
+- Verify that technical backend architecture wording is not shown to regular GUI users except connection errors.
+- Verify that closing the GUI with X does not leave the lab locked.
 
-РџРѕРєСЂС‹С‚РёРµ:
-- `mutation_rules` РїРѕРєСЂС‹РІР°СЋС‚ СѓРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Рµ РїСЂРёР·РЅР°РєРё Рё `species_type 1..6`.
-- `task_markers` РїРѕРєСЂС‹РІР°СЋС‚ `species_type 1..6` Рё СѓРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Рµ РїСЂРёР·РЅР°РєРё.
+## Acceptance Checklist
+- Auth: login, registration, errors, placeholders.
+- Lab Selection: create, open, delete lab, logout.
+- Main Shell: stats, quick actions, clear hints.
+- Creatures: table, selected card, large portraits, phenotype badges, genotype cards, ID for duplicate names.
+- Genetic Experiment: choose parents, choose gene, show probabilities, create child, see notifications.
+- Mutations: shop, buy, selected creature, compact portrait, compatibility, mutation, RADIATION, CHEMICAL.
+- Tasks: filter, mission card, mini portrait, check and complete task.
+- History: journal entries, type badges, date/time, details card, empty-state.
+- Closing: close with X, reopen same lab, no `ORA-20072`.
 
-### 3) Economy pass вЂ” Р·Р°РІРµСЂС€С‘РЅ
-- `buy_mutation`:
-  - СЃРїРёСЃС‹РІР°РµС‚ `wallet`;
-  - СѓРІРµР»РёС‡РёРІР°РµС‚ `lab_mutations.quantity`;
-  - `rating` РЅРµ РјРµРЅСЏРµС‚.
-- `apply_mutation`:
-  - РїСЂРёРјРµРЅСЏРµС‚ `mutation_rules`;
-  - СѓРјРµРЅСЊС€Р°РµС‚ Р·Р°РїР°СЃ РєСѓРїР»РµРЅРЅРѕР№ РјСѓС‚Р°С†РёРё;
-  - СЃРѕР·РґР°С‘С‚ `MUTATION` experiment;
-  - РїСЂРёРјРµРЅСЏРµС‚ `mutations.rating_effect` Рє `labs.rating` С‡РµСЂРµР· `greatest(0, ...)`;
-  - Р·Р°С‚РµРј Р·Р°РїСѓСЃРєР°РµС‚ `auto_complete_matching_tasks`.
-- `apply_mutagen`:
-  - СЃРѕР·РґР°С‘С‚ РЅРѕРІРѕРµ РёР·РјРµРЅС‘РЅРЅРѕРµ СЃСѓС‰РµСЃС‚РІРѕ;
-  - СЃРѕР·РґР°С‘С‚ `MUTAGEN` experiment;
-  - Р·Р°РїСѓСЃРєР°РµС‚ `auto_complete_matching_tasks`;
-  - `RADIATION`: `cost=50`, `rating_delta=-5`;
-  - `CHEMICAL`: `cost=100`, `rating_delta=-2`.
-- Р РµР№С‚РёРЅРі РЅРµ СѓС…РѕРґРёС‚ РЅРёР¶Рµ 0.
-- Р РѕСЃС‚ СЂРµР№С‚РёРЅРіР° РїРѕСЃР»Рµ РјСѓС‚Р°РіРµРЅР° РґРѕРїСѓСЃС‚РёРј Р·Р° СЃС‡С‘С‚ auto-complete Р·Р°РґР°С‡ Рё `task rewards`.
-- Tests `05`/`07` РѕР±РЅРѕРІР»РµРЅС‹ Рё РїСЂРѕС…РѕРґСЏС‚.
+## Final Stage Rules
+- Do not change backend package spec/body.
+- Do not change DDL.
+- Do not change seed.
+- Do not change tests `01..08`.
+- Do not change `pkg_api.py`.
+- Do not add dependencies, assets, genes, alleles, or mechanics.
+- Do not move business logic into Python.
 
-### 4) Multiuser strict-pass вЂ” Р·Р°РІРµСЂС€С‘РЅ
-- Р”РѕР±Р°РІР»РµРЅ `g_current_lab_id`.
-- `start_new_lab` С„РёРєСЃРёСЂСѓРµС‚ С‚РµРєСѓС‰СѓСЋ Р»Р°Р±РѕСЂР°С‚РѕСЂРёСЋ РІ package context.
-- `load_lab`/`switch_lab`:
-  - СЂР°Р±РѕС‚Р°СЋС‚ СЃ Р±Р»РѕРєРёСЂРѕРІРєРѕР№ lab row С‡РµСЂРµР· `FOR UPDATE`;
-  - РїСЂРѕРІРµСЂСЏСЋС‚ РІР»Р°РґРµР»СЊС†Р°;
-  - Р·Р°РїСЂРµС‰Р°СЋС‚ РѕС‚РєСЂС‹С‚СЊ РѕРґРЅСѓ Р»Р°Р±РѕСЂР°С‚РѕСЂРёСЋ РІ РґСЂСѓРіРѕР№ ACTIVE session.
-- РќРѕРІС‹Рµ backend-РѕС€РёР±РєРё:
-  - `-20072`: `Lab is already opened in another active session`.
-  - `-20073`: `Selected lab is not active in current session`.
-- `assert_lab_access`/`assert_creature_access` СѓСЃРёР»РµРЅС‹ session-bound РїСЂРѕРІРµСЂРєР°РјРё.
-- `refill_active_tasks` Р·Р°С‰РёС‰С‘РЅ РѕС‚ `dup_val_on_index`.
-- Р”РѕР±Р°РІР»РµРЅ `database/tests/08_multiuser_sessions_smoke_test.sql`.
-- Tests `06`/`07` Р°РґР°РїС‚РёСЂРѕРІР°РЅС‹ РїРѕРґ session-bound РјРѕРґРµР»СЊ.
-- РџРѕР»РЅС‹Р№ РїСЂРѕРіРѕРЅ `01..08` вЂ” Р·РµР»С‘РЅС‹Р№.
-
-### 5) GUI СЃС‚Р°С‚СѓСЃ
-Р РµР°Р»РёР·РѕРІР°РЅС‹:
-- Auth
-- Lab Selection
-- Main Shell
-- РЎСѓС‰РµСЃС‚РІР°
-- Р“РµРЅРµС‚РёС‡РµСЃРєРёР№ СЌРєСЃРїРµСЂРёРјРµРЅС‚
-- РњСѓС‚Р°С†РёРё
-- Р—Р°РґР°РЅРёСЏ
-- РСЃС‚РѕСЂРёСЏ СЌРєСЃРїРµСЂРёРјРµРЅС‚РѕРІ
-
-### 6) Р›РѕРєР°Р»РёР·Р°С†РёСЏ display-layer вЂ” РІС‹РїРѕР»РЅРµРЅР°
-- РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ `python_client/app/services/display_names.py`.
-- Р’ GUI СЂСѓСЃРёС„РёС†РёСЂРѕРІР°РЅРѕ РѕС‚РѕР±СЂР°Р¶РµРЅРёРµ:
-  - РІРёРґРѕРІ СЃСѓС‰РµСЃС‚РІ;
-  - РіРµРЅРѕРІ;
-  - Р°Р»Р»РµР»РµР№;
-  - С‚РёРїРѕРІ РґРѕРјРёРЅРёСЂРѕРІР°РЅРёСЏ;
-  - СЃС‚Р°С‚СѓСЃРѕРІ Р·Р°РґР°РЅРёР№;
-  - С‚РёРїРѕРІ СЌРєСЃРїРµСЂРёРјРµРЅС‚РѕРІ;
-  - С‚РёРїРѕРІ РјСѓС‚Р°РіРµРЅРѕРІ;
-  - РЅР°Р·РІР°РЅРёР№ Р·Р°РґР°С‡;
-  - РЅР°Р·РІР°РЅРёР№ РјСѓС‚Р°С†РёР№;
-  - `phenotype_summary`.
-- Р­С‚Рѕ С‚РѕР»СЊРєРѕ display-localization, Р±РµР· РїРµСЂРµРЅРѕСЃР° Р±РёР·РЅРµСЃ-Р»РѕРіРёРєРё РІ Python.
-
-### 7) РРЅС†РёРґРµРЅС‚ СЃ РєРѕРґРёСЂРѕРІРєРѕР№ вЂ” Р·Р°РєСЂС‹С‚
-Р‘С‹Р»Рѕ:
-- `tasks_tab.py`: mojibake (`Р вЂ”...`, `РЎР‚...` Рё С‚.Рї.).
-- `display_names.py`: РёСЃРїРѕСЂС‡РµРЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёСЏ РІ `TASK_NAME_LABELS` (`????...`).
-
-РСЃРїСЂР°РІР»РµРЅРѕ:
-- РёР·РјРµРЅРµРЅС‹ С‚РѕР»СЊРєРѕ:
-  - `python_client/app/services/display_names.py`
-  - `python_client/app/gui/tasks_tab.py`
-- РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅС‹ РєРѕСЂСЂРµРєС‚РЅС‹Рµ UTF-8 СЃС‚СЂРѕРєРё;
-- РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅ `TASK_NAME_LABELS`;
-- `display_task_name()` РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РІ С‚Р°Р±Р»РёС†Рµ Рё РєР°СЂС‚РѕС‡РєРµ РІРєР»Р°РґРєРё В«Р—Р°РґР°РЅРёСЏВ»;
-- С‚РµС…РЅРёС‡РµСЃРєРёР№ `task_name` РѕСЃС‚Р°РІР»РµРЅ С‚РѕР»СЊРєРѕ РІ tooltip.
-
-РџСЂРѕРІРµСЂРєРё:
-- `python -m compileall -f python_client` вЂ” СѓСЃРїРµС€РЅРѕ;
-- sanity-check:
-  - `task_green_specimen -> Р—РµР»С‘РЅС‹Р№ РѕР±СЂР°Р·РµС†`
-  - `task_fast_turtle -> Р‘С‹СЃС‚СЂР°СЏ С‡РµСЂРµРїР°С…Р°`
-  - `task_armored_crustacean -> РџР°РЅС†РёСЂРЅРѕРµ СЂР°РєРѕРѕР±СЂР°Р·РЅРѕРµ`
-
-## Р’Р°Р¶РЅС‹Рµ РїСЂР°РІРёР»Р°
-- UI/РїРѕРґСЃРєР°Р·РєРё/РёРіСЂРѕРІС‹Рµ С„РѕСЂРјСѓР»РёСЂРѕРІРєРё вЂ” РЅР° СЂСѓСЃСЃРєРѕРј.
-- РђРЅРіР»РёР№СЃРєРёР№ вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ С‚РµС…РЅРёС‡РµСЃРєРёС… РёРјС‘РЅ, API, enum, РїРѕР»РµР№ Р‘Р”.
-- Python РЅРµ СЃС‡РёС‚Р°РµС‚ РіРµРЅРµС‚РёРєСѓ/РјСѓС‚Р°С†РёРё/СЌРєРѕРЅРѕРјРёРєСѓ/Р·Р°РґР°РЅРёСЏ/СЂРµР№С‚РёРЅРі/СЃС‚Р°С‚РёСЃС‚РёРєСѓ.
-- Python РІС‹Р·С‹РІР°РµС‚ `pkg_genetics_game` Рё РѕС‚РѕР±СЂР°Р¶Р°РµС‚ СЂРµР·СѓР»СЊС‚Р°С‚.
-- GUI РЅРµ С‡РёС‚Р°РµС‚ `dbms_output`.
-- Р’СЃРµ Python-С„Р°Р№Р»С‹ СЃ РєРёСЂРёР»Р»РёС†РµР№ СЃРѕС…СЂР°РЅСЏС‚СЊ РІ UTF-8.
-
-## CloseEvent/logout fix вЂ” Р·Р°РІРµСЂС€С‘РЅ
-- Р—Р°РєСЂС‹С‚РёРµ GUI С‡РµСЂРµР· `X` РІС‹Р·С‹РІР°РµС‚ Р±РµР·РѕРїР°СЃРЅС‹Р№ logout flow.
-- GUI РІС‹Р·С‹РІР°РµС‚ `logout_user(session_token)`, РѕС‡РёС‰Р°РµС‚ `SessionState` Рё Р·Р°РєСЂС‹РІР°РµС‚ Oracle connection.
-- Р”РѕР±Р°РІР»РµРЅС‹ РїРѕРЅСЏС‚РЅС‹Рµ СЂСѓСЃСЃРєРёРµ СЃРѕРѕР±С‰РµРЅРёСЏ РґР»СЏ `ORA-20072` Рё `ORA-20073`.
-- Dev-only recovery script РґР»СЏ СЃС‚Р°СЂС‹С… Р·Р°РІРёСЃС€РёС… sessions: `database/scripts/dev_unlock_stale_sessions.sql`.
-
-## РђСѓРґРёС‚ СЂР°СЃС€РёСЂРµРЅРёСЏ РїСЂРёР·РЅР°РєРѕРІ/РєРѕРЅС‚РµРЅС‚Р° РїРѕ Р›Р 1/Р›Р 2 Рё KB вЂ” РІС‹РїРѕР»РЅРµРЅ
-Р’С‹РІРѕРґ: Р±Р°Р·РѕРІРѕРµ СЃРѕРѕС‚РІРµС‚СЃС‚РІРёРµ Р›Р 1/Р›Р 2 РґРѕСЃС‚Р°С‚РѕС‡РЅРѕРµ, СЂР°СЃС€РёСЂРµРЅРёРµ РєРѕРЅС‚РµРЅС‚Р° Р¶РµР»Р°С‚РµР»СЊРЅРѕ С‚РѕС‡РµС‡РЅРѕ РґР»СЏ Р»СѓС‡С€РµРіРѕ СѓС‡РµР±РЅРѕРіРѕ РІРїРµС‡Р°С‚Р»РµРЅРёСЏ Рё Р±РѕР»РµРµ СЏРІРЅРѕР№ РґРµРјРѕРЅСЃС‚СЂР°С†РёРё KB.
-
-РўРµРєСѓС‰РёРµ РѕР±СЉС‘РјС‹ seed:
-- `genes`: 12
-- `alleles`: 24
-- `mutations`: 12
-- `mutation_rules`: 12
-- `tasks`: 12
-- `task_markers`: 21
-
-Р§С‚Рѕ СѓР¶Рµ Р·Р°РєСЂС‹С‚Рѕ:
-- 6 РІРёРґРѕРІ СЃСѓС‰РµСЃС‚РІ РІРјРµСЃС‚Рѕ РјРёРЅРёРјР°Р»СЊРЅС‹С… 5: С…СЂСЏС‰РµРІС‹Рµ СЂС‹Р±С‹, РєРѕСЃС‚РЅС‹Рµ СЂС‹Р±С‹, СЂР°РєРѕРѕР±СЂР°Р·РЅС‹Рµ, РјРѕР»Р»СЋСЃРєРё, С‡РµСЂРµРїР°С…Рё, РјР»РµРєРѕРїРёС‚Р°СЋС‰РёРµ.
-- РЈРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Рµ РїСЂРёР·РЅР°РєРё: `color`, `size`, `nutrition_type`, `has_wings`.
-- Р’РёРґРѕСЃРїРµС†РёС„РёС‡РЅС‹Рµ РїСЂРёР·РЅР°РєРё РїРѕРєСЂС‹РІР°СЋС‚ `species_type 1..6`.
-- РџРѕ РєР°Р¶РґРѕРјСѓ РіРµРЅСѓ РµСЃС‚СЊ 2 Р°Р»Р»РµР»СЏ.
-- Р РµР°Р»РёР·РѕРІР°РЅС‹ `FULL`, `INCOMPLETE`, `CODOMINANT`.
-- `mutation_rules` РїРѕРєСЂС‹РІР°СЋС‚ СѓРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Рµ РїСЂРёР·РЅР°РєРё Рё РІСЃРµ `species_type 1..6`.
-- `task_markers` РїРѕРєСЂС‹РІР°СЋС‚ РІСЃРµ `species_type 1..6` Рё СѓРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Рµ РїСЂРёР·РЅР°РєРё.
-- `calculate_punnett_probabilities`, `crossbreed`, `get_phenotype`, `apply_mutation`, `apply_mutagen` РѕСЃС‚Р°СЋС‚СЃСЏ РІ PL/SQL backend.
-
-Р РµРєРѕРјРµРЅРґР°С†РёРё РґР»СЏ Р±СѓРґСѓС‰РµРіРѕ content-pass:
-- РћР±СЏР·Р°С‚РµР»СЊРЅС‹С… seed-РёР·РјРµРЅРµРЅРёР№ РґР»СЏ С‚РµРєСѓС‰РµРіРѕ strict baseline РЅРµС‚.
-- Р–РµР»Р°С‚РµР»СЊРЅРѕ СѓСЃРёР»РёС‚СЊ РґРµРјРѕРЅСЃС‚СЂР°С†РёСЋ `linkage_group`: СЃРµР№С‡Р°СЃ РѕСЃРјС‹СЃР»РµРЅРЅР°СЏ СЃРІСЏР·Р°РЅРЅР°СЏ РїР°СЂР° СЏРІРЅРѕ РµСЃС‚СЊ Сѓ С‡РµСЂРµРїР°С… (`shell_armor` + `speed_level`), Р° Сѓ СЂС‹Р± linkage-РіСЂСѓРїРїС‹ СЃРѕРґРµСЂР¶Р°С‚ РїРѕ РѕРґРЅРѕРјСѓ РіРµРЅСѓ Рё РїРѕС‡С‚Рё РЅРµ РґРµРјРѕРЅСЃС‚СЂРёСЂСѓСЋС‚ СЃРІСЏР·Р°РЅРЅРѕРµ РЅР°СЃР»РµРґРѕРІР°РЅРёРµ.
-- Р–РµР»Р°С‚РµР»СЊРЅРѕ СЂР°СЃС€РёСЂСЏС‚СЊ РїСЂРёР·РЅР°РєРё С‚РѕР»СЊРєРѕ РїРѕ РїРѕРґС‚РІРµСЂР¶РґС‘РЅРЅРѕР№ KB-С‚Р°Р±Р»РёС†Рµ/С‚СЂРµР±РѕРІР°РЅРёСЏРј РїСЂРµРїРѕРґР°РІР°С‚РµР»СЏ, РЅРµ РґРѕР±Р°РІР»СЏСЏ СЃР»СѓС‡Р°Р№РЅС‹Рµ РіРµРЅС‹.
-- Р•СЃР»Рё РїРѕС‚СЂРµР±СѓРµС‚СЃСЏ РїРѕРєР°Р·С‹РІР°С‚СЊ РІ РёСЃС‚РѕСЂРёРё С‚РѕС‡РЅС‹Р№ С‚РёРї РјСѓС‚Р°РіРµРЅР° Рё РёР·РјРµРЅС‘РЅРЅС‹Р№ РіРµРЅ, СЌС‚Рѕ РѕС‚РґРµР»СЊРЅС‹Р№ backend/DDL-С‚СЂРµРє, РїРѕС‚РѕРјСѓ С‡С‚Рѕ С‚РµРєСѓС‰Р°СЏ С‚Р°Р±Р»РёС†Р° `experiments` РЅРµ С…СЂР°РЅРёС‚ С‚Р°РєРёРµ РґРµС‚Р°Р»Рё.
-- `creatures.generation` РѕСЃС‚Р°С‘С‚СЃСЏ РѕС‚РґРµР»СЊРЅС‹Рј DDL-С‚СЂРµРєРѕРј, РµСЃР»Рё РЅСѓР¶РЅРѕ СЃС‚СЂРѕРіРѕ РїРѕРєР°Р·С‹РІР°С‚СЊ РїРѕРєРѕР»РµРЅРёРµ РІ РєРѕР»Р»РµРєС†РёРё.
-
-РџРѕС‚РµРЅС†РёР°Р»СЊРЅС‹Рµ С„Р°Р№Р»С‹ Р±СѓРґСѓС‰РµР№ СЂРµР°Р»РёР·Р°С†РёРё:
-- `database/seeds/01_seed_core_game_data.sql`
-- `database/tests/02_seed_data_smoke_test.sql`
-- `database/tests/07_strict_compliance_smoke_test.sql`
-- `python_client/app/services/display_names.py`
-- `docs/current_tasks.md`, `docs/project_roadmap.md`, `docs/gameplay_rules.md`, `docs/ai_context.md`
-
-РљРѕРґ, SQL, backend package, DDL, seed, tests Рё Python РІ С…РѕРґРµ Р°СѓРґРёС‚Р° РЅРµ РјРµРЅСЏР»РёСЃСЊ.
-
-## РЎР»РµРґСѓСЋС‰РёР№ С€Р°Рі
-Р•СЃР»Рё С‚СЂРµР±СѓРµС‚СЃСЏ СЂР°СЃС€РёСЂРµРЅРёРµ KB-РєРѕРЅС‚РµРЅС‚Р°, СЃРЅР°С‡Р°Р»Р° СЃРѕРіР»Р°СЃРѕРІР°С‚СЊ РєРѕРЅРєСЂРµС‚РЅС‹Рµ РїСЂРёР·РЅР°РєРё РёР· Р›Р 2/KB, Р·Р°С‚РµРј РґРµР»Р°С‚СЊ РѕС‚РґРµР»СЊРЅС‹Р№ seed/test/display pass. Р‘РµР· РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ РЅРµ РјРµРЅСЏС‚СЊ backend/DDL/Python.
-
-## 11) Content/GUI pass РїРѕ С„РѕСЂРјСѓР»РёСЂРѕРІРєР°Рј Р·Р°РґР°РЅРёР№ (РІС‹РїРѕР»РЅРµРЅ)
-- Р’ database/seeds/01_seed_core_game_data.sql РѕР±РЅРѕРІР»РµРЅС‹ tasks.description РґР»СЏ С‚РµРєСѓС‰РёС… 12 Р·Р°РґР°С‡.
-- Р”Р»СЏ tutorial/find-Р·Р°РґР°С‡ С„РѕСЂРјСѓР»РёСЂРѕРІРєРё РїРµСЂРµРІРµРґРµРЅС‹ РІ РЅРµР№С‚СЂР°Р»СЊРЅС‹Р№ СЃС‚РёР»СЊ: РќР°Р№РґРёС‚Рµ / РћС‚Р±РµСЂРёС‚Рµ / РїСЂРµРґСЉСЏРІРёС‚Рµ РІРјРµСЃС‚Рѕ РґРІСѓСЃРјС‹СЃР»РµРЅРЅРѕРіРѕ РџРѕР»СѓС‡РёС‚Рµ С‚Р°Рј, РіРґРµ СЌС‚Рѕ РЅРµ С‚СЂРµР±СѓРµС‚ РїСЂРѕРёСЃС…РѕР¶РґРµРЅРёСЏ СЃСѓС‰РµСЃС‚РІР°.
-- Backend-Р»РѕРіРёРєР° РЅРµ РјРµРЅСЏР»Р°СЃСЊ: check_task РїСЂРѕРІРµСЂСЏРµС‚ РїСЂРёР·РЅР°РєРё РІС‹Р±СЂР°РЅРЅРѕРіРѕ СЃСѓС‰РµСЃС‚РІР° РїРѕ task_markers, Р° РЅРµ РёСЃС‚РѕСЂРёСЋ РїСЂРѕРёСЃС…РѕР¶РґРµРЅРёСЏ.
-- РџСЂРѕРІРµСЂРµРЅР° СЃРѕРіР»Р°СЃРѕРІР°РЅРЅРѕСЃС‚СЊ marker-Р»РѕРіРёРєРё: РєРѕРЅС„Р»РёРєС‚РѕРІ РІР·Р°РёРјРЅРѕ РёСЃРєР»СЋС‡Р°СЋС‰РёС… Р°Р»Р»РµР»РµР№ РІ СЂР°РјРєР°С… РѕРґРЅРѕРіРѕ (task, gene) РЅРµС‚.
-
-## 12) РџСЂРёРјРµС‡Р°РЅРёРµ РїРѕ С‚РёРїР°Рј Р·Р°РґР°С‡
-- Р’ С‚РµРєСѓС‰РµР№ РјРѕРґРµР»Рё Р‘Р” РЅРµС‚ РѕС‚РґРµР»СЊРЅРѕРіРѕ С‚РёРїР° Р·Р°РґР°С‡Рё (FIND / BREED / MUTATE).
-- Р•СЃР»Рё РІ Р±СѓРґСѓС‰РµРј РїРѕС‚СЂРµР±СѓРµС‚СЃСЏ СЃС‚СЂРѕРіРѕРµ СЂР°Р·Р»РёС‡РµРЅРёРµ С‚Р°РєРёС… С‚РёРїРѕРІ, СЌС‚Рѕ РѕС‚РґРµР»СЊРЅС‹Р№ DDL/backend-С‚СЂРµРє.
-
-
-
-## 13) Р¤РёРЅР°Р»СЊРЅС‹Р№ user-friendly polish вЂ” Р­С‚Р°Рї 1 (onboarding Рё empty states)
-Р’С‹РїРѕР»РЅРµРЅРѕ Р±РµР·РѕРїР°СЃРЅРѕ, Р±РµР· РёР·РјРµРЅРµРЅРёСЏ backend/DDL/package/seed/tests:
-- Auth: РґРѕР±Р°РІР»РµРЅ Р±Р»РѕРє В«РљР°Рє РЅР°С‡Р°С‚СЊВ», СѓС‚РѕС‡РЅРµРЅС‹ placeholder-РїРѕРґСЃРєР°Р·РєРё РїРѕ Р»РѕРіРёРЅСѓ/РїР°СЂРѕР»СЋ.
-- Lab Selection: РґРѕР±Р°РІР»РµРЅРѕ РїРѕСЏСЃРЅРµРЅРёРµ СЂРѕР»Рё Р»Р°Р±РѕСЂР°С‚РѕСЂРёРё Рё empty-state РїСЂРё РїСѓСЃС‚РѕРј СЃРїРёСЃРєРµ Р»Р°Р±РѕСЂР°С‚РѕСЂРёР№.
-- Main Shell: РґРѕР±Р°РІР»РµРЅР° РєРѕРјРїР°РєС‚РЅР°СЏ РїР°РЅРµР»СЊ В«Р§С‚Рѕ РґРµР»Р°С‚СЊ РґР°Р»СЊС€Рµ?В».
-- РЎСѓС‰РµСЃС‚РІР°: РґРѕР±Р°РІР»РµРЅ empty-state РїСЂРё РїСѓСЃС‚РѕР№ РєРѕР»Р»РµРєС†РёРё.
-- Р“РµРЅРµС‚РёС‡РµСЃРєРёР№ СЌРєСЃРїРµСЂРёРјРµРЅС‚: РґРѕР±Р°РІР»РµРЅС‹ СЃС†РµРЅР°СЂРЅС‹Рµ РїРѕРґСЃРєР°Р·РєРё, РµСЃР»Рё РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЃСѓС‰РµСЃС‚РІ/РЅРµС‚ РѕР±С‰РёС… РіРµРЅРѕРІ.
-- РњСѓС‚Р°С†РёРё: СѓС‚РѕС‡РЅРµРЅР° РїРѕРґСЃРєР°Р·РєР°, РєРѕРіРґР° РґР»СЏ РІС‹Р±СЂР°РЅРЅРѕР№ РјСѓС‚Р°С†РёРё РЅРµС‚ СЃРѕРІРјРµСЃС‚РёРјС‹С… СЃСѓС‰РµСЃС‚РІ.
-- Р—Р°РґР°РЅРёСЏ: empty-state РґР»СЏ РѕС‚СЃСѓС‚СЃС‚РІРёСЏ Р°РєС‚РёРІРЅС‹С… Р·Р°РґР°С‡ РѕСЃС‚Р°РІР»РµРЅ РІ РїРѕРЅСЏС‚РЅРѕР№ РёРіСЂРѕРІРѕР№ С„РѕСЂРјСѓР»РёСЂРѕРІРєРµ.
-- РСЃС‚РѕСЂРёСЏ СЌРєСЃРїРµСЂРёРјРµРЅС‚РѕРІ: empty-state РїСЂРё РѕС‚СЃСѓС‚СЃС‚РІРёРё Р·Р°РїРёСЃРµР№.
-
-РџСЂРѕРІРµСЂРєР°: python -m compileall -f python_client вЂ” СѓСЃРїРµС€РЅРѕ.
-
-## 15) Mutation-rules coherence pass
-- РЈСЃС‚СЂР°РЅС‘РЅ РєРѕРЅС‚РµРЅС‚РЅС‹Р№ РёСЃС‚РѕС‡РЅРёРє ORA-20045: СЃРјРµС€Р°РЅРЅС‹Рµ РјСѓС‚Р°С†РёРё СЂР°Р·РґРµР»РµРЅС‹ РЅР° РІРёРґРѕСЃРїРµС†РёС„РёС‡РЅС‹Рµ.
-- РђРєС‚СѓР°Р»СЊРЅС‹Рµ РѕР±СЉС‘РјС‹ seed: genes=12, alleles=24, mutations=12, mutation_rules=12, tasks=12, task_markers=21.
-- Backend package/DDL/spec РЅРµ РјРµРЅСЏР»РёСЃСЊ; РїСЂР°РІРєР° СЃРґРµР»Р°РЅР° С‡РµСЂРµР· seed + smoke-tests + display mapping.
-
-## 16) РўРµРєСѓС‰Р°СЏ РєРѕРЅС‚СЂРѕР»СЊРЅР°СЏ С‚РѕС‡РєР°: GUI polish Р­С‚Р°Рї 2
-- Р­С‚Р°Рї 2 РЅР°С‡Р°С‚, РЅРѕ РїРѕРєР° РЅРµ СЃС‡РёС‚Р°РµС‚СЃСЏ Р·Р°РєСЂС‹С‚С‹Рј РґРѕ СЂСѓС‡РЅРѕР№ РїСЂРѕРІРµСЂРєРё РѕС‚РєСЂС‹С‚РёСЏ Р»Р°Р±РѕСЂР°С‚РѕСЂРёРё.
-- Р—Р°С‚СЂРѕРЅСѓС‚С‹Рµ GUI-С„Р°Р№Р»С‹: `python_client/app/gui/creatures_tab.py`, `python_client/app/gui/tasks_tab.py`, `python_client/app/gui/history_tab.py`, `python_client/app/gui/app.py`.
-- Р¦РµР»СЊ: СЂР°Р·РіСЂСѓР·РёС‚СЊ С‚Р°Р±Р»РёС†С‹ В«РЎСѓС‰РµСЃС‚РІР°В», В«Р—Р°РґР°РЅРёСЏВ», В«РСЃС‚РѕСЂРёСЏ СЌРєСЃРїРµСЂРёРјРµРЅС‚РѕРІВ», РѕСЃС‚Р°РІР»СЏСЏ РїРѕР»РЅС‹Рµ РґРµС‚Р°Р»Рё РІ РєР°СЂС‚РѕС‡РєР°С… Рё tooltip.
-- РР·РІРµСЃС‚РЅС‹Рµ СЂРёСЃРєРё СЌС‚Р°РїР°: РѕС€РёР±РєРё `QHeaderView` РїРѕСЃР»Рµ РїРµСЂРµС…РѕРґР° РЅР° PySide6 enum-style.
-- РџСЂРѕРІРµСЂРёС‚СЊ, С‡С‚Рѕ РІ РєР°Р¶РґРѕРј С„Р°Р№Р»Рµ СЃ `QHeaderView.ResizeMode.*` РёРјРїРѕСЂС‚РёСЂРѕРІР°РЅ `QHeaderView` РёР· `PySide6.QtWidgets`.
-- РќРµ РІРѕР·РІСЂР°С‰Р°С‚СЊ СЃС‚Р°СЂС‹Р№ СЃС‚РёР»СЊ `QHeaderView.Stretch` / `QHeaderView.ResizeToContents`.
-- РџРµСЂРµРґ РєРѕРјРјРёС‚РѕРј РІС‹РїРѕР»РЅРёС‚СЊ: `python -m compileall -f python_client`, Р·Р°С‚РµРј СЂСѓС‡РЅРѕРµ РѕС‚РєСЂС‹С‚РёРµ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РµР№ Рё РЅРѕРІРѕР№ Р»Р°Р±РѕСЂР°С‚РѕСЂРёРё.
-- Р•СЃР»Рё СЃС‚Р°СЂР°СЏ Р°РІР°СЂРёР№РЅР°СЏ СЃРµСЃСЃРёСЏ РѕСЃС‚Р°РІРёР»Р° Р»Р°Р±РѕСЂР°С‚РѕСЂРёСЋ Р·Р°РЅСЏС‚РѕР№, РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ dev-only script `database/scripts/dev_unlock_stale_sessions.sql` РґР»СЏ С‚РµРєСѓС‰РµРіРѕ РёРіСЂРѕРІРѕРіРѕ login.
-- РљРѕРјРјРёС‚ РїРѕСЃР»Рµ СѓСЃРїРµС€РЅРѕР№ РїСЂРѕРІРµСЂРєРё: `Р Р°Р·РіСЂСѓР·РёС‚СЊ С‚Р°Р±Р»РёС†С‹ РёРЅС‚РµСЂС„РµР№СЃР°`.
-
-## Будущие треки после gameplay/UX этапа 1
-- Трек расширения контента: расширение пула аллелей/цветов и визуальной вариативности без нарушения требований ЛР1/ЛР2.
-- Экономический трек: дополнительная калибровка штрафов за неэтичные мутагенные сценарии (только backend-проходом).
-- Трек разнообразия мутагенов: расширение сценариев радиационных изменений как отдельный контент/backend этап.
-
-
-
-<!-- biosborka-stabilization-2026-06-02:start -->
-## Текущая контрольная точка: stabilization first
-
-Перед следующими изменениями выполнить:
-- `git status --short`
-- `python -m compileall -f python_client`
-
-Сейчас есть незавершённый stabilization-блок после graphics/content-polish:
-- GUI уже снова открывается после ручного fix `CreaturePortraitWidget.set_creature(..., creature_key=None)`.
-- `compileall` проходит.
-- Нужно проверить и исправить остаточный mojibake в описаниях мутаций во вкладке «Мутации».
-- Нужно удалить `*.bak_mojibake` / `*.bak_mojibake2` перед коммитом.
-- Нужно стабилизировать `05_mutations_experiments_smoke_test.sql`, чтобы `apply_mutagen (RADIATION)` учитывал auto-complete task rewards: `wallet_after = wallet_before - 50 + new_task_money_rewards`; rating аналогично через `greatest(0, rating_before - 5) + new_task_rating_rewards`.
-
-Нельзя продолжать Dashboard/graphics roadmap, пока не закрыты:
-- mojibake в «Мутациях»;
-- backup-файлы;
-- стабильный тест `05`;
-- GUI-check без mojibake/`????`;
-- Oracle `01..08` зелёный или минимум подтверждённые `02/05/06/07/08` после seed/test правок.
-
-Коммитная стратегия после стабилизации:
-- Seed/docs отдельно: `git commit -m "Уточнить цели заданий"`.
-- GUI fixes отдельно: `git commit -m "Исправить кодировку и портреты существ"`.
-- Test fix отдельно: `git commit -m "Стабилизировать тест экономики мутагенов"`.
-- Roadmap docs отдельно при необходимости: `git commit -m "Обновить план развития интерфейса"`.
-<!-- biosborka-stabilization-2026-06-02:end -->
-
-## Creature Display / Creature Art checkpoint, 2026-06-06
-
-Status: emergency UTF-8 fix is complete. First Creature Art block is implemented; manual GUI confirmation is pending.
-
-Keep this phase GUI/display-layer only:
-- do not change backend, DDL, package spec/body, seed, tests, or `pkg_api.py`;
-- do not move genetics, mutation, task, economy, rating, or statistics logic into Python;
-- do not move to final acceptance polish before checking the GUI manually.
-
-Manual check before continuing:
-1. Start GUI.
-2. Open a lab.
-3. Open Creatures and select several species.
-4. Open Crossbreed, Mutations, and Tasks.
-5. Confirm portraits render and no broken text is visible.
-
-After confirmation: fix any visual regressions if needed, then continue to final acceptance polish.
+## Checks
+- `python -m compileall -f python_client`.
+- Mojibake marker-check.
+- Temporary repair file check.
+- Old Qt header enum style check.
+- Oracle run is needed only if SQL, seed, tests, or backend changed.
