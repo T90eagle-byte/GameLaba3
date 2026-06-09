@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+import re
 from typing import Any
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt
@@ -207,13 +208,17 @@ class CreaturePortraitWidget(QWidget):
         )
 
     def _base_fill_color(self) -> QColor:
-        color = self._phenotype_color.casefold()
-        if "зел" in color:
-            base = QColor("#7ebf8b")
-        elif "син" in color:
-            base = QColor("#7fa8cf")
-        else:
-            base = QColor("#9dafaa")
+        palette = {
+            "green": QColor("#7ebf8b"),
+            "blue": QColor("#7fa8cf"),
+            "red": QColor("#c98275"),
+            "yellow": QColor("#d9c86f"),
+            "purple": QColor("#a78ac2"),
+            "orange": QColor("#d79a5f"),
+            "white": QColor("#ece5d6"),
+            "black": QColor("#545454"),
+        }
+        base = palette.get(self._color_token(), QColor("#9dafaa"))
 
         variant = self._variant_seed % 5
         if variant == 0:
@@ -225,6 +230,62 @@ class CreaturePortraitWidget(QWidget):
         if variant == 3:
             return base.darker(112)
         return base
+
+    def _color_token(self) -> str | None:
+        direct = self._normalize_color_token(self._phenotype_color)
+        if direct:
+            return direct
+
+        summary_color = self._extract_color_segment(self._phenotype_summary)
+        if summary_color:
+            return self._normalize_color_token(summary_color)
+        return None
+
+    @staticmethod
+    def _extract_color_segment(value: str | None) -> str | None:
+        text = (value or "").strip()
+        if not text:
+            return None
+
+        for part in re.split(r"[;\n]+", text):
+            if re.search(r"(?i)(^|[^a-zA-Zа-яА-Я])color\s*[:=]", part) or re.search(r"(?i)(^|[^a-zA-Zа-яА-Я])цвет\s*[:=]", part):
+                return re.split(r"[:=]", part, maxsplit=1)[-1].strip()
+        return None
+
+    @staticmethod
+    def _normalize_color_token(value: str | None) -> str | None:
+        text = (value or "").casefold().replace("ё", "е")
+        if not text:
+            return None
+
+        raw_patterns = {
+            "green": r"(?<![a-zA-Z])green(?:_color)?(?![a-zA-Z])",
+            "blue": r"(?<![a-zA-Z])blue(?:_color)?(?![a-zA-Z])",
+            "red": r"(?<![a-zA-Z])red(?:_color)?(?![a-zA-Z])",
+            "yellow": r"(?<![a-zA-Z])yellow(?:_color)?(?![a-zA-Z])",
+            "purple": r"(?<![a-zA-Z])purple(?:_color)?(?![a-zA-Z])",
+            "orange": r"(?<![a-zA-Z])orange(?:_color)?(?![a-zA-Z])",
+            "white": r"(?<![a-zA-Z])white(?:_color)?(?![a-zA-Z])",
+            "black": r"(?<![a-zA-Z])black(?:_color)?(?![a-zA-Z])",
+        }
+        for color, pattern in raw_patterns.items():
+            if re.search(pattern, text):
+                return color
+
+        russian_markers = (
+            ("green", ("зел",)),
+            ("blue", ("син",)),
+            ("red", ("красн",)),
+            ("yellow", ("желт",)),
+            ("purple", ("фиолет",)),
+            ("orange", ("оранж",)),
+            ("white", ("бел",)),
+            ("black", ("черн",)),
+        )
+        for color, markers in russian_markers:
+            if any(marker in text for marker in markers):
+                return color
+        return None
 
     def _outline_pen(self, width: float = 1.8) -> QPen:
         return QPen(QColor("#334155"), width)
@@ -971,12 +1032,17 @@ class CreaturePortraitWidget(QWidget):
         return text[: limit - 1] + "…"
 
     def _color_label(self) -> str:
-        text = self._phenotype_color.casefold()
-        if "зел" in text:
-            return "зелёный"
-        if "син" in text:
-            return "синий"
-        return "нейтральный"
+        labels = {
+            "green": "зелёный",
+            "blue": "синий",
+            "red": "красный",
+            "yellow": "жёлтый",
+            "purple": "фиолетовый",
+            "orange": "оранжевый",
+            "white": "белый",
+            "black": "чёрный",
+        }
+        return labels.get(self._color_token(), "нейтральный")
 
     def _size_label(self) -> str:
         text = self._phenotype_size.casefold()

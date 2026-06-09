@@ -12,6 +12,7 @@
 - Seed covers the required species, genes, alleles, mutations, tasks, and markers.
 - `mutation_rules` and `task_markers` cover universal traits and `species_type 1..6`.
 - Mixed mutation rules were split into coherent species-specific mutations.
+- Universal color content is expanded to 8 real alleles: green, blue, red, yellow, purple, orange, white, black.
 
 ### 3. Economy
 - `buy_mutation`, `apply_mutation`, and `apply_mutagen` are handled by PL/SQL.
@@ -43,21 +44,21 @@
 - Tasks checked-creature portrait replaced with compact-thumbnail and empty text state.
 - GUI logic for tasks and mutations was not changed; these are display-layer fixes only.
 
-## Current Stage: Final delivery preparation
-Goal: prepare the repository and instructions for submission/transfer without adding large new features.
+## Current Stage: Color expansion, then final delivery preparation
+Goal: finish the narrow 8-color content/display pass, then prepare the repository and instructions for submission/transfer.
 
-Allowed:
-- docs cleanup;
-- run instructions cleanup;
-- repository hygiene fixes;
-- small GUI/UX/stability fixes only if a blocker is found.
+Allowed in the active color-pass:
+- seed color alleles;
+- non-brittle seed/strict test checks for 8 colors;
+- GUI display labels and portrait palette;
+- docs cleanup.
 
 Not allowed without a separate decision:
-- backend changes;
+- backend package spec/body changes;
 - DDL changes;
-- seed/test changes;
+- `pkg_api.py` changes;
 - new dependencies;
-- new real genes, alleles, colors, or mechanics;
+- additional real genes, alleles, colors, or mechanics beyond the 8-color pass;
 - moving business logic into Python.
 
 ## Final Delivery Tasks
@@ -73,7 +74,16 @@ Not allowed without a separate decision:
 
 ## Future Optional Tracks
 - Expand dashboard into a richer progress panel.
-- Content expansion: more alleles, colors, traits, and tasks.
+- Content expansion beyond the completed 8-color pass: more traits, tasks, and carefully designed allele families.
 - Mutagen diversity pass: more mutagen scenarios.
 - Economy balancing: tune penalties and rewards.
 - Strict task typing: a separate DDL/backend track for FIND/BREED/MUTATE if creature origin must be checked.
+
+## Delivery Preparation
+Current delivery-prep scope is repository hygiene and transfer instructions only:
+- `.gitignore` cleanup;
+- root `requirements.txt`;
+- `database/README_RUN.md` transfer/run notes;
+- final verification checklist.
+
+No new gameplay or GUI feature work should be started before submission unless a blocker is found.

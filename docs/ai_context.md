@@ -22,6 +22,7 @@
 - Backend strict-pass is closed: package spec/body compile and `user_errors` is empty.
 - Oracle smoke tests `01..08` were green after stabilization.
 - Content compliance is closed: seed covers universal traits and `species_type 1..6`.
+- Color expansion pass adds 8 real backend/content alleles for the universal `color` gene: green, blue, red, yellow, purple, orange, white, black.
 - Economy pass is closed: buy/apply mutation, mutagens, rating, and task auto-complete are handled by PL/SQL.
 - Multiuser strict-pass is closed: session-bound lab access, `ORA-20072`, and `ORA-20073` are handled.
 - `get_experiment_history` returns real `experiments.created_at`.
@@ -63,27 +64,28 @@
 - These fixes did not change `check_task`, `complete_task`, backend calls, genotype, phenotype, or DB data.
 
 ## Current Stage
-Final delivery preparation after GUI/graphics polish.
+Color expansion stabilization, then final delivery preparation.
+
+Current color-pass notes:
+- seed/test changes are expected only for the 8-color content expansion;
+- backend package spec/body, DDL, and `pkg_api.py` must remain unchanged;
+- Python only displays backend-returned color values and portrait colors;
+- after applying seed, run tests `02` and `07`, then full `01..08` if possible.
 
 Next steps:
-- verify `.gitignore`;
-- verify `requirements.txt`;
-- verify `database/README_RUN.md`;
-- verify that temporary repair files are absent;
 - run final `python -m compileall -f python_client`;
-- run mojibake marker-check for GUI and docs;
+- run mojibake marker-check for GUI, services, seed, tests, and docs;
+- run Oracle seed/tests after SQL tooling is available;
 - perform final manual GUI check;
-- run final Oracle `01..08` only if needed;
 - prepare repository for GitLab/university PC transfer.
 
-Do not change without explicit reason:
+Do not change without explicit reason after this color-pass:
 - backend package spec/body;
 - DDL;
-- seed;
-- tests;
+- additional seed/test content;
 - `pkg_api.py`;
 - dependencies;
-- real genes, alleles, colors, or mechanics.
+- additional real genes, alleles, colors, or mechanics.
 
 ## Required Checks
 - `git status --short`.
@@ -92,3 +94,10 @@ Do not change without explicit reason:
 - Check that no temporary repair files are tracked or present.
 - Check that old Qt header enum style is not used in Python code.
 - Check that `__pycache__` and `.venv` are not tracked by git.
+
+## Final Transfer Preparation Checkpoint
+- Root `requirements.txt` delegates to `python_client/requirements.txt`.
+- `.gitignore` includes local venv, env files, Python cache, logs, backup files, mojibake repair leftovers, patch scripts, and temporary text files.
+- `database/README_RUN.md` documents workspace, Python GUI setup, local `.env`, Oracle run order, smoke-test order `01..08`, and dev stale-session unlock script.
+- Final preparation changed docs/config only, but the following color-pass intentionally changes seed/tests and GUI display files.
+- The color-pass does not change backend package spec/body, DDL, `pkg_api.py`, or gameplay mechanics outside the real color allele content.

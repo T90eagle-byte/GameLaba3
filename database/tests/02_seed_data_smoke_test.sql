@@ -40,9 +40,33 @@ begin
     select count(*) into v_value from genes;
     assert_true(v_value >= 12, 'Gene count >= 12', 'actual=' || v_value);
 
-    -- 2) Allele count >= 24
+    -- 2) Allele count >= 30
     select count(*) into v_value from alleles;
-    assert_true(v_value >= 24, 'Allele count >= 24', 'actual=' || v_value);
+    assert_true(v_value >= 30, 'Allele count >= 30', 'actual=' || v_value);
+
+    -- 2a) Color gene has at least 8 configured alleles
+    select count(*)
+      into v_value
+      from alleles a
+      join genes g
+        on g.gene_id = a.gene_id
+     where g.gene_name = 'color'
+       and g.species_type = 0;
+    assert_true(v_value >= 8, 'Color gene has >= 8 alleles', 'actual=' || v_value);
+
+    -- 2b) Required color allele codes exist
+    select count(distinct lower(a.description))
+      into v_value
+      from alleles a
+      join genes g
+        on g.gene_id = a.gene_id
+     where g.gene_name = 'color'
+       and g.species_type = 0
+       and lower(a.description) in (
+            'green_color', 'blue_color', 'red_color', 'yellow_color',
+            'purple_color', 'orange_color', 'white_color', 'black_color'
+       );
+    assert_true(v_value = 8, 'Required 8 color allele codes exist', 'covered=' || v_value);
 
     -- 3) Each gene has at least 2 alleles
     select count(*)

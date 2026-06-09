@@ -355,8 +355,14 @@ begin
     -- -------------------------------------------------------------------------
     -- 2) Alleles (minimum 2 per gene)
     -- -------------------------------------------------------------------------
-    upsert_allele('color', 0, 2, 'green_color', 10);
-    upsert_allele('color', 0, 1, 'blue_color', 20);
+    upsert_allele('color', 0, 8, 'green_color', 10);
+    upsert_allele('color', 0, 7, 'blue_color', 20);
+    upsert_allele('color', 0, 6, 'red_color', 30);
+    upsert_allele('color', 0, 5, 'yellow_color', 40);
+    upsert_allele('color', 0, 4, 'purple_color', 50);
+    upsert_allele('color', 0, 3, 'orange_color', 60);
+    upsert_allele('color', 0, 2, 'white_color', 70);
+    upsert_allele('color', 0, 1, 'black_color', 80);
 
     upsert_allele('size', 0, 2, 'compact_size', 10);
     upsert_allele('size', 0, 1, 'large_size', 20);

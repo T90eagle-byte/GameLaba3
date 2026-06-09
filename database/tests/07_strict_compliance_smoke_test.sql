@@ -365,6 +365,28 @@ begin
       from tasks t;
     assert_true(v_dummy_num >= 12, 'content coverage: tasks >= 12', 'actual=' || v_dummy_num);
 
+    select count(*)
+      into v_dummy_num
+      from alleles a
+      join genes g
+        on g.gene_id = a.gene_id
+     where g.gene_name = 'color'
+       and g.species_type = 0;
+    assert_true(v_dummy_num >= 8, 'content coverage: color gene has >= 8 alleles', 'actual=' || v_dummy_num);
+
+    select count(distinct lower(a.description))
+      into v_dummy_num
+      from alleles a
+      join genes g
+        on g.gene_id = a.gene_id
+     where g.gene_name = 'color'
+       and g.species_type = 0
+       and lower(a.description) in (
+            'green_color', 'blue_color', 'red_color', 'yellow_color',
+            'purple_color', 'orange_color', 'white_color', 'black_color'
+       );
+    assert_true(v_dummy_num = 8, 'content coverage: required 8 color allele codes exist', 'covered=' || v_dummy_num);
+
     select count(distinct mr.gene_id)
       into v_dummy_num
       from mutation_rules mr;

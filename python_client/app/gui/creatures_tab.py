@@ -124,6 +124,11 @@ class CreaturesTab(QWidget):
         card_title.setObjectName("subtitle")
         right_layout.addWidget(card_title)
 
+        creature_hint = QLabel("Фенотип показывает видимые признаки. Генотип показывает пары аллелей выбранного существа.")
+        creature_hint.setObjectName("muted")
+        creature_hint.setWordWrap(True)
+        right_layout.addWidget(creature_hint)
+
         self.creature_portrait = CreaturePortraitWidget(mode="large")
         right_layout.addWidget(self.creature_portrait, alignment=Qt.AlignHCenter)
 
