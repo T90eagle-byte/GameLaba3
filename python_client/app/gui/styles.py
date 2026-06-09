@@ -49,6 +49,18 @@ QLineEdit:focus, QComboBox:focus {
     background: #ffffff;
 }
 
+QComboBox::drop-down {
+    border: 0;
+    width: 24px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #fffdf8;
+    border: 1px solid #d8cab4;
+    selection-background-color: #f4dfb6;
+    selection-color: #1f2937;
+}
+
 QPushButton {
     background-color: #2f6f89;
     color: #ffffff;
@@ -85,6 +97,15 @@ QPushButton[role='secondary']:hover {
     border-color: #c8b38e;
 }
 
+QPushButton[role='secondary']:pressed {
+    background-color: #ddc9aa;
+}
+
+QPushButton[role='secondary']:disabled {
+    background-color: #e4ded5;
+    color: #8a8175;
+}
+
 QPushButton[role='quick'] {
     background-color: #fff8ea;
     color: #334155;
@@ -97,6 +118,10 @@ QPushButton[role='quick'] {
 QPushButton[role='quick']:hover {
     background-color: #fff0d3;
     border-color: #d9bd88;
+}
+
+QPushButton[role='quick']:pressed {
+    background-color: #f3dfb8;
 }
 
 QTableWidget {
@@ -113,6 +138,18 @@ QTableWidget::item {
 
 QTableWidget::item:hover {
     background-color: #fff3d8;
+}
+
+QTableWidget::item:selected {
+    background-color: #f4dfb6;
+    color: #1f2937;
+}
+
+QTableCornerButton::section {
+    background-color: #efe3cf;
+    border: 0;
+    border-right: 1px solid #d7c5a7;
+    border-bottom: 1px solid #d7c5a7;
 }
 
 QHeaderView::section {
@@ -148,6 +185,13 @@ QTabBar::tab:selected {
     border-color: #c8b38e;
 }
 
+QTabWidget::pane {
+    border: 1px solid #c8b38e;
+    border-radius: 8px;
+    background: #fffdf8;
+    top: -1px;
+}
+
 QFrame#infoPanel {
     background-color: #fff7e8;
     border: 1px solid #e4c997;
@@ -155,9 +199,9 @@ QFrame#infoPanel {
 }
 
 QFrame#geneCard {
-    background-color: #f8fafc;
-    border: 1px solid #e3e8f1;
-    border-radius: 6px;
+    background-color: #fffaf0;
+    border: 1px solid #eadfce;
+    border-radius: 7px;
 }
 
 QLabel#geneCardTitle {
@@ -177,6 +221,7 @@ QLabel[helpCard='true'] {
     padding: 8px 11px;
     color: #4b5563;
     line-height: 135%;
+    font-weight: 500;
 }
 
 QFrame[card='true'] {
@@ -313,6 +358,10 @@ QScrollBar::handle:horizontal:hover {
 QScrollBar::add-line, QScrollBar::sub-line {
     width: 0;
     height: 0;
+}
+
+QScrollBar::add-page, QScrollBar::sub-page {
+    background: transparent;
 }
 
 
