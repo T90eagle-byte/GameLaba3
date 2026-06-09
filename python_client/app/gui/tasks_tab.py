@@ -88,6 +88,14 @@ class TasksTab(QWidget):
         heading_col.addWidget(title)
         heading_col.addWidget(subtitle)
 
+        self.tasks_help_label = QLabel(
+            "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0437\u0430\u0434\u0430\u043d\u0438\u0435 \u0438 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043e \u0434\u043b\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438. "
+            "\u041f\u043e\u0434\u0445\u043e\u0434\u0438\u0442 \u043b\u044e\u0431\u043e\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043e \u0441 \u043d\u0443\u0436\u043d\u044b\u043c\u0438 \u043f\u0440\u0438\u0437\u043d\u0430\u043a\u0430\u043c\u0438; \u043f\u043e\u0441\u043b\u0435 \u0443\u0441\u043f\u0435\u0448\u043d\u043e\u0439 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u0437\u0430\u0434\u0430\u043d\u0438\u0435 \u0438 \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u0435 \u043d\u0430\u0433\u0440\u0430\u0434\u0443."
+        )
+        self.tasks_help_label.setProperty("helpCard", True)
+        self.tasks_help_label.setWordWrap(True)
+        heading_col.addWidget(self.tasks_help_label)
+
         self.refresh_tasks_btn = QPushButton("Обновить задания")
         self.refresh_tasks_btn.setProperty("role", "secondary")
         self.refresh_tasks_btn.clicked.connect(self.refresh_data)
@@ -271,6 +279,7 @@ class TasksTab(QWidget):
         creature_layout.addRow("", self.creature_empty_label)
 
         self.creature_combo = QComboBox()
+        self.creature_combo.setToolTip("\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043e, \u043f\u0440\u0438\u0437\u043d\u0430\u043a\u0438 \u043a\u043e\u0442\u043e\u0440\u043e\u0433\u043e \u043d\u0443\u0436\u043d\u043e \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043f\u043e \u0437\u0430\u0434\u0430\u043d\u0438\u044e.")
         self.creature_combo.currentIndexChanged.connect(self._on_creature_changed)
 
         self.creature_id_label = QLabel("-")
@@ -301,10 +310,12 @@ class TasksTab(QWidget):
 
         buttons_row = QHBoxLayout()
         self.check_btn = QPushButton("Проверить выполнение")
+        self.check_btn.setToolTip("\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c, \u043f\u043e\u0434\u0445\u043e\u0434\u044f\u0442 \u043b\u0438 \u043f\u0440\u0438\u0437\u043d\u0430\u043a\u0438 \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0430.")
         self.check_btn.setProperty("role", "secondary")
         self.check_btn.clicked.connect(self.check_selected_task)
 
         self.complete_btn = QPushButton("Завершить задание")
+        self.complete_btn.setToolTip("\u041f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043d\u0430\u0433\u0440\u0430\u0434\u0443 \u043f\u043e\u0441\u043b\u0435 \u0443\u0441\u043f\u0435\u0448\u043d\u043e\u0439 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438.")
         self.complete_btn.clicked.connect(self.complete_selected_task)
 
         buttons_row.addWidget(self.check_btn)

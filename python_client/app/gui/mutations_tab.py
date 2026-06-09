@@ -103,6 +103,7 @@ class MutationsTab(QWidget):
         info_layout.setContentsMargins(10, 8, 10, 8)
         info_text = QLabel("Мутация — купленное направленное изменение признака. Мутаген — экспериментальное воздействие с ценой, риском и штрафом рейтинга.")
         info_text.setObjectName("subtitle")
+        info_text.setProperty("helpCard", True)
         info_text.setWordWrap(True)
         info_layout.addWidget(info_text)
         root.addWidget(self.mutations_info_panel)
@@ -155,6 +156,7 @@ class MutationsTab(QWidget):
         shop_layout.addLayout(selected_mutation_form)
 
         self.buy_btn = QPushButton("Купить мутацию")
+        self.buy_btn.setToolTip("\u041a\u0443\u043f\u0438\u0442\u044c \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u0443\u044e \u043c\u0443\u0442\u0430\u0446\u0438\u044e \u0432 \u0437\u0430\u043f\u0430\u0441 \u043b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0438.")
         self.buy_btn.clicked.connect(self.buy_selected_mutation)
         shop_layout.addWidget(self.buy_btn)
 
@@ -253,6 +255,7 @@ class MutationsTab(QWidget):
         apply_layout.addWidget(apply_title)
 
         self.apply_mutation_btn = QPushButton("Применить купленную мутацию")
+        self.apply_mutation_btn.setToolTip("\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u0443\u044e \u043c\u0443\u0442\u0430\u0446\u0438\u044e \u043a \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u043e\u043c\u0443 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443.")
         self.apply_mutation_btn.clicked.connect(self.apply_selected_mutation)
         apply_layout.addWidget(self.apply_mutation_btn)
 
@@ -262,11 +265,11 @@ class MutationsTab(QWidget):
         apply_layout.addWidget(self.apply_state_label)
 
         self.apply_hint_label = QLabel(
-            "Мутация — купленное направленное изменение признака. "
-            "Применяется согласно целевым генам mutation_rules. "
-            "Если целевой аллель уже есть у существа, фенотип может не измениться."
+            "\u041c\u0443\u0442\u0430\u0446\u0438\u044f \u2014 \u043a\u0443\u043f\u043b\u0435\u043d\u043d\u043e\u0435 \u043d\u0430\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043d\u043e\u0435 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0435 \u043f\u0440\u0438\u0437\u043d\u0430\u043a\u0430. "
+            "\u0415\u0441\u043b\u0438 \u0443 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0430 \u0443\u0436\u0435 \u0435\u0441\u0442\u044c \u0446\u0435\u043b\u0435\u0432\u043e\u0439 \u0430\u043b\u043b\u0435\u043b\u044c, \u0432\u0438\u0434\u0438\u043c\u044b\u0439 \u043f\u0440\u0438\u0437\u043d\u0430\u043a \u043c\u043e\u0436\u0435\u0442 \u043d\u0435 \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c\u0441\u044f."
         )
         self.apply_hint_label.setObjectName("subtitle")
+        self.apply_hint_label.setProperty("helpCard", True)
         self.apply_hint_label.setWordWrap(True)
         apply_layout.addWidget(self.apply_hint_label)
 
@@ -295,6 +298,7 @@ class MutationsTab(QWidget):
         self.mutagen_type_combo.addItem("Химический мутаген (CHEMICAL)", "CHEMICAL")
 
         self.apply_mutagen_btn = QPushButton("Применить мутаген")
+        self.apply_mutagen_btn.setToolTip("\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043d\u043e\u0432\u043e\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043e \u0447\u0435\u0440\u0435\u0437 \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u043e\u0435 \u0432\u043e\u0437\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435.")
         self.apply_mutagen_btn.clicked.connect(self.apply_selected_mutagen)
 
         self.new_creature_id_label = QLabel("-")
@@ -307,15 +311,18 @@ class MutationsTab(QWidget):
             "Радиационный мутаген (RADIATION): стоимость 50 монет, рейтинг -5, риск высокий, эффект более случайный.\nХимический мутаген (CHEMICAL): стоимость 100 монет, рейтинг -2, риск ниже, эффект более контролируемый."
         )
         self.mutagen_info_label.setObjectName("subtitle")
+        self.mutagen_info_label.setProperty("helpCard", True)
         self.mutagen_info_label.setWordWrap(True)
         mutagen_layout.addRow("", self.mutagen_info_label)
 
         self.mutagen_radiation_badge = QLabel('RADIATION: 50 монет, рейтинг -5, риск высокий')
         self.mutagen_radiation_badge.setProperty("badge", True)
         self.mutagen_radiation_badge.setProperty("badgeType", "radiation")
+        self.mutagen_radiation_badge.setToolTip("\u0414\u0435\u0448\u0435\u0432\u043b\u0435, \u043d\u043e \u0440\u0438\u0441\u043a\u043e\u0432\u0430\u043d\u043d\u0435\u0435 \u0438 \u0441\u0438\u043b\u044c\u043d\u0435\u0435 \u0441\u043d\u0438\u0436\u0430\u0435\u0442 \u0440\u0435\u0439\u0442\u0438\u043d\u0433.")
         self.mutagen_chemical_badge = QLabel('CHEMICAL: 100 монет, рейтинг -2, риск ниже')
         self.mutagen_chemical_badge.setProperty("badge", True)
         self.mutagen_chemical_badge.setProperty("badgeType", "chemical")
+        self.mutagen_chemical_badge.setToolTip("\u0414\u043e\u0440\u043e\u0436\u0435, \u043d\u043e \u043c\u044f\u0433\u0447\u0435 \u043f\u043e \u0440\u0435\u0439\u0442\u0438\u043d\u0433\u0443 \u0438 \u0431\u043e\u043b\u0435\u0435 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u0438\u0440\u0443\u0435\u043c\u043e.")
         mutagen_layout.addRow("", self.mutagen_radiation_badge)
         mutagen_layout.addRow("", self.mutagen_chemical_badge)
 

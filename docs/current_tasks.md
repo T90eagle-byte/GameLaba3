@@ -1,7 +1,7 @@
 # Current Tasks
 
 ## Current Status
-The project is past GUI/graphics polish. A small content/display expansion is in progress before final delivery preparation.
+The project is past GUI/graphics polish and color expansion stabilization. Final GUI onboarding/help hints are being added before delivery preparation.
 
 Closed stages:
 - Backend strict-pass.
@@ -19,14 +19,15 @@ Closed stages:
 - Creature Display / Art Pass 2.
 - Mutations compact portrait sizing fix.
 - Tasks checked-creature compact-thumbnail fix.
+- Color expansion display stabilization.
 
 ## Current Work
-Color expansion stabilization:
-- universal `color` gene now targets 8 real alleles: green, blue, red, yellow, purple, orange, white, black;
-- GUI display names and creature portraits must show these colors as display-layer only;
-- run `python -m compileall -f python_client` after Python changes;
-- after applying seed, run `02_seed_data_smoke_test` and `07_strict_compliance_smoke_test`;
-- then return to final delivery preparation.
+Final GUI onboarding/help hints:
+- Dashboard shows the first-run route through creatures, experiments/mutations, tasks, and history;
+- Creatures explain phenotype, genotype, inheritance, and color variants;
+- Genetic Experiment, Mutations, Tasks, and History tabs explain their workflow in compact help cards;
+- statistics, quick actions, task checks, mutagens, and journal filters have useful tooltips;
+- all changes are GUI/display-layer only.
 
 ## Acceptance Checklist
 - Auth: login, registration, errors, placeholders.
@@ -62,8 +63,8 @@ Color expansion stabilization:
 ## Final Stage Rules
 - Do not change backend package spec/body.
 - Do not change DDL.
-- Do not change seed except for the active 8-color content expansion.
-- Do not change tests `01..08` except for non-brittle checks that validate the active 8-color content expansion.
+- Do not change seed unless a new content task explicitly requires it.
+- Do not change tests `01..08` unless a tested contract truly changes.
 - Do not change `pkg_api.py`.
 - Do not add dependencies, assets, genes, alleles, colors, or mechanics.
 - Do not move business logic into Python.
@@ -73,4 +74,4 @@ Color expansion stabilization:
 - Root `requirements.txt` should install the Python GUI dependencies through `python_client/requirements.txt`.
 - Final checks before transfer: `git status --short`, `python -m compileall -f python_client`, mojibake marker-check, temp-file check, manual GUI check.
 - Oracle `01..08` smoke-tests are recommended for final proof.
-- Because the active color-pass changes seed/tests, run the seed and at least tests `02` and `07`; run full `01..08` when Oracle tooling is available.
+- If only GUI/display docs changed, Oracle tests are not required for that step.

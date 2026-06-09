@@ -94,6 +94,7 @@ class CrossbreedTab(QWidget):
         info_layout.setContentsMargins(10, 8, 10, 8)
         info_text = QLabel("Выберите двух исходных существ одного вида, посмотрите вероятности признаков и создайте потомка.")
         info_text.setObjectName("subtitle")
+        info_text.setProperty("helpCard", True)
         info_text.setWordWrap(True)
         info_layout.addWidget(info_text)
 
@@ -114,6 +115,10 @@ class CrossbreedTab(QWidget):
         self.parent_b_combo = QComboBox()
         self.gene_combo = QComboBox()
 
+        self.parent_a_combo.setToolTip("\u041f\u0435\u0440\u0432\u043e\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043e \u0434\u043b\u044f \u0441\u043a\u0440\u0435\u0449\u0438\u0432\u0430\u043d\u0438\u044f.")
+        self.parent_b_combo.setToolTip("\u0412\u0442\u043e\u0440\u043e\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043e \u0434\u043b\u044f \u0441\u043a\u0440\u0435\u0449\u0438\u0432\u0430\u043d\u0438\u044f.")
+        self.gene_combo.setToolTip("\u0413\u0435\u043d \u0434\u043b\u044f \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u0430 \u0432\u0435\u0440\u043e\u044f\u0442\u043d\u043e\u0441\u0442\u0435\u0439; \u043f\u043e\u0442\u043e\u043c\u043e\u043a \u0432\u0441\u0435 \u0440\u0430\u0432\u043d\u043e \u0441\u043e\u0437\u0434\u0430\u0435\u0442\u0441\u044f \u043f\u043e \u0432\u0441\u0435\u043c\u0443 \u0433\u0435\u043d\u043e\u0442\u0438\u043f\u0443.")
+
         self.parent_a_combo.currentIndexChanged.connect(self._on_parent_changed)
         self.parent_b_combo.currentIndexChanged.connect(self._on_parent_changed)
 
@@ -122,6 +127,7 @@ class CrossbreedTab(QWidget):
         selector_layout.addRow("Ген:", self.gene_combo)
 
         self.show_probabilities_btn = QPushButton("Показать вероятности")
+        self.show_probabilities_btn.setToolTip("\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0432\u0430\u0440\u0438\u0430\u043d\u0442\u044b \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e \u043f\u0440\u0438\u0437\u043d\u0430\u043a\u0430 \u0434\u043b\u044f \u043f\u0430\u0440\u044b \u0440\u043e\u0434\u0438\u0442\u0435\u043b\u0435\u0439.")
         self.show_probabilities_btn.clicked.connect(self.show_probabilities)
         selector_layout.addRow("", self.show_probabilities_btn)
 
@@ -176,11 +182,13 @@ class CrossbreedTab(QWidget):
 
         probabilities_hint = QLabel("Вероятности рассчитываются системой по генотипам выбранных существ.")
         probabilities_hint.setObjectName("subtitle")
+        probabilities_hint.setProperty("helpCard", True)
         probabilities_hint.setWordWrap(True)
         probabilities_layout.addWidget(probabilities_hint)
 
         selected_gene_hint = QLabel("Выбранный ген используется только для просмотра вероятностей. Потомок наследует признаки по всему генотипу.")
         selected_gene_hint.setObjectName("subtitle")
+        selected_gene_hint.setProperty("helpCard", True)
         selected_gene_hint.setWordWrap(True)
         probabilities_layout.addWidget(selected_gene_hint)
 

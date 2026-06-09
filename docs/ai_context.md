@@ -62,20 +62,21 @@
   - portrait is hidden until a creature is selected.
   - empty state text says to select a creature for task checking.
 - These fixes did not change `check_task`, `complete_task`, backend calls, genotype, phenotype, or DB data.
+- GUI onboarding/help hints were added as display-layer only: help cards and tooltips explain mechanics already implemented in PL/SQL.
 
 ## Current Stage
-Color expansion stabilization, then final delivery preparation.
+Final GUI onboarding/help hints and delivery preparation.
 
-Current color-pass notes:
-- seed/test changes are expected only for the 8-color content expansion;
-- backend package spec/body, DDL, and `pkg_api.py` must remain unchanged;
-- Python only displays backend-returned color values and portrait colors;
-- after applying seed, run tests `02` and `07`, then full `01..08` if possible.
+Current GUI-help notes:
+- concise paper-style help cards explain the game loop without mentioning backend internals;
+- Dashboard route: Creatures -> Genetic Experiment / Mutations -> Tasks -> History;
+- Creatures tab explains phenotype, genotype, inheritance, and color variants;
+- Experiment, Mutations, Tasks, and History tabs explain their workflows as display-layer hints;
+- these hints do not add mechanics and do not move business logic into Python.
 
 Next steps:
 - run final `python -m compileall -f python_client`;
 - run mojibake marker-check for GUI, services, seed, tests, and docs;
-- run Oracle seed/tests after SQL tooling is available;
 - perform final manual GUI check;
 - prepare repository for GitLab/university PC transfer.
 

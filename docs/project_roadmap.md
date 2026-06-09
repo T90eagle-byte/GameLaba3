@@ -44,21 +44,23 @@
 - Tasks checked-creature portrait replaced with compact-thumbnail and empty text state.
 - GUI logic for tasks and mutations was not changed; these are display-layer fixes only.
 
-## Current Stage: Color expansion, then final delivery preparation
-Goal: finish the narrow 8-color content/display pass, then prepare the repository and instructions for submission/transfer.
+### 8. GUI onboarding/help hints
+- Dashboard route explains the first-run loop: Creatures -> Experiment / Mutations -> Tasks -> History.
+- Creatures tab explains phenotype, genotype, inheritance, and color variants.
+- Experiment, Mutations, Tasks, and History tabs have compact paper-style workflow hints.
+- Tooltips were added to key stats and controls.
+- No backend, DDL, seed, tests, or `pkg_api.py` changes are part of this step.
 
-Allowed in the active color-pass:
-- seed color alleles;
-- non-brittle seed/strict test checks for 8 colors;
-- GUI display labels and portrait palette;
-- docs cleanup.
+## Current Stage: final delivery preparation
+Goal: keep the project stable, run final checks, and prepare repository/instructions for submission/transfer.
 
 Not allowed without a separate decision:
 - backend package spec/body changes;
 - DDL changes;
 - `pkg_api.py` changes;
+- seed/test changes;
 - new dependencies;
-- additional real genes, alleles, colors, or mechanics beyond the 8-color pass;
+- additional real genes, alleles, colors, or mechanics;
 - moving business logic into Python.
 
 ## Final Delivery Tasks
@@ -86,4 +88,4 @@ Current delivery-prep scope is repository hygiene and transfer instructions only
 - `database/README_RUN.md` transfer/run notes;
 - final verification checklist.
 
-No new gameplay or GUI feature work should be started before submission unless a blocker is found.
+No new gameplay or large GUI feature work should be started before submission unless a blocker is found.

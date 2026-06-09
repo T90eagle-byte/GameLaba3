@@ -151,6 +151,15 @@ QLabel#muted {
     color: #64748b;
 }
 
+QLabel[helpCard='true'] {
+    background-color: #fff8ea;
+    border: 1px solid #e8d4ad;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: #4b5563;
+    line-height: 135%;
+}
+
 QFrame[card='true'] {
     background-color: #fffdf7;
     border: 1px solid #e2d6c2;
