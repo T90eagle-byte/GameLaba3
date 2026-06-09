@@ -158,6 +158,7 @@ class CreaturePortraitWidget(QWidget):
         else:
             self._draw_unknown(painter, body)
 
+        self._draw_surface_glaze(painter, body, kind)
         self._draw_texture_overlay(painter, body, kind)
         self._draw_nutrition_marker(painter, card)
         self._draw_badges(painter, card)
@@ -288,7 +289,45 @@ class CreaturePortraitWidget(QWidget):
         return None
 
     def _outline_pen(self, width: float = 1.8) -> QPen:
+        token = self._color_token()
+        if token == "black":
+            return QPen(QColor("#1f2937"), width)
+        if token == "white":
+            return QPen(QColor("#52606d"), width)
         return QPen(QColor("#334155"), width)
+
+    def _highlight_color(self, alpha: int = 72) -> QColor:
+        token = self._color_token()
+        if token == "black":
+            color = QColor("#a1a1aa")
+        elif token == "white":
+            color = QColor("#ffffff")
+        else:
+            color = self._base_fill_color().lighter(145)
+        color.setAlpha(alpha)
+        return color
+
+    def _shadow_color(self, alpha: int = 64) -> QColor:
+        token = self._color_token()
+        if token == "black":
+            color = QColor("#111827")
+        elif token == "white":
+            color = QColor("#b9aa91")
+        else:
+            color = self._base_fill_color().darker(145)
+        color.setAlpha(alpha)
+        return color
+
+    def _detail_color(self, alpha: int = 92) -> QColor:
+        token = self._color_token()
+        if token == "black":
+            color = QColor("#e5e7eb")
+        elif token == "white":
+            color = QColor("#64748b")
+        else:
+            color = self._base_fill_color().darker(155)
+        color.setAlpha(alpha)
+        return color
 
     def _resolve_scale(self) -> float:
         size = self._phenotype_size.casefold()
@@ -383,18 +422,80 @@ class CreaturePortraitWidget(QWidget):
 
     def _draw_sketch_shadow(self, painter: QPainter, body: QRectF) -> None:
         painter.save()
-        shadow = QColor("#d8c7ad")
-        shadow.setAlpha(80)
         painter.setPen(Qt.NoPen)
+        shadow = QColor("#d8c7ad")
+        shadow.setAlpha(92 if self._mode != "mini" else 58)
         painter.setBrush(shadow)
         painter.drawEllipse(
             QRectF(
-                body.left() + body.width() * 0.08,
-                body.bottom() - body.height() * 0.04,
-                body.width() * 0.84,
-                body.height() * 0.18,
+                body.left() + body.width() * 0.06,
+                body.bottom() - body.height() * 0.035,
+                body.width() * 0.88,
+                body.height() * 0.20,
             )
         )
+        soft = QColor("#bca582")
+        soft.setAlpha(34 if self._mode != "mini" else 18)
+        painter.setBrush(soft)
+        painter.drawEllipse(
+            QRectF(
+                body.left() + body.width() * 0.18,
+                body.bottom() + body.height() * 0.02,
+                body.width() * 0.58,
+                body.height() * 0.10,
+            )
+        )
+        painter.restore()
+
+    def _draw_surface_glaze(self, painter: QPainter, body: QRectF, kind: str) -> None:
+        detail = self._detail_level()
+        painter.save()
+        painter.setPen(Qt.NoPen)
+
+        highlight = self._highlight_color(56 if detail >= 2 else 34)
+        shadow = self._shadow_color(48 if detail >= 2 else 30)
+
+        if kind in {"cartilaginous_fish", "bony_fish"}:
+            painter.setBrush(highlight)
+            painter.drawEllipse(
+                QRectF(
+                    body.left() + body.width() * 0.26,
+                    body.top() + body.height() * 0.08,
+                    body.width() * 0.40,
+                    body.height() * 0.18,
+                )
+            )
+            painter.setBrush(shadow)
+            painter.drawEllipse(
+                QRectF(
+                    body.left() + body.width() * 0.20,
+                    body.center().y() + body.height() * 0.16,
+                    body.width() * 0.50,
+                    body.height() * 0.15,
+                )
+            )
+        elif kind == "turtle":
+            painter.setBrush(highlight)
+            painter.drawEllipse(body.adjusted(body.width() * 0.22, body.height() * 0.18, -body.width() * 0.34, -body.height() * 0.46))
+            painter.setBrush(shadow)
+            painter.drawEllipse(body.adjusted(body.width() * 0.20, body.height() * 0.58, -body.width() * 0.28, -body.height() * 0.16))
+        elif kind == "mollusk":
+            painter.setBrush(highlight)
+            painter.drawEllipse(body.adjusted(body.width() * 0.12, body.height() * 0.10, -body.width() * 0.56, -body.height() * 0.52))
+            painter.setBrush(shadow)
+            painter.drawEllipse(body.adjusted(body.width() * 0.44, body.height() * 0.54, -body.width() * 0.08, -body.height() * 0.12))
+        else:
+            painter.setBrush(highlight)
+            painter.drawEllipse(body.adjusted(body.width() * 0.22, body.height() * 0.08, -body.width() * 0.34, -body.height() * 0.54))
+            painter.setBrush(shadow)
+            painter.drawEllipse(body.adjusted(body.width() * 0.18, body.height() * 0.56, -body.width() * 0.24, -body.height() * 0.14))
+
+        if detail >= 2:
+            painter.setPen(QPen(self._highlight_color(72), 1.0))
+            painter.drawLine(
+                QPointF(body.left() + body.width() * 0.26, body.top() + body.height() * 0.20),
+                QPointF(body.left() + body.width() * 0.62, body.top() + body.height() * 0.14),
+            )
         painter.restore()
 
     def _draw_cartilaginous_fish(self, painter: QPainter, body: QRectF) -> None:
@@ -489,7 +590,7 @@ class CreaturePortraitWidget(QWidget):
                 )
                 painter.drawPath(fin)
 
-            painter.setPen(QPen(QColor("#4b6475"), 1.0))
+            painter.setPen(QPen(self._detail_color(120), 1.0))
             gill_count = 3 if detail == 3 else 2
             for idx in range(gill_count):
                 offset = 0.10 + idx * 0.055
@@ -500,6 +601,16 @@ class CreaturePortraitWidget(QWidget):
             painter.drawLine(
                 QPointF(body.right() - body.width() * 0.06, body.center().y() + body.height() * 0.12),
                 QPointF(body.right() + body.width() * 0.02, body.center().y() + body.height() * 0.09),
+            )
+            painter.setPen(QPen(self._highlight_color(115), 1.05))
+            painter.drawLine(
+                QPointF(body.left() + body.width() * 0.26, body.top() + body.height() * 0.20),
+                QPointF(body.right() - body.width() * 0.22, body.top() + body.height() * 0.10),
+            )
+            painter.setPen(QPen(self._shadow_color(92), 1.0))
+            painter.drawLine(
+                QPointF(body.left() + body.width() * 0.28, body.bottom() - body.height() * 0.16),
+                QPointF(body.right() - body.width() * 0.30, body.bottom() - body.height() * 0.12),
             )
 
         painter.setPen(self._outline_pen())
@@ -587,7 +698,7 @@ class CreaturePortraitWidget(QWidget):
             bottom_fin.closeSubpath()
             painter.drawPath(bottom_fin)
 
-            painter.setPen(QPen(QColor("#5b7088"), 0.95))
+            painter.setPen(QPen(self._detail_color(92), 0.95))
             scale_count = 5 if detail == 3 else 3
             for idx in range(scale_count):
                 shift = 0.20 + idx * 0.12
@@ -598,6 +709,11 @@ class CreaturePortraitWidget(QWidget):
                     fish_body.height() * 0.64,
                 )
                 painter.drawArc(arc, 72 * 16, 215 * 16)
+            painter.setPen(QPen(self._highlight_color(100), 1.0))
+            painter.drawLine(
+                QPointF(fish_body.left() + fish_body.width() * 0.24, fish_body.top() + fish_body.height() * 0.22),
+                QPointF(fish_body.right() - fish_body.width() * 0.20, fish_body.top() + fish_body.height() * 0.16),
+            )
 
         painter.setPen(self._outline_pen())
         self._draw_eye(painter, QPointF(fish_body.right() - fish_body.width() * 0.14, fish_body.center().y() - fish_body.height() * 0.12))
@@ -620,6 +736,14 @@ class CreaturePortraitWidget(QWidget):
             seg = QRectF(x, body.top() + body.height() * (0.5 - scale * 0.30), body.width() * 0.22, body.height() * scale * 0.60)
             segments.append(seg)
             painter.drawPath(self._segment_path(seg, 0.04 + idx * 0.01))
+            if detail >= 2:
+                painter.save()
+                painter.setPen(QPen(self._detail_color(85), 0.85))
+                painter.drawLine(
+                    QPointF(seg.left() + seg.width() * 0.18, seg.top() + seg.height() * 0.22),
+                    QPointF(seg.right() - seg.width() * 0.14, seg.bottom() - seg.height() * 0.24),
+                )
+                painter.restore()
 
         tail = QPainterPath()
         tail.moveTo(body.left() + body.width() * 0.1, body.center().y())
@@ -642,6 +766,11 @@ class CreaturePortraitWidget(QWidget):
             claw.quadTo(arm_tip.x() + side * body.width() * 0.14, arm_tip.y() + body.height() * 0.13, arm_tip.x() + side * body.width() * 0.02, arm_tip.y() + body.height() * 0.12)
             claw.closeSubpath()
             painter.drawPath(claw)
+            if detail >= 2:
+                painter.save()
+                painter.setPen(QPen(self._highlight_color(90), 0.9))
+                painter.drawLine(arm_tip, QPointF(arm_tip.x() + side * body.width() * 0.10, arm_tip.y() - body.height() * 0.02))
+                painter.restore()
 
         if detail >= 2:
             painter.setPen(QPen(QColor("#334155"), 1.2))
@@ -683,6 +812,10 @@ class CreaturePortraitWidget(QWidget):
         spiral.cubicTo(shell.left() + shell.width() * 0.02, shell.top() + shell.height() * 0.34, shell.left() + shell.width() * 0.16, shell.bottom() - shell.height() * 0.18, center.x() + shell.width() * 0.08, shell.bottom() - shell.height() * 0.12)
         painter.drawPath(spiral)
         if detail >= 2:
+            painter.save()
+            painter.setPen(QPen(self._highlight_color(120), 1.0))
+            painter.drawArc(shell.adjusted(shell.width() * 0.18, shell.height() * 0.14, -shell.width() * 0.30, -shell.height() * 0.52), 20 * 16, 130 * 16)
+            painter.restore()
             for shift in (0.28, 0.46, 0.64):
                 painter.drawArc(shell.adjusted(shell.width() * shift * 0.25, shell.height() * 0.08, -shell.width() * 0.08, -shell.height() * 0.1), 110 * 16, 105 * 16)
 
@@ -722,6 +855,9 @@ class CreaturePortraitWidget(QWidget):
             painter.drawPath(self._organic_oval_path(inner))
             painter.drawLine(QPointF(shell.left() + shell.width() * 0.18, shell.center().y()), QPointF(shell.right() - shell.width() * 0.18, shell.center().y()))
             painter.drawLine(QPointF(shell.center().x(), shell.top() + shell.height() * 0.16), QPointF(shell.center().x(), shell.bottom() - shell.height() * 0.14))
+            painter.setPen(QPen(self._highlight_color(105), 1.0))
+            painter.drawArc(shell.adjusted(shell.width() * 0.18, shell.height() * 0.12, -shell.width() * 0.35, -shell.height() * 0.44), 25 * 16, 110 * 16)
+            painter.setPen(QPen(QColor("#5f7288"), 1.1))
             if detail == 3:
                 painter.drawLine(QPointF(shell.left() + shell.width() * 0.33, shell.top() + shell.height() * 0.22), QPointF(shell.left() + shell.width() * 0.26, shell.bottom() - shell.height() * 0.2))
                 painter.drawLine(QPointF(shell.left() + shell.width() * 0.67, shell.top() + shell.height() * 0.22), QPointF(shell.left() + shell.width() * 0.74, shell.bottom() - shell.height() * 0.2))
@@ -794,6 +930,8 @@ class CreaturePortraitWidget(QWidget):
 
         self._draw_eye(painter, QPointF(head.center().x() + head.width() * 0.16, head.center().y() - head.height() * 0.12))
         painter.setPen(QPen(QColor("#334155"), 1.0))
+        nose = QPointF(head.right() - head.width() * 0.05, head.center().y() + head.height() * 0.07)
+        painter.drawEllipse(nose, 1.7, 1.2)
         painter.drawLine(QPointF(head.right() - head.width() * 0.14, head.center().y() + head.height() * 0.08), QPointF(head.right() - head.width() * 0.03, head.center().y() + head.height() * 0.1))
 
         painter.setPen(self._outline_pen(1.5))
@@ -882,10 +1020,16 @@ class CreaturePortraitWidget(QWidget):
         return sum(ord(ch) for ch in text) % 97
 
     def _draw_texture_overlay(self, painter: QPainter, body: QRectF, kind: str) -> None:
+        detail = self._detail_level()
+        if detail == 1:
+            if self._summary_has("\u0441\u043a\u043e\u0440\u043e\u0441\u0442\u044c", "\u0432\u044b\u0441\u043e\u043a") or self._summary_has("\u0431\u044b\u0441\u0442\u0440"):
+                painter.setPen(QPen(QColor("#8aa2b8"), 1.0))
+                painter.drawLine(QPointF(body.left() - body.width() * 0.22, body.center().y()), QPointF(body.left() - body.width() * 0.12, body.center().y()))
+            return
+
         seed = self._variant_seed
-        accent = QColor("#4b5563")
-        accent.setAlpha(60)
-        painter.setPen(QPen(accent, 1.0))
+        accent = self._detail_color(44 if detail == 2 else 58)
+        painter.setPen(QPen(accent, 0.9))
 
         pattern = seed % 3
         if pattern == 0:
