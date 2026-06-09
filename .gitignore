@@ -5,3 +5,8 @@ __pycache__/
 .vscode/settings.json
 .idea/
 *.log
+*.bak
+*.bak_mojibake*
+fix_*.py
+patch_*.py
+tmp_*.txt

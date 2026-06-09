@@ -2,6 +2,46 @@
 
 This guide is for Oracle SQL Developer, SQLcl, or SQL*Plus.
 
+
+## Workspace and project transfer
+
+Use this workspace when working locally:
+
+```powershell
+cd C:\GameLR3
+```
+
+Do not use the old path under `C:\Users\User\DATA`.
+
+When moving the project to another PC or GitLab, do not commit local secrets or virtual environments:
+- `.env` files are local only;
+- `.venv/` is local only;
+- Oracle passwords are local only.
+
+## Python GUI setup
+
+From repository root on Windows:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Create local environment configuration from the example if needed:
+
+```powershell
+Copy-Item python_client\.env.example python_client\.env
+```
+
+Then edit `python_client/.env` with local Oracle connection settings. Do not commit `.env`.
+
+Run the GUI from repository root:
+
+```powershell
+.\.venv\Scripts\python.exe python_client\main.py
+```
+
 ## Prerequisites
 
 - The schema must have `EXECUTE` on `DBMS_CRYPTO`.
@@ -241,3 +281,20 @@ Notes:
 - It only closes `sessions.status='ACTIVE'` for the chosen login.
 - It does **not** delete labs/creatures/genotypes/experiments/lab_tasks/lab_mutations.
 - With current GUI close handling, this should no longer occur in normal flow.
+
+## Full smoke-test order
+
+After DDL, seed, package spec, and package body are applied, run smoke-tests in this order:
+
+```sql
+@database/tests/01_auth_labs_smoke_test.sql
+@database/tests/02_seed_data_smoke_test.sql
+@database/tests/03_creature_generation_smoke_test.sql
+@database/tests/04_crossbreed_smoke_test.sql
+@database/tests/05_mutations_experiments_smoke_test.sql
+@database/tests/06_tasks_smoke_test.sql
+@database/tests/07_strict_compliance_smoke_test.sql
+@database/tests/08_multiuser_sessions_smoke_test.sql
+```
+
+When deploying into a fresh schema, run the seed before smoke-tests.
