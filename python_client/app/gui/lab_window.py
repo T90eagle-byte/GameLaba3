@@ -178,6 +178,29 @@ class LabWindow(QWidget):
         self.logout_btn.setEnabled(enabled)
         self.table.setEnabled(enabled)
 
+    def _delete_error_message(self, exc: Exception) -> str:
+        message = map_oracle_error(exc)
+        raw_text = str(exc).casefold()
+        lock_tokens = (
+            "timeout",
+            "timed out",
+            "call timeout",
+            "dpy-4011",
+            "ora-00054",
+            "ora-30006",
+            "resource busy",
+            "lock wait",
+        )
+        if any(token in raw_text for token in lock_tokens):
+            hint = (
+                "Удаление заняло слишком много времени. "
+                "Возможно, лаборатория занята другой сессией. "
+                "Закройте другие окна приложения или выполните "
+                "очистку зависших DEV-сессий."
+            )
+            return f"{hint}\n\n{message}" if message else hint
+        return message
+
     def _create_lab(self) -> None:
         token = self.state.session_token
         if not token:
@@ -230,17 +253,17 @@ class LabWindow(QWidget):
 
         token = self.state.session_token
         if not token:
-            QMessageBox.warning(self, "\u041b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0438", "\u0422\u043e\u043a\u0435\u043d \u0441\u0435\u0441\u0441\u0438\u0438 \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442. \u0412\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u0432\u0445\u043e\u0434 \u0437\u0430\u043d\u043e\u0432\u043e.")
+            QMessageBox.warning(self, "Лаборатории", "Токен сессии отсутствует. Выполните вход заново.")
             return
 
         row = self.table.currentRow()
         if row < 0:
-            QMessageBox.information(self, "\u041b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0438", "\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u044e \u0432 \u0442\u0430\u0431\u043b\u0438\u0446\u0435.")
+            QMessageBox.information(self, "Лаборатории", "Сначала выберите лабораторию в таблице.")
             return
 
         lab_id_item = self.table.item(row, 0)
         if lab_id_item is None:
-            QMessageBox.warning(self, "\u041b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0438", "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c \u0438\u0434\u0435\u043d\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u043e\u0440 \u043b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0438.")
+            QMessageBox.warning(self, "Лаборатории", "Не удалось прочитать идентификатор лаборатории.")
             return
 
         lab_id = int(lab_id_item.text())
@@ -248,17 +271,18 @@ class LabWindow(QWidget):
         if self.state.selected_lab_id == lab_id:
             QMessageBox.information(
                 self,
-                "\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435 \u043b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0438",
-                "\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0432\u044b\u0439\u0434\u0438\u0442\u0435 \u0438\u0437 \u043e\u0442\u043a\u0440\u044b\u0442\u043e\u0439 \u043b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0438, \u0437\u0430\u0442\u0435\u043c \u0443\u0434\u0430\u043b\u0438\u0442\u0435 \u0435\u0451 \u0438\u0437 \u0441\u043f\u0438\u0441\u043a\u0430 \u043b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0439.",
+                "Удаление лаборатории",
+                "Нельзя удалить лабораторию, которая сейчас открыта. "
+                "Сначала выйдите из неё или выберите другую.",
             )
             return
 
         answer = QMessageBox.question(
             self,
-            "\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435 \u043b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0438",
+            "Удаление лаборатории",
             (
-                f"\u0412\u044b \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043b\u044c\u043d\u043e \u0445\u043e\u0442\u0438\u0442\u0435 \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u043b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u044e {lab_id}?\\n"
-                "\u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043d\u0435\u043e\u0431\u0440\u0430\u0442\u0438\u043c\u043e."
+                f"Вы действительно хотите удалить лабораторию {lab_id}?\n"
+                "Это действие необратимо."
             ),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
@@ -272,26 +296,30 @@ class LabWindow(QWidget):
         QApplication.processEvents()
 
         connection = self.state.connection
-        previous_call_timeout = None
-        call_timeout_changed = False
+        previous_call_timeout = getattr(connection, "call_timeout", None)
+        deleted = False
+        error_message = ""
 
         try:
-            previous_call_timeout = getattr(connection, "call_timeout", None)
-            if previous_call_timeout in (None, 0) or previous_call_timeout > 15000:
-                connection.call_timeout = 15000
-                call_timeout_changed = True
-
+            connection.call_timeout = 15000
             self.pkg_api.delete_lab(token, lab_id)
-            QMessageBox.information(self, "\u041b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0438", f"\u041b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u044f {lab_id} \u0443\u0434\u0430\u043b\u0435\u043d\u0430.")
-            self.refresh_labs()
+            deleted = True
         except Exception as exc:
-            QMessageBox.critical(self, "\u041e\u0448\u0438\u0431\u043a\u0430 \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u044f", map_oracle_error(exc))
+            error_message = self._delete_error_message(exc)
         finally:
-            if call_timeout_changed:
-                try:
-                    connection.call_timeout = previous_call_timeout
-                except Exception:
-                    pass
+            try:
+                connection.call_timeout = previous_call_timeout
+            except Exception:
+                pass
             QApplication.restoreOverrideCursor()
             self._set_delete_flow_enabled(True)
             self._delete_in_progress = False
+            QApplication.processEvents()
+
+        if error_message:
+            QMessageBox.critical(self, "Ошибка удаления", error_message)
+            return
+
+        if deleted:
+            self.refresh_labs()
+            QMessageBox.information(self, "Лаборатории", f"Лаборатория {lab_id} удалена.")

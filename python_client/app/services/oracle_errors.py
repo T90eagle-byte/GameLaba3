@@ -67,6 +67,20 @@ def map_oracle_error(exc: Exception) -> str:
             except (TypeError, ValueError):
                 normalized_code = None
 
+        message_text = (message or "").casefold()
+        lock_tokens = (
+            "timeout",
+            "timed out",
+            "call timeout",
+            "dpy-4011",
+            "resource busy",
+            "lock wait",
+        )
+        if normalized_code in (-54, -30006, -1013) or any(token in message_text for token in lock_tokens):
+            human_message = "Операция заняла слишком много времени. Возможно, объект заблокирован другой сессией."
+            details = _oracle_details(code=code, message=message)
+            return f"{human_message}\n\n{details}" if details else human_message
+
         for lookup_code in (normalized_code, code):
             if lookup_code in custom:
                 human_message = custom[lookup_code]
