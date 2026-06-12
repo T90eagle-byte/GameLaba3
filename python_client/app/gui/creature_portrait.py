@@ -243,15 +243,30 @@ class CreaturePortraitWidget(QWidget):
         return None
 
     @staticmethod
-    def _extract_color_segment(value: str | None) -> str | None:
+    def _fold_text(value: str | None) -> str:
+        return (value or "").strip().casefold().replace("ё", "е")
+
+    @classmethod
+    def _extract_summary_segment(cls, value: str | None, *keys: str) -> str | None:
         text = (value or "").strip()
         if not text:
             return None
 
+        expected = {cls._fold_text(key) for key in keys}
         for part in re.split(r"[;\n]+", text):
-            if re.search(r"(?i)(^|[^a-zA-Zа-яА-Я])color\s*[:=]", part) or re.search(r"(?i)(^|[^a-zA-Zа-яА-Я])цвет\s*[:=]", part):
-                return re.split(r"[:=]", part, maxsplit=1)[-1].strip()
+            if not part.strip():
+                continue
+            chunks = re.split(r"[:=]", part, maxsplit=1)
+            if len(chunks) != 2:
+                continue
+            key, segment = chunks[0].strip(), chunks[1].strip()
+            if cls._fold_text(key) in expected:
+                return segment
         return None
+
+    @classmethod
+    def _extract_color_segment(cls, value: str | None) -> str | None:
+        return cls._extract_summary_segment(value, "color", "цвет")
 
     @staticmethod
     def _normalize_color_token(value: str | None) -> str | None:
@@ -329,17 +344,63 @@ class CreaturePortraitWidget(QWidget):
         color.setAlpha(alpha)
         return color
 
+    @classmethod
+    def _normalize_size_token(cls, value: str | None) -> str | None:
+        text = cls._fold_text(value)
+        if not text:
+            return None
+        if re.search(r"(?<![a-zA-Z])compact(?:_size)?(?![a-zA-Z])", text) or "компакт" in text:
+            return "compact"
+        if re.search(r"(?<![a-zA-Z])large(?:_size)?(?![a-zA-Z])", text) or "круп" in text:
+            return "large"
+        if re.search(r"(?<![a-zA-Z])medium(?:_size)?(?![a-zA-Z])", text) or "сред" in text or "промеж" in text or "intermediate" in text:
+            return "medium"
+        return None
+
+    def _size_token(self) -> str | None:
+        direct = self._normalize_size_token(self._phenotype_size)
+        if direct:
+            return direct
+        summary_size = self._extract_summary_segment(self._phenotype_summary, "size", "размер")
+        return self._normalize_size_token(summary_size)
+
     def _resolve_scale(self) -> float:
-        size = self._phenotype_size.casefold()
-        if "компакт" in size:
+        size = self._size_token()
+        if size == "compact":
             return 0.86
-        if "круп" in size:
+        if size == "large":
             return 1.12
         return 1.0
 
+    @classmethod
+    def _normalize_wings_token(cls, value: str | None) -> bool | None:
+        text = cls._fold_text(value)
+        if not text:
+            return None
+        if (
+            re.search(r"(?<![a-zA-Z])no_wings(?![a-zA-Z])", text)
+            or re.search(r"(?<![a-zA-Z])(n|no|false|0)(?![a-zA-Z])", text)
+            or "без крыл" in text
+            or (("нет" in text or "отсутств" in text) and "крыл" in text)
+            or text == "нет"
+        ):
+            return False
+        if (
+            re.search(r"(?<![a-zA-Z])wings(?![a-zA-Z])", text)
+            or re.search(r"(?<![a-zA-Z])(y|yes|true|1)(?![a-zA-Z])", text)
+            or ("есть" in text and "крыл" in text)
+            or "крылат" in text
+        ):
+            return True
+        return None
+
     def _has_wings(self) -> bool:
-        wings = self._phenotype_wings.casefold()
-        return "есть" in wings and "крыл" in wings
+        direct = self._normalize_wings_token(self._phenotype_wings)
+        if direct is not None:
+            return direct
+        summary_wings = self._extract_summary_segment(self._phenotype_summary, "has_wings", "крылья")
+        fallback = self._normalize_wings_token(summary_wings)
+        return bool(fallback)
 
     def _species_kind(self) -> str:
         text = self._species_label.casefold()
@@ -1128,15 +1189,30 @@ class CreaturePortraitWidget(QWidget):
             painter.setPen(QColor("#4b5563"))
             painter.drawText(chip.adjusted(6, 0, -6, 0), Qt.AlignVCenter | Qt.AlignLeft, text)
 
-    def _nutrition_label(self) -> str:
-        text = self._phenotype_nutrition.casefold()
-        if "смеш" in text or ("хищ" in text and "трав" in text):
+    @classmethod
+    def _normalize_nutrition_label(cls, value: str | None) -> str | None:
+        text = cls._fold_text(value)
+        if not text:
+            return None
+        if (
+            "смеш" in text
+            or re.search(r"(?<![a-zA-Z])carnivore/herbivore(?![a-zA-Z])", text)
+            or re.search(r"(?<![a-zA-Z])herbivore/carnivore(?![a-zA-Z])", text)
+            or ("хищ" in text and "трав" in text)
+        ):
             return "смешанный"
-        if "хищ" in text:
+        if re.search(r"(?<![a-zA-Z])(carnivore|predator)(?![a-zA-Z])", text) or "хищ" in text:
             return "хищный"
-        if "трав" in text:
+        if re.search(r"(?<![a-zA-Z])herbivore(?![a-zA-Z])", text) or "трав" in text:
             return "травоядный"
-        return "не указано"
+        return None
+
+    def _nutrition_label(self) -> str:
+        direct = self._normalize_nutrition_label(self._phenotype_nutrition)
+        if direct:
+            return direct
+        summary_nutrition = self._extract_summary_segment(self._phenotype_summary, "nutrition_type", "тип питания")
+        return self._normalize_nutrition_label(summary_nutrition) or "не указано"
 
     @staticmethod
     def _nutrition_short_label(label: str) -> str:
@@ -1189,12 +1265,9 @@ class CreaturePortraitWidget(QWidget):
         return labels.get(self._color_token(), "нейтральный")
 
     def _size_label(self) -> str:
-        text = self._phenotype_size.casefold()
-        if "компакт" in text:
-            return "компактный"
-        if "круп" in text:
-            return "крупный"
-        if "сред" in text or "промеж" in text:
-            return "средний"
-        return "не указан"
-
+        labels = {
+            "compact": "компактный",
+            "medium": "средний",
+            "large": "крупный",
+        }
+        return labels.get(self._size_token(), "не указан")
