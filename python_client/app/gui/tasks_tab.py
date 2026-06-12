@@ -37,20 +37,6 @@ from app.services.display_names import (
 )
 
 
-_SPECIES_LABELS = {
-    1: "Хрящевые рыбы",
-    2: "Костные рыбы",
-    3: "Ракообразные",
-    4: "Моллюски",
-    5: "Черепахи",
-    6: "Млекопитающие",
-}
-
-_STATUS_LABELS = {
-    "ACTIVE": "Активно",
-    "COMPLETED": "Выполнено",
-}
-
 
 class TasksTab(QWidget):
     def __init__(

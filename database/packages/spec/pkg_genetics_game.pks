@@ -18,6 +18,10 @@ create or replace package pkg_genetics_game as
         p_session_token in varchar2
     );
 
+    function resolve_user_id_by_token(
+        p_session_token in varchar2
+    ) return number;
+
     procedure update_user_profile(
         p_user_id       in number,
         p_username      in varchar2 default null,
@@ -100,6 +104,20 @@ create or replace package pkg_genetics_game as
     ----------------------------------------------------------------------------
     function show_mutation_shop
     return sys_refcursor;
+
+    function get_mutation_target_genes_cursor(
+        p_mutation_id     in number
+    ) return sys_refcursor;
+
+    function get_compatible_creatures_for_mutation_cursor(
+        p_lab_id          in number,
+        p_mutation_id     in number
+    ) return sys_refcursor;
+
+    function get_lab_mutation_quantity(
+        p_lab_id          in number,
+        p_mutation_id     in number
+    ) return number;
 
     function buy_mutation(
         p_lab_id          in number,

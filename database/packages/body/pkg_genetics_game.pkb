@@ -153,6 +153,23 @@ create or replace package body pkg_genetics_game as
             raise_application_error(-20020, 'Active session not found.');
     end get_active_session;
 
+    function resolve_user_id_by_token(
+        p_session_token in varchar2
+    ) return number is
+        v_user_id number;
+    begin
+        select s.user_id
+          into v_user_id
+          from sessions s
+         where s.session_token = p_session_token
+           and s.status = 'ACTIVE';
+
+        return v_user_id;
+    exception
+        when no_data_found then
+            return null;
+    end resolve_user_id_by_token;
+
     procedure assign_starting_tasks(
         p_lab_id in number
     ) is
@@ -1252,6 +1269,82 @@ create or replace package body pkg_genetics_game as
 
         return v_cursor;
     end show_mutation_shop;
+
+    function get_mutation_target_genes_cursor(
+        p_mutation_id     in number
+    ) return sys_refcursor is
+        v_cursor sys_refcursor;
+    begin
+        open v_cursor for
+            select
+                mr.gene_id,
+                g.gene_name,
+                g.gene_type,
+                g.species_type,
+                mr.target_slot,
+                a.trait_value,
+                a.description as target_allele_description
+              from mutation_rules mr
+              join genes g
+                on g.gene_id = mr.gene_id
+              join alleles a
+                on a.allele_id = mr.target_allele_id
+             where mr.mutation_id = p_mutation_id
+             order by mr.gene_id;
+
+        return v_cursor;
+    end get_mutation_target_genes_cursor;
+
+    function get_compatible_creatures_for_mutation_cursor(
+        p_lab_id          in number,
+        p_mutation_id     in number
+    ) return sys_refcursor is
+        v_cursor sys_refcursor;
+    begin
+        assert_lab_access(p_lab_id => p_lab_id);
+
+        open v_cursor for
+            select c.creature_id
+              from creatures c
+             where c.lab_id = p_lab_id
+               and not exists (
+                    select 1
+                      from (
+                            select distinct mr.gene_id
+                              from mutation_rules mr
+                             where mr.mutation_id = p_mutation_id
+                      ) req
+                     where not exists (
+                            select 1
+                              from genotypes g
+                             where g.creature_id = c.creature_id
+                               and g.gene_id = req.gene_id
+                     )
+               )
+             order by c.creature_id;
+
+        return v_cursor;
+    end get_compatible_creatures_for_mutation_cursor;
+
+    function get_lab_mutation_quantity(
+        p_lab_id          in number,
+        p_mutation_id     in number
+    ) return number is
+        v_quantity number;
+    begin
+        assert_lab_access(p_lab_id => p_lab_id);
+
+        select lm.quantity
+          into v_quantity
+          from lab_mutations lm
+         where lm.lab_id = p_lab_id
+           and lm.mutation_id = p_mutation_id;
+
+        return nvl(v_quantity, 0);
+    exception
+        when no_data_found then
+            return 0;
+    end get_lab_mutation_quantity;
 
     function buy_mutation(
         p_lab_id          in number,

@@ -53,19 +53,14 @@ class PkgApi:
 
     def resolve_user_id_by_token(self, session_token: str) -> int | None:
         with self._connection.cursor() as cursor:
-            cursor.execute(
-                """
-                select s.user_id
-                  from sessions s
-                 where s.session_token = :session_token
-                   and s.status = 'ACTIVE'
-                """,
-                {"session_token": session_token},
+            user_id = cursor.callfunc(
+                "pkg_genetics_game.resolve_user_id_by_token",
+                oracledb.DB_TYPE_NUMBER,
+                [session_token],
             )
-            row = cursor.fetchone()
-            if row is None:
+            if user_id is None:
                 return None
-            return self._as_int(row[0])
+            return self._as_int(user_id)
 
     def list_user_labs(self, user_id: int) -> list[dict[str, Any]]:
         with self._connection.cursor() as cursor:
@@ -271,68 +266,37 @@ class PkgApi:
 
     def get_mutation_target_genes(self, mutation_id: int) -> list[dict[str, Any]]:
         with self._connection.cursor() as cursor:
-            cursor.execute(
-                """
-                select
-                  mr.gene_id,
-                  g.gene_name,
-                  g.gene_type,
-                  g.species_type,
-                  mr.target_slot,
-                  a.trait_value,
-                  a.description as target_allele_description
-                from mutation_rules mr
-                join genes g on g.gene_id = mr.gene_id
-                join alleles a on a.allele_id = mr.target_allele_id
-                where mr.mutation_id = :mutation_id
-                order by mr.gene_id
-                """,
-                {"mutation_id": mutation_id},
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.get_mutation_target_genes_cursor",
+                oracledb.DB_TYPE_CURSOR,
+                [mutation_id],
             )
-            return self._rows_from_refcursor(cursor)
+            try:
+                return self._rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()
 
     def get_compatible_creature_ids_for_mutation(self, lab_id: int, mutation_id: int) -> list[int]:
         with self._connection.cursor() as cursor:
-            cursor.execute(
-                """
-                select c.creature_id
-                from creatures c
-                where c.lab_id = :lab_id
-                  and not exists (
-                    select 1
-                    from (
-                      select distinct mr.gene_id
-                      from mutation_rules mr
-                      where mr.mutation_id = :mutation_id
-                    ) req
-                    where not exists (
-                      select 1
-                      from genotypes g
-                      where g.creature_id = c.creature_id
-                        and g.gene_id = req.gene_id
-                    )
-                  )
-                order by c.creature_id
-                """,
-                {"lab_id": lab_id, "mutation_id": mutation_id},
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.get_compatible_creatures_for_mutation_cursor",
+                oracledb.DB_TYPE_CURSOR,
+                [lab_id, mutation_id],
             )
-            return [self._as_int(row[0]) for row in cursor.fetchall()]
+            try:
+                rows = self._rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()
+            return [self._as_int(row.get("creature_id")) for row in rows]
 
     def get_lab_mutation_quantity(self, lab_id: int, mutation_id: int) -> int:
         with self._connection.cursor() as cursor:
-            cursor.execute(
-                """
-                select lm.quantity
-                from lab_mutations lm
-                where lm.lab_id = :lab_id
-                  and lm.mutation_id = :mutation_id
-                """,
-                {"lab_id": lab_id, "mutation_id": mutation_id},
+            quantity = cursor.callfunc(
+                "pkg_genetics_game.get_lab_mutation_quantity",
+                oracledb.DB_TYPE_NUMBER,
+                [lab_id, mutation_id],
             )
-            row = cursor.fetchone()
-            if row is None:
-                return 0
-            return self._as_int(row[0])
+            return self._as_int(quantity)
 
     def get_experiment_history(
         self,
