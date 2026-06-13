@@ -3,15 +3,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-SPECIES_LABELS = {
-    0: "Универсальный признак",
-    1: "Хрящевые рыбы",
-    2: "Костные рыбы",
-    3: "Ракообразные",
-    4: "Моллюски",
-    5: "Черепахи",
-    6: "Млекопитающие",
-}
 
 GENE_LABELS = {
     "color": "Цвет",
@@ -26,12 +17,6 @@ GENE_LABELS = {
     "fur_density": "Шерсть",
 }
 
-GENE_TYPE_LABELS = {
-    "trait": "Базовый признак",
-    "morphology": "Морфология",
-    "performance": "Производительность",
-    "physiology": "Физиология",
-}
 
 TRAIT_LABELS = {
     "green_color": "зелёная окраска",
@@ -76,27 +61,9 @@ TRAIT_LABELS = {
     "dense_fur": "густая шерсть",
 }
 
-DOMINANCE_LABELS = {
-    "FULL": "Полное доминирование",
-    "INCOMPLETE": "Неполное доминирование",
-    "CODOMINANT": "Кодоминирование",
-}
 
-TASK_STATUS_LABELS = {
-    "ACTIVE": "Активно",
-    "COMPLETED": "Выполнено",
-}
 
-EXPERIMENT_TYPE_LABELS = {
-    "CROSS": "Генетический эксперимент",
-    "MUTATION": "Мутация",
-    "MUTAGEN": "Мутаген",
-}
 
-MUTAGEN_TYPE_LABELS = {
-    "RADIATION": "Радиационный",
-    "CHEMICAL": "Химический",
-}
 
 MUTATION_NAME_LABELS = {
     "radiation_mutation": "Радиационная мутация",
@@ -128,20 +95,6 @@ TASK_NAME_LABELS = {
     "task_mammal_short_fur": "Млекопитающее с короткой шерстью",
 }
 
-TASK_DIFFICULTY_LABELS = {
-    "task_green_specimen": "Лёгкое",
-    "task_winged_specimen": "Лёгкое",
-    "task_large_specimen": "Лёгкое",
-    "task_herbivore_line": "Лёгкое",
-    "task_fast_turtle": "Среднее",
-    "task_predator_fish_line": "Среднее",
-    "task_cartilaginous_fin_line": "Среднее",
-    "task_mollusk_sharp_profile": "Среднее",
-    "task_mammal_short_fur": "Среднее",
-    "task_spiked_turtle": "Среднее",
-    "task_armored_crustacean": "Сложное",
-    "task_dense_fur_mammal": "Сложное",
-}
 
 
 CREATURE_PREFIX_LABELS = {
@@ -153,16 +106,6 @@ CREATURE_PREFIX_LABELS = {
     "mammal": "Млекопитающее",
 }
 
-MUTATION_TYPE_LABELS = {
-    1: "Радиационная",
-    2: "Химическая",
-    3: "Окраска",
-    4: "Размер",
-    5: "Питание",
-    6: "Крылья",
-    7: "Водная морфология",
-    8: "Морфология",
-}
 
 
 def display_value(value: Any, *, empty_label: str = "Не указано") -> str:
@@ -172,13 +115,25 @@ def display_value(value: Any, *, empty_label: str = "Не указано") -> st
     return text if text else empty_label
 
 
+
 def species_label(value: Any) -> str:
     try:
         species_id = int(value)
     except (TypeError, ValueError):
         return "Не указано"
-    return SPECIES_LABELS.get(species_id, f"Тип {species_id}")
-
+    labels = (
+        (0, "Универсальный признак"),
+        (1, "Хрящевые рыбы"),
+        (2, "Костные рыбы"),
+        (3, "Ракообразные"),
+        (4, "Моллюски"),
+        (5, "Черепахи"),
+        (6, "Млекопитающие"),
+    )
+    for code, label in labels:
+        if code == species_id:
+            return label
+    return f"Тип {species_id}"
 
 def gene_label(value: Any, *, with_code: bool = False) -> str:
     code = display_value(value)
@@ -186,11 +141,27 @@ def gene_label(value: Any, *, with_code: bool = False) -> str:
     return f"{label} ({code})" if with_code and code != "Не указано" else label
 
 
+def _lookup_text_label(code: str, rows: tuple[tuple[str, str], ...], default: str) -> str:
+    folded = code.casefold()
+    for item_code, label in rows:
+        if item_code.casefold() == folded:
+            return label
+    return default
+
+
 def gene_type_label(value: Any, *, with_code: bool = False) -> str:
     code = display_value(value)
-    label = GENE_TYPE_LABELS.get(code.lower(), code)
+    label = _lookup_text_label(
+        code,
+        (
+            ("trait", "Базовый признак"),
+            ("morphology", "Морфология"),
+            ("performance", "Производительность"),
+            ("physiology", "Физиология"),
+        ),
+        code,
+    )
     return f"{label} ({code})" if with_code and code != "Не указано" else label
-
 
 def trait_label(value: Any, *, with_code: bool = False) -> str:
     code = display_value(value)
@@ -230,27 +201,56 @@ def format_phenotype_summary(summary: Any) -> str:
     return phenotype_summary_label(summary)
 
 
+
 def dominance_label(value: Any, *, with_code: bool = False) -> str:
-    code = display_value(value).upper()
-    label = DOMINANCE_LABELS.get(code, display_value(value))
+    raw = display_value(value)
+    code = raw.upper()
+    label = _lookup_text_label(
+        code,
+        (
+            ("FULL", "Полное доминирование"),
+            ("INCOMPLETE", "Неполное доминирование"),
+            ("CODOMINANT", "Кодоминирование"),
+        ),
+        raw,
+    )
     return f"{label} ({code})" if with_code and code != "НЕ УКАЗАНО" else label
 
 
 def task_status_label(value: Any, *, with_code: bool = True) -> str:
-    code = display_value(value).upper()
-    label = TASK_STATUS_LABELS.get(code, display_value(value))
+    raw = display_value(value)
+    code = raw.upper()
+    label = _lookup_text_label(
+        code,
+        (("ACTIVE", "Активно"), ("COMPLETED", "Выполнено")),
+        raw,
+    )
     return f"{label} ({code})" if with_code and code != "НЕ УКАЗАНО" else label
 
 
 def experiment_type_label(value: Any, *, with_code: bool = True) -> str:
-    code = display_value(value).upper()
-    label = EXPERIMENT_TYPE_LABELS.get(code, display_value(value))
+    raw = display_value(value)
+    code = raw.upper()
+    label = _lookup_text_label(
+        code,
+        (
+            ("CROSS", "Генетический эксперимент"),
+            ("MUTATION", "Мутация"),
+            ("MUTAGEN", "Мутаген"),
+        ),
+        raw,
+    )
     return f"{label} ({code})" if with_code and code != "НЕ УКАЗАНО" else label
 
 
 def mutagen_type_label(value: Any, *, with_code: bool = True) -> str:
-    code = display_value(value).upper()
-    label = MUTAGEN_TYPE_LABELS.get(code, display_value(value))
+    raw = display_value(value)
+    code = raw.upper()
+    label = _lookup_text_label(
+        code,
+        (("RADIATION", "Радиационный"), ("CHEMICAL", "Химический")),
+        raw,
+    )
     return f"{label} ({code})" if with_code and code != "НЕ УКАЗАНО" else label
 
 
@@ -259,9 +259,20 @@ def mutation_type_label(value: Any) -> str:
         mutation_type = int(value)
     except (TypeError, ValueError):
         return display_value(value)
-    label = MUTATION_TYPE_LABELS.get(mutation_type, f"Тип {mutation_type}")
-    return f"{label} (тип {mutation_type})"
-
+    labels = (
+        (1, "Радиационная"),
+        (2, "Химическая"),
+        (3, "Окраска"),
+        (4, "Размер"),
+        (5, "Питание"),
+        (6, "Крылья"),
+        (7, "Водная морфология"),
+        (8, "Морфология"),
+    )
+    for code, label in labels:
+        if code == mutation_type:
+            return f"{label} (тип {mutation_type})"
+    return f"Тип {mutation_type}"
 
 def mutation_name_label(value: Any, *, with_code: bool = False) -> str:
     code = display_value(value)
@@ -275,11 +286,35 @@ def task_name_label(value: Any, *, with_code: bool = False) -> str:
     return f"{label} ({code})" if with_code and code != "Не указано" else label
 
 
+
 def task_difficulty_label(value: Any) -> str:
     code = display_value(value)
     if code == "Не указано":
         return code
-    return TASK_DIFFICULTY_LABELS.get(code.lower(), "Среднее")
+    normalized = code.strip().casefold()
+    if normalized in ("easy", "лёгкое", "легкое"):
+        return "Лёгкое"
+    if normalized in ("medium", "среднее"):
+        return "Среднее"
+    if normalized in ("hard", "сложное"):
+        return "Сложное"
+    easy_tasks = ("task_green_specimen", "task_winged_specimen", "task_large_specimen", "task_herbivore_line")
+    medium_tasks = (
+        "task_fast_turtle",
+        "task_predator_fish_line",
+        "task_cartilaginous_fin_line",
+        "task_mollusk_sharp_profile",
+        "task_mammal_short_fur",
+        "task_spiked_turtle",
+    )
+    hard_tasks = ("task_armored_crustacean", "task_dense_fur_mammal")
+    if normalized in easy_tasks:
+        return "Лёгкое"
+    if normalized in medium_tasks:
+        return "Среднее"
+    if normalized in hard_tasks:
+        return "Сложное"
+    return "Среднее"
 
 def creature_name_label(value: Any) -> str:
     text = display_value(value)

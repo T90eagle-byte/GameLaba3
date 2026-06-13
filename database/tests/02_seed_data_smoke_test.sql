@@ -228,6 +228,62 @@ begin
            );
     assert_true(v_value = 0, 'No conflicting task_markers within one task gene', 'conflicting groups=' || v_value);
 
+
+    -- 19) Reference tables are populated
+    select count(*)
+      into v_value
+      from ref_species_types
+     where species_type between 0 and 6;
+    assert_true(v_value = 7, 'ref_species_types contains 0..6', 'covered=' || v_value);
+
+    select count(*)
+      into v_value
+      from ref_gene_types
+     where gene_type in ('trait', 'morphology', 'performance', 'physiology');
+    assert_true(v_value = 4, 'ref_gene_types contains required codes', 'covered=' || v_value);
+
+    select count(*)
+      into v_value
+      from ref_dominance_types
+     where dominance_type in ('FULL', 'INCOMPLETE', 'CODOMINANT');
+    assert_true(v_value = 3, 'ref_dominance_types contains required codes', 'covered=' || v_value);
+
+    select count(*)
+      into v_value
+      from ref_task_statuses
+     where task_status in ('ACTIVE', 'COMPLETED');
+    assert_true(v_value = 2, 'ref_task_statuses contains ACTIVE/COMPLETED', 'covered=' || v_value);
+
+    select count(*)
+      into v_value
+      from ref_experiment_types
+     where experiment_type in ('CROSS', 'MUTATION', 'MUTAGEN');
+    assert_true(v_value = 3, 'ref_experiment_types contains required codes', 'covered=' || v_value);
+
+    select count(*)
+      into v_value
+      from ref_mutagen_types
+     where mutagen_type in ('RADIATION', 'CHEMICAL');
+    assert_true(v_value = 2, 'ref_mutagen_types contains RADIATION/CHEMICAL', 'covered=' || v_value);
+
+    select count(*)
+      into v_value
+      from ref_mutation_types
+     where mutation_type between 1 and 8;
+    assert_true(v_value = 8, 'ref_mutation_types contains 1..8', 'covered=' || v_value);
+
+    select count(*)
+      into v_value
+      from ref_task_difficulties
+     where difficulty_code in ('EASY', 'MEDIUM', 'HARD');
+    assert_true(v_value = 3, 'ref_task_difficulties contains EASY/MEDIUM/HARD', 'covered=' || v_value);
+
+    select count(*)
+      into v_value
+      from tasks t
+     where t.difficulty_code is null;
+    assert_true(v_value = 0, 'All tasks have difficulty_code', 'tasks without difficulty=' || v_value);
+
     dbms_output.put_line('--- SUMMARY ---');
     dbms_output.put_line('Passed: ' || v_passed_tests);
     dbms_output.put_line('Failed: ' || v_failed_tests);

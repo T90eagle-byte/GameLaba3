@@ -16,11 +16,15 @@ declare
     v_tasks_cursor                sys_refcursor;
     v_t_lab_task_id               number;
     v_t_task_id                   number;
-    v_t_task_name                 varchar2(100);
-    v_t_description               varchar2(255);
+    v_t_task_name                 varchar2(4000);
+    v_t_task_display_name         varchar2(4000);
+    v_t_description               varchar2(4000);
     v_t_reward_money              number;
     v_t_reward_rating             number;
-    v_t_task_status               varchar2(20);
+    v_t_difficulty_code           varchar2(4000);
+    v_t_difficulty_display_name   varchar2(4000);
+    v_t_task_status               varchar2(4000);
+    v_t_task_status_display_name  varchar2(4000);
     v_t_created_at                timestamp;
     v_t_completed_at              timestamp;
     v_tasks_cursor_row_count      number := 0;
@@ -41,7 +45,7 @@ declare
     v_is_completed                number;
     v_wallet_after                number;
     v_rating_after                number;
-    v_completed_task_status       varchar2(20);
+    v_completed_task_status       varchar2(4000);
     v_completed_at_after          timestamp;
 
     v_stats_wallet                number;
@@ -233,10 +237,14 @@ begin
                     v_t_lab_task_id,
                     v_t_task_id,
                     v_t_task_name,
+                    v_t_task_display_name,
                     v_t_description,
                     v_t_reward_money,
                     v_t_reward_rating,
+                    v_t_difficulty_code,
+                    v_t_difficulty_display_name,
                     v_t_task_status,
+                    v_t_task_status_display_name,
                     v_t_created_at,
                     v_t_completed_at;
                 exit when v_tasks_cursor%notfound;

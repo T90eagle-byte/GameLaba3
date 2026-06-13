@@ -192,7 +192,7 @@ class HistoryTab(QWidget):
 
             experiment_id = self._to_int(row.get("experiment_id"))
             type_code = self._display(row.get("experiment_type"))
-            type_label = experiment_type_label(type_code, with_code=False)
+            type_label = row.get("experiment_type_display_name") or experiment_type_label(type_code, with_code=False)
             type_display = self._type_marker_text(type_code, type_label)
 
             parent1_name = self._entity_name(row.get("parent1_name"))
@@ -229,7 +229,7 @@ class HistoryTab(QWidget):
             return
 
         type_code = self._display(row.get("experiment_type"))
-        type_ru = experiment_type_label(type_code, with_code=False)
+        type_ru = row.get("experiment_type_display_name") or experiment_type_label(type_code, with_code=False)
         self.lbl_type.setText(self._type_marker_text(type_code, type_ru))
         self._apply_type_chip(type_code)
 

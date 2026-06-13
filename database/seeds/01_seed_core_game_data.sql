@@ -267,7 +267,8 @@ declare
         p_task_name       in varchar2,
         p_description     in varchar2,
         p_rating_reward   in number,
-        p_money_reward    in number
+        p_money_reward    in number,
+        p_difficulty_code in varchar2
     ) is
     begin
         merge into tasks tgt
@@ -279,7 +280,8 @@ declare
             update set
                 tgt.description = p_description,
                 tgt.rating_reward = p_rating_reward,
-                tgt.money_reward = p_money_reward
+                tgt.money_reward = p_money_reward,
+                tgt.difficulty_code = p_difficulty_code
         when not matched then
             insert (
                 task_id,
@@ -287,6 +289,7 @@ declare
                 description,
                 rating_reward,
                 money_reward,
+                difficulty_code,
                 created_at
             )
             values (
@@ -295,6 +298,7 @@ declare
                 p_description,
                 p_rating_reward,
                 p_money_reward,
+                p_difficulty_code,
                 systimestamp
             );
     end upsert_task;
@@ -335,6 +339,201 @@ declare
             );
     end upsert_task_marker;
 begin
+    -- -------------------------------------------------------------------------
+    -- 0) Domain reference tables
+    -- -------------------------------------------------------------------------
+    merge into ref_species_types tgt
+    using (select 0 as species_type, 'Универсальный признак' as display_name from dual) src
+    on (tgt.species_type = src.species_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);
+
+    merge into ref_species_types tgt
+    using (select 1 as species_type, 'Хрящевые рыбы' as display_name from dual) src
+    on (tgt.species_type = src.species_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);
+
+    merge into ref_species_types tgt
+    using (select 2 as species_type, 'Костные рыбы' as display_name from dual) src
+    on (tgt.species_type = src.species_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);
+
+    merge into ref_species_types tgt
+    using (select 3 as species_type, 'Ракообразные' as display_name from dual) src
+    on (tgt.species_type = src.species_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);
+
+    merge into ref_species_types tgt
+    using (select 4 as species_type, 'Моллюски' as display_name from dual) src
+    on (tgt.species_type = src.species_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);
+
+    merge into ref_species_types tgt
+    using (select 5 as species_type, 'Черепахи' as display_name from dual) src
+    on (tgt.species_type = src.species_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);
+
+    merge into ref_species_types tgt
+    using (select 6 as species_type, 'Млекопитающие' as display_name from dual) src
+    on (tgt.species_type = src.species_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);
+
+    merge into ref_gene_types tgt
+    using (select 'morphology' as gene_type, 'Морфология' as display_name from dual) src
+    on (tgt.gene_type = src.gene_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (gene_type, display_name) values (src.gene_type, src.display_name);
+
+    merge into ref_gene_types tgt
+    using (select 'performance' as gene_type, 'Производительность' as display_name from dual) src
+    on (tgt.gene_type = src.gene_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (gene_type, display_name) values (src.gene_type, src.display_name);
+
+    merge into ref_gene_types tgt
+    using (select 'physiology' as gene_type, 'Физиология' as display_name from dual) src
+    on (tgt.gene_type = src.gene_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (gene_type, display_name) values (src.gene_type, src.display_name);
+
+    merge into ref_gene_types tgt
+    using (select 'trait' as gene_type, 'Базовый признак' as display_name from dual) src
+    on (tgt.gene_type = src.gene_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (gene_type, display_name) values (src.gene_type, src.display_name);
+
+    merge into ref_dominance_types tgt
+    using (select 'CODOMINANT' as dominance_type, 'Кодоминирование' as display_name from dual) src
+    on (tgt.dominance_type = src.dominance_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (dominance_type, display_name) values (src.dominance_type, src.display_name);
+
+    merge into ref_dominance_types tgt
+    using (select 'FULL' as dominance_type, 'Полное доминирование' as display_name from dual) src
+    on (tgt.dominance_type = src.dominance_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (dominance_type, display_name) values (src.dominance_type, src.display_name);
+
+    merge into ref_dominance_types tgt
+    using (select 'INCOMPLETE' as dominance_type, 'Неполное доминирование' as display_name from dual) src
+    on (tgt.dominance_type = src.dominance_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (dominance_type, display_name) values (src.dominance_type, src.display_name);
+
+    merge into ref_task_statuses tgt
+    using (select 'ACTIVE' as task_status, 'Активно' as display_name from dual) src
+    on (tgt.task_status = src.task_status)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (task_status, display_name) values (src.task_status, src.display_name);
+
+    merge into ref_task_statuses tgt
+    using (select 'COMPLETED' as task_status, 'Выполнено' as display_name from dual) src
+    on (tgt.task_status = src.task_status)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (task_status, display_name) values (src.task_status, src.display_name);
+
+    merge into ref_experiment_types tgt
+    using (select 'CROSS' as experiment_type, 'Генетический эксперимент' as display_name from dual) src
+    on (tgt.experiment_type = src.experiment_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (experiment_type, display_name) values (src.experiment_type, src.display_name);
+
+    merge into ref_experiment_types tgt
+    using (select 'MUTAGEN' as experiment_type, 'Мутаген' as display_name from dual) src
+    on (tgt.experiment_type = src.experiment_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (experiment_type, display_name) values (src.experiment_type, src.display_name);
+
+    merge into ref_experiment_types tgt
+    using (select 'MUTATION' as experiment_type, 'Мутация' as display_name from dual) src
+    on (tgt.experiment_type = src.experiment_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (experiment_type, display_name) values (src.experiment_type, src.display_name);
+
+    merge into ref_mutagen_types tgt
+    using (select 'CHEMICAL' as mutagen_type, 'Химический' as display_name from dual) src
+    on (tgt.mutagen_type = src.mutagen_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (mutagen_type, display_name) values (src.mutagen_type, src.display_name);
+
+    merge into ref_mutagen_types tgt
+    using (select 'RADIATION' as mutagen_type, 'Радиационный' as display_name from dual) src
+    on (tgt.mutagen_type = src.mutagen_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (mutagen_type, display_name) values (src.mutagen_type, src.display_name);
+
+    merge into ref_mutation_types tgt
+    using (select 1 as mutation_type, 'Радиационная' as display_name from dual) src
+    on (tgt.mutation_type = src.mutation_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (mutation_type, display_name) values (src.mutation_type, src.display_name);
+
+    merge into ref_mutation_types tgt
+    using (select 2 as mutation_type, 'Химическая' as display_name from dual) src
+    on (tgt.mutation_type = src.mutation_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (mutation_type, display_name) values (src.mutation_type, src.display_name);
+
+    merge into ref_mutation_types tgt
+    using (select 3 as mutation_type, 'Окраска' as display_name from dual) src
+    on (tgt.mutation_type = src.mutation_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (mutation_type, display_name) values (src.mutation_type, src.display_name);
+
+    merge into ref_mutation_types tgt
+    using (select 4 as mutation_type, 'Размер' as display_name from dual) src
+    on (tgt.mutation_type = src.mutation_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (mutation_type, display_name) values (src.mutation_type, src.display_name);
+
+    merge into ref_mutation_types tgt
+    using (select 5 as mutation_type, 'Питание' as display_name from dual) src
+    on (tgt.mutation_type = src.mutation_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (mutation_type, display_name) values (src.mutation_type, src.display_name);
+
+    merge into ref_mutation_types tgt
+    using (select 6 as mutation_type, 'Крылья' as display_name from dual) src
+    on (tgt.mutation_type = src.mutation_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (mutation_type, display_name) values (src.mutation_type, src.display_name);
+
+    merge into ref_mutation_types tgt
+    using (select 7 as mutation_type, 'Водная морфология' as display_name from dual) src
+    on (tgt.mutation_type = src.mutation_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (mutation_type, display_name) values (src.mutation_type, src.display_name);
+
+    merge into ref_mutation_types tgt
+    using (select 8 as mutation_type, 'Морфология' as display_name from dual) src
+    on (tgt.mutation_type = src.mutation_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (mutation_type, display_name) values (src.mutation_type, src.display_name);
+
+    merge into ref_task_difficulties tgt
+    using (select 'EASY' as difficulty_code, 'Лёгкое' as display_name from dual) src
+    on (tgt.difficulty_code = src.difficulty_code)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (difficulty_code, display_name) values (src.difficulty_code, src.display_name);
+
+    merge into ref_task_difficulties tgt
+    using (select 'MEDIUM' as difficulty_code, 'Среднее' as display_name from dual) src
+    on (tgt.difficulty_code = src.difficulty_code)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (difficulty_code, display_name) values (src.difficulty_code, src.display_name);
+
+    merge into ref_task_difficulties tgt
+    using (select 'HARD' as difficulty_code, 'Сложное' as display_name from dual) src
+    on (tgt.difficulty_code = src.difficulty_code)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (difficulty_code, display_name) values (src.difficulty_code, src.display_name);
+
     -- -------------------------------------------------------------------------
     -- 1) Genes (4 universal + species-specific genes)
     -- -------------------------------------------------------------------------
@@ -408,10 +607,10 @@ begin
     upsert_mutation('wing_activation_mutation', 6, 'Активирует признак крыльев при наличии соответствующего гена.', 170, 1);
     upsert_mutation('aquatic_form_mutation', 7, 'Корректирует форму плавника у хрящевых рыб.', 190, 2);
     upsert_mutation('morphology_refine_mutation', 8, 'Тонкая корректировка клешней у ракообразных.', 210, 2);
-    upsert_mutation('aquatic_form_bony_mutation', 9, 'Корректирует форму плавника у костных рыб.', 195, 2);
-    upsert_mutation('aquatic_form_turtle_shell_mutation', 10, 'Усиливает панцирь у черепах.', 205, 2);
-    upsert_mutation('morphology_refine_mollusk_mutation', 11, 'Тонкая корректировка формы клюва/носа у моллюсков.', 215, 2);
-    upsert_mutation('morphology_refine_mammal_mutation', 12, 'Тонкая корректировка плотности шерсти у млекопитающих.', 220, 2);
+    upsert_mutation('aquatic_form_bony_mutation', 7, 'Корректирует форму плавника у костных рыб.', 195, 2);
+    upsert_mutation('aquatic_form_turtle_shell_mutation', 8, 'Усиливает панцирь у черепах.', 205, 2);
+    upsert_mutation('morphology_refine_mollusk_mutation', 8, 'Тонкая корректировка формы клюва/носа у моллюсков.', 215, 2);
+    upsert_mutation('morphology_refine_mammal_mutation', 8, 'Тонкая корректировка плотности шерсти у млекопитающих.', 220, 2);
 
     -- -------------------------------------------------------------------------
     -- 4) Mutation rules
@@ -466,84 +665,96 @@ begin
         'task_green_specimen',
         'Найдите в лаборатории существо с зелёной окраской тела и предъявите его для проверки.',
         10,
-        100
+        100,
+        'EASY'
     );
 
     upsert_task(
         'task_winged_specimen',
         'Найдите в лаборатории существо с признаком «есть крылья» и предъявите его для проверки.',
         12,
-        120
+        120,
+        'EASY'
     );
 
     upsert_task(
         'task_fast_turtle',
         'Отберите черепаху с высокой скоростью и гладким панцирем, затем предъявите её для проверки.',
         15,
-        150
+        150,
+        'MEDIUM'
     );
 
     upsert_task(
         'task_predator_fish_line',
         'Отберите костную рыбу с хищным типом питания и раздвоенным плавником, затем предъявите её для проверки.',
         30,
-        260
+        260,
+        'MEDIUM'
     );
 
     upsert_task(
         'task_armored_crustacean',
         'Отберите ракообразное с прочным панцирем, длинными клешнями и крупным размером.',
         35,
-        300
+        300,
+        'HARD'
     );
 
     upsert_task(
         'task_dense_fur_mammal',
         'Отберите млекопитающее с густой шерстью и зелёной окраской тела.',
         40,
-        340
+        340,
+        'HARD'
     );
 
     upsert_task(
         'task_cartilaginous_fin_line',
         'Отберите хрящевую рыбу с широким плавником и хищным типом питания.',
         28,
-        250
+        250,
+        'MEDIUM'
     );
 
     upsert_task(
         'task_mollusk_sharp_profile',
         'Отберите моллюска с острым клювом и зелёной окраской тела.',
         26,
-        230
+        230,
+        'MEDIUM'
     );
 
     upsert_task(
         'task_large_specimen',
         'Найдите в лаборатории существо с крупным размером и предъявите его для проверки.',
         14,
-        140
+        140,
+        'EASY'
     );
 
     upsert_task(
         'task_herbivore_line',
         'Найдите в лаборатории существо с травоядным типом питания и предъявите его для проверки.',
         16,
-        160
+        160,
+        'EASY'
     );
 
     upsert_task(
         'task_spiked_turtle',
         'Отберите черепаху с шипастым панцирем и высокой скоростью.',
         24,
-        220
+        220,
+        'MEDIUM'
     );
 
     upsert_task(
         'task_mammal_short_fur',
         'Отберите млекопитающее с короткой шерстью и компактным размером.',
         22,
-        210
+        210,
+        'MEDIUM'
     );
 
     -- -------------------------------------------------------------------------

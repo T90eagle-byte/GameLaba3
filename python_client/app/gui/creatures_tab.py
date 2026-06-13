@@ -273,7 +273,7 @@ class CreaturesTab(QWidget):
                 self.creatures_table,
                 row_idx,
                 2,
-                self._species_name(creature.get("species_type")),
+                self._species_name(creature),
                 center=True,
             )
             self._set_table_item(
@@ -338,7 +338,7 @@ class CreaturesTab(QWidget):
         self._fill_genotype_table(genotype_rows)
 
     def _fill_selected_creature_card(self, creature: dict[str, Any]) -> None:
-        species_text = self._species_name(creature.get("species_type"))
+        species_text = self._species_name(creature)
 
         creature_id_text = self._display(creature.get("creature_id"))
         creature_name_text = self._creature_name_display(creature.get("creature_name"))
@@ -383,11 +383,11 @@ class CreaturesTab(QWidget):
         self.genotype_layout.addStretch()
 
     def _add_genotype_card(self, rec: dict[str, Any]) -> None:
-        gene = self._gene_display(rec.get("gene_name"))
-        gene_type = display_gene_type(rec.get("gene_type"))
-        dominance = self._dominance_display(rec.get("dominance_type"))
-        allele1 = self._trait_display(rec.get("allele1_description"))
-        allele2 = self._trait_display(rec.get("allele2_description"))
+        gene = self._gene_display(rec.get("gene_display_name") or rec.get("gene_name"))
+        gene_type = display_gene_type(rec.get("gene_type_display_name") or rec.get("gene_type"))
+        dominance = self._dominance_display(rec.get("dominance_display_name") or rec.get("dominance_type"))
+        allele1 = self._trait_display(rec.get("allele1_display_name") or rec.get("allele1_description"))
+        allele2 = self._trait_display(rec.get("allele2_display_name") or rec.get("allele2_description"))
 
         card = QFrame()
         card.setObjectName("geneCard")
@@ -492,6 +492,11 @@ class CreaturesTab(QWidget):
 
     @staticmethod
     def _species_name(value: Any) -> str:
+        if isinstance(value, dict):
+            display_name = value.get("species_display_name")
+            if display_name is not None and str(display_name).strip():
+                return str(display_name).strip()
+            value = value.get("species_type")
         return species_label(value)
 
     @staticmethod

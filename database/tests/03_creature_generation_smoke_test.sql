@@ -27,12 +27,13 @@ declare
     v_c_creature_id               number;
     v_c_lab_id                    number;
     v_c_species_type              number;
-    v_c_name                      varchar2(255);
-    v_c_color                     varchar2(100);
-    v_c_size                      varchar2(100);
+    v_c_species_display_name      varchar2(4000);
+    v_c_name                      varchar2(4000);
+    v_c_color                     varchar2(4000);
+    v_c_size                      varchar2(4000);
     v_c_has_wings                 char(1);
-    v_c_nutrition                 varchar2(100);
-    v_c_summary                   varchar2(1000);
+    v_c_nutrition                 varchar2(4000);
+    v_c_summary                   varchar2(4000);
     v_c_created_at                timestamp;
     v_c_updated_at                timestamp;
     v_creatures_cursor_count      number := 0;
@@ -42,15 +43,20 @@ declare
     v_g_genotype_id               number;
     v_g_creature_id               number;
     v_g_gene_id                   number;
-    v_g_gene_name                 varchar2(50);
-    v_g_gene_type                 varchar2(50);
-    v_g_dominance_type            varchar2(20);
+    v_g_gene_name                 varchar2(4000);
+    v_g_gene_display_name         varchar2(4000);
+    v_g_gene_type                 varchar2(4000);
+    v_g_gene_type_display_name    varchar2(4000);
+    v_g_dominance_type            varchar2(4000);
+    v_g_dominance_display_name    varchar2(4000);
     v_g_allele1_id                number;
-    v_g_allele1_desc              varchar2(255);
+    v_g_allele1_desc              varchar2(4000);
+    v_g_allele1_display_name      varchar2(4000);
     v_g_allele1_dominance         number;
     v_g_allele1_trait_value       number;
     v_g_allele2_id                number;
-    v_g_allele2_desc              varchar2(255);
+    v_g_allele2_desc              varchar2(4000);
+    v_g_allele2_display_name      varchar2(4000);
     v_g_allele2_dominance         number;
     v_g_allele2_trait_value       number;
     v_genotype_cursor_count       number := 0;
@@ -277,6 +283,7 @@ begin
                     v_c_creature_id,
                     v_c_lab_id,
                     v_c_species_type,
+                    v_c_species_display_name,
                     v_c_name,
                     v_c_color,
                     v_c_size,
@@ -329,14 +336,19 @@ begin
                         v_g_creature_id,
                         v_g_gene_id,
                         v_g_gene_name,
+                        v_g_gene_display_name,
                         v_g_gene_type,
+                        v_g_gene_type_display_name,
                         v_g_dominance_type,
+                        v_g_dominance_display_name,
                         v_g_allele1_id,
                         v_g_allele1_desc,
+                        v_g_allele1_display_name,
                         v_g_allele1_dominance,
                         v_g_allele1_trait_value,
                         v_g_allele2_id,
                         v_g_allele2_desc,
+                        v_g_allele2_display_name,
                         v_g_allele2_dominance,
                         v_g_allele2_trait_value;
                     exit when v_genotype_cursor%notfound;

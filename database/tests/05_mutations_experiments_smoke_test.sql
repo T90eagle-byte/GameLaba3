@@ -1,4 +1,4 @@
-﻿set serveroutput on size unlimited;
+set serveroutput on size unlimited;
 set verify off;
 
 declare
@@ -13,9 +13,10 @@ declare
 
     v_shop_cursor                     sys_refcursor;
     v_shop_mutation_id                number;
-    v_shop_mutation_name              varchar2(50);
+    v_shop_mutation_name              varchar2(4000);
     v_shop_mutation_type              number;
-    v_shop_description                varchar2(255);
+    v_shop_mutation_type_label        varchar2(4000);
+    v_shop_description                varchar2(4000);
     v_shop_price                      number;
     v_shop_rating_effect              number;
     v_shop_row_count                  number := 0;
@@ -70,15 +71,16 @@ declare
 
     v_history_cursor                  sys_refcursor;
     v_h_experiment_id                 number;
-    v_h_experiment_type               varchar2(20);
+    v_h_experiment_type               varchar2(4000);
+    v_h_experiment_type_label         varchar2(4000);
     v_h_parent1_id                    number;
-    v_h_parent1_name                  varchar2(255);
+    v_h_parent1_name                  varchar2(4000);
     v_h_parent2_id                    number;
-    v_h_parent2_name                  varchar2(255);
+    v_h_parent2_name                  varchar2(4000);
     v_h_offspring_id                  number;
-    v_h_offspring_name                varchar2(255);
+    v_h_offspring_name                varchar2(4000);
     v_h_mutation_id                   number;
-    v_h_mutation_name                 varchar2(50);
+    v_h_mutation_name                 varchar2(4000);
     v_h_created_at                    timestamp;
     v_history_row_count               number := 0;
     v_history_has_cross               number := 0;
@@ -253,6 +255,7 @@ begin
                 v_shop_mutation_id,
                 v_shop_mutation_name,
                 v_shop_mutation_type,
+                v_shop_mutation_type_label,
                 v_shop_description,
                 v_shop_price,
                 v_shop_rating_effect;
@@ -652,6 +655,7 @@ if v_lab_id is not null then
                 fetch v_history_cursor into
                     v_h_experiment_id,
                     v_h_experiment_type,
+                    v_h_experiment_type_label,
                     v_h_parent1_id,
                     v_h_parent1_name,
                     v_h_parent2_id,

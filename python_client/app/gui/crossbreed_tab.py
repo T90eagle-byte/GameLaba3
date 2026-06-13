@@ -35,14 +35,6 @@ from app.services.display_names import (
 )
 
 
-_SPECIES_LABELS = {
-    1: "Хрящевые рыбы",
-    2: "Костные рыбы",
-    3: "Ракообразные",
-    4: "Моллюски",
-    5: "Черепахи",
-    6: "Млекопитающие",
-}
 
 
 class CrossbreedTab(QWidget):
@@ -303,7 +295,7 @@ class CrossbreedTab(QWidget):
                 continue
 
             name = display_creature_name(creature.get("creature_name"))
-            species_text = self._species_text(creature.get("species_type"))
+            species_text = self._species_text(creature)
             combo.addItem(f"{name} · ID {creature_id} | {species_text}", creature_id)
 
             if selected_id is not None and creature_id == self._to_int(selected_id):
@@ -342,12 +334,12 @@ class CrossbreedTab(QWidget):
 
         fields["creature_id"].setText(self._display(creature.get("creature_id")))
         fields["creature_name"].setText(f"{display_creature_name(creature.get('creature_name'))} · ID {self._display(creature.get('creature_id'))}")
-        fields["species_type"].setText(species_label(creature.get("species_type")))
+        fields["species_type"].setText(self._species_text(creature))
         fields["phenotype_summary"].setText(format_phenotype_summary(creature.get("phenotype_summary")))
 
         if isinstance(portrait_widget, CreaturePortraitWidget):
             portrait_widget.set_creature(
-                species_label=species_label(creature.get("species_type")),
+                species_label=self._species_text(creature),
                 phenotype_color=display_trait_value(creature.get("phenotype_color")),
                 phenotype_size=display_trait_value(creature.get("phenotype_size")),
                 phenotype_wings=display_trait_value(creature.get("phenotype_has_wings")),
@@ -381,12 +373,12 @@ class CrossbreedTab(QWidget):
             return
 
         map_a = {
-            self._to_int(row.get("gene_id")): display_gene_name(row.get("gene_name"))
+            self._to_int(row.get("gene_id")): display_gene_name(row.get("gene_display_name") or row.get("gene_name"))
             for row in genes_a
             if self._to_int(row.get("gene_id")) is not None
         }
         map_b = {
-            self._to_int(row.get("gene_id")): display_gene_name(row.get("gene_name"))
+            self._to_int(row.get("gene_id")): display_gene_name(row.get("gene_display_name") or row.get("gene_name"))
             for row in genes_b
             if self._to_int(row.get("gene_id")) is not None
         }
@@ -542,7 +534,7 @@ class CrossbreedTab(QWidget):
         parent_a = self._selected_creature(self.parent_a_combo.currentData())
         if parent_a is None:
             return ""
-        return species_label(parent_a.get("species_type"))
+        return self._species_text(parent_a)
 
     def _existing_creature_name_keys(self) -> set[str]:
         names: set[str] = set()
@@ -636,7 +628,7 @@ class CrossbreedTab(QWidget):
 
         lines: list[str] = [title]
         for task in completed_tasks:
-            task_name = display_task_name(task.get("task_name"))
+            task_name = display_task_name(task.get("task_display_name") or task.get("task_name"))
             reward_money = self._display(task.get("reward_money"))
             reward_rating = self._display(task.get("reward_rating"))
             lines.append(f"• {task_name}: +{reward_money} монет, +{reward_rating} рейтинга")
@@ -651,8 +643,13 @@ class CrossbreedTab(QWidget):
         gene_ids = [self.gene_combo.itemData(i) for i in range(self.gene_combo.count())]
         return any(gid is not None for gid in gene_ids)
     @staticmethod
-    def _species_text(species_value: Any) -> str:
-        return species_label(species_value)
+    def _species_text(value: Any) -> str:
+        if isinstance(value, dict):
+            display_name = value.get("species_display_name")
+            if display_name is not None and str(display_name).strip():
+                return str(display_name).strip()
+            value = value.get("species_type")
+        return species_label(value)
 
 
 

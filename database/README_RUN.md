@@ -52,6 +52,7 @@ Run the GUI from repository root:
 Practical notes:
 
 - The DDL does not contain `DROP` blocks, so the first full run is best done in a clean schema.
+- This version adds domain reference tables and `tasks.difficulty_code`; existing schemas should be recreated for verification unless a separate migration is prepared.
 - If the project path contains spaces or Cyrillic characters, run SQL Developer/SQLcl from the project root or use quoted absolute paths to the `.sql` files.
 
 ## 1) Run DDL
@@ -67,6 +68,8 @@ From repository root:
 ```sql
 @database/seeds/01_seed_core_game_data.sql
 ```
+
+The seed fills domain reference tables first, then core game data. GUI display labels for species, gene types, dominance, task statuses, experiment types, mutation types, mutagen types, and task difficulties are now stored in the database and exposed through `pkg_genetics_game` cursors. Python keeps only formatting/fallback helpers and is not the source of truth for these domain enums.
 
 ## 3) Run package specification
 
@@ -108,6 +111,8 @@ The script uses anonymous PL/SQL blocks and `dbms_output` only for test reportin
 
 This smoke-test validates that core game seed data is loaded and linked correctly:
 - minimum counts for genes, alleles, mutations, tasks;
+- populated domain reference tables;
+- non-null `tasks.difficulty_code` values;
 - at least 2 alleles per gene;
 - valid `mutation_rules` links and gene-to-allele consistency;
 - valid `task_markers`;
@@ -180,7 +185,8 @@ This smoke-test validates strict-compliance behavior on top of MVP:
 - gameplay access control blocks foreign lab/creature access via package session context;
 - `INCOMPLETE` and `CODOMINANT` phenotype semantics are not treated like `FULL`;
 - `RADIATION` and `CHEMICAL` mutagen flows are different and invalid mutagen type is rejected;
-- auto task-check after experiment flow can complete matching ACTIVE tasks.
+- auto task-check after experiment flow can complete matching ACTIVE tasks;
+- domain values are backed by reference tables and `get_reference_cursor` returns display labels.
 
 ## 12) Run multiuser/sessions smoke-test
 
@@ -216,6 +222,14 @@ order by sequence;
 select table_name
 from user_tables
 where table_name in (
+    'REF_SPECIES_TYPES',
+    'REF_GENE_TYPES',
+    'REF_DOMINANCE_TYPES',
+    'REF_TASK_STATUSES',
+    'REF_EXPERIMENT_TYPES',
+    'REF_MUTAGEN_TYPES',
+    'REF_MUTATION_TYPES',
+    'REF_TASK_DIFFICULTIES',
     'USERS',
     'SESSIONS',
     'LABS',

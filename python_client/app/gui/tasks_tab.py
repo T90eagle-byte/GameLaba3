@@ -389,7 +389,7 @@ class TasksTab(QWidget):
                 f"{self._display(task.get('reward_rating'))} рейтинг"
             )
 
-            task_name_item = QTableWidgetItem(display_task_name(task.get("task_name")))
+            task_name_item = QTableWidgetItem(display_task_name(task.get("task_display_name") or task.get("task_name")))
             task_name_item.setToolTip(
                 "\n".join(
                     [
@@ -402,8 +402,8 @@ class TasksTab(QWidget):
                 )
             )
             self.tasks_table.setItem(row_idx, 0, task_name_item)
-            self._set_table_item(self.tasks_table, row_idx, 1, display_task_difficulty(task.get("task_name")), center=True)
-            self._set_table_item(self.tasks_table, row_idx, 2, task_status_label(task.get("task_status")), center=True)
+            self._set_table_item(self.tasks_table, row_idx, 1, self._difficulty_display(task), center=True)
+            self._set_table_item(self.tasks_table, row_idx, 2, self._status_display(task), center=True)
             self._set_table_item(self.tasks_table, row_idx, 3, reward_text, center=True)
 
             if selected_task_id is not None and self._to_int(task.get("task_id")) == selected_task_id:
@@ -432,7 +432,7 @@ class TasksTab(QWidget):
                 continue
 
             name = creature_name_label(creature.get("creature_name"))
-            species = species_label(creature.get("species_type"))
+            species = self._species_text(creature)
             self.creature_combo.addItem(f"{creature_id} | {name} | {species}", creature_id)
 
             if selected_creature_id is not None and creature_id == selected_creature_id:
@@ -455,13 +455,13 @@ class TasksTab(QWidget):
             self._update_status_hint()
             return
 
-        self.task_name_label.setText(display_task_name(task.get("task_name")))
+        self.task_name_label.setText(display_task_name(task.get("task_display_name") or task.get("task_name")))
         self.task_name_label.setToolTip(self._display(task.get("task_name")))
         self.task_desc_label.setText(self._display(task.get("description")))
         self.task_reward_money_label.setText(self._display(task.get("reward_money")))
         self.task_reward_rating_label.setText(self._display(task.get("reward_rating")))
-        self.task_difficulty_label.setText(display_task_difficulty(task.get("task_name")))
-        self.task_status_label.setText(task_status_label(task.get("task_status")))
+        self.task_difficulty_label.setText(self._difficulty_display(task))
+        self.task_status_label.setText(self._status_display(task))
         self.task_assigned_at_label.setText(self._display(task.get("created_at")))
         self.task_completed_at_label.setText(self._display(task.get("completed_at")))
         self.task_ids_label.setText(
@@ -499,12 +499,12 @@ class TasksTab(QWidget):
 
         self.creature_id_label.setText(self._display(creature.get("creature_id")))
         self.creature_name_label.setText(creature_name_label(creature.get("creature_name")))
-        self.creature_species_label.setText(species_label(creature.get("species_type")))
+        self.creature_species_label.setText(self._species_text(creature))
         self.creature_phenotype_label.setText(phenotype_summary_label(creature.get("phenotype_summary")))
         self.creature_empty_label.hide()
         self.creature_portrait.show()
         self.creature_portrait.set_creature(
-            species_label=species_label(creature.get("species_type")),
+            species_label=self._species_text(creature),
             phenotype_color=display_trait_value(creature.get("phenotype_color")),
             phenotype_size=display_trait_value(creature.get("phenotype_size")),
             phenotype_wings=display_trait_value(creature.get("phenotype_has_wings")),
@@ -688,12 +688,30 @@ class TasksTab(QWidget):
             return None
 
     @staticmethod
-    def _species_text(species_value: Any) -> str:
-        return species_label(species_value)
+    def _species_text(value: Any) -> str:
+        if isinstance(value, dict):
+            display_name = value.get("species_display_name")
+            if display_name is not None and str(display_name).strip():
+                return str(display_name).strip()
+            value = value.get("species_type")
+        return species_label(value)
 
     @staticmethod
-    def _status_display(status_value: Any) -> str:
-        return task_status_label(status_value)
+    def _difficulty_display(task: dict[str, Any]) -> str:
+        return display_task_difficulty(
+            task.get("difficulty_display_name")
+            or task.get("difficulty_code")
+            or task.get("task_name")
+        )
+
+    @staticmethod
+    def _status_display(value: Any) -> str:
+        if isinstance(value, dict):
+            display_name = value.get("task_status_display_name")
+            if display_name is not None and str(display_name).strip():
+                return str(display_name).strip()
+            value = value.get("task_status")
+        return task_status_label(value)
 
     @staticmethod
     def _oracle_error_code(exc: Exception) -> int | None:

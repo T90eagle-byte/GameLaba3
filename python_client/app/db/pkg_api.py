@@ -126,6 +126,18 @@ class PkgApi:
                 "experiment_count": self._as_int(out_experiment_count.getvalue()),
             }
 
+    def get_reference(self, ref_name: str) -> list[dict[str, Any]]:
+        with self._connection.cursor() as cursor:
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.get_reference_cursor",
+                oracledb.DB_TYPE_CURSOR,
+                [ref_name],
+            )
+            try:
+                return self._rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()
+
     def get_creatures(self, lab_id: int) -> list[dict[str, Any]]:
         with self._connection.cursor() as cursor:
             ref_cursor = cursor.callfunc(

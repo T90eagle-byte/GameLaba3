@@ -69,8 +69,70 @@ comment on column sessions.session_id is 'Primary key.';
 comment on column sessions.session_token is 'Opaque token used by client for session context.';
 comment on column sessions.status is 'Session status: ACTIVE or CLOSED.';
 
+
 -- ============================================================================
--- SECTION 3. CORE GAME STATE TABLES
+-- SECTION 3. DOMAIN REFERENCE TABLES
+-- ============================================================================
+
+create table ref_species_types (
+    species_type       number not null,
+    display_name       varchar2(100 char) not null,
+    constraint pk_ref_species_types primary key (species_type)
+);
+
+create table ref_gene_types (
+    gene_type          varchar2(30 char) not null,
+    display_name       varchar2(100 char) not null,
+    constraint pk_ref_gene_types primary key (gene_type)
+);
+
+create table ref_dominance_types (
+    dominance_type     varchar2(30 char) not null,
+    display_name       varchar2(100 char) not null,
+    constraint pk_ref_dominance_types primary key (dominance_type)
+);
+
+create table ref_task_statuses (
+    task_status        varchar2(30 char) not null,
+    display_name       varchar2(100 char) not null,
+    constraint pk_ref_task_statuses primary key (task_status)
+);
+
+create table ref_experiment_types (
+    experiment_type    varchar2(30 char) not null,
+    display_name       varchar2(100 char) not null,
+    constraint pk_ref_experiment_types primary key (experiment_type)
+);
+
+create table ref_mutagen_types (
+    mutagen_type       varchar2(30 char) not null,
+    display_name       varchar2(100 char) not null,
+    constraint pk_ref_mutagen_types primary key (mutagen_type)
+);
+
+create table ref_mutation_types (
+    mutation_type      number not null,
+    display_name       varchar2(100 char) not null,
+    constraint pk_ref_mutation_types primary key (mutation_type)
+);
+
+create table ref_task_difficulties (
+    difficulty_code    varchar2(30 char) not null,
+    display_name       varchar2(100 char) not null,
+    constraint pk_ref_task_difficulties primary key (difficulty_code)
+);
+
+comment on table ref_species_types is 'Species type domain reference.';
+comment on table ref_gene_types is 'Gene type domain reference.';
+comment on table ref_dominance_types is 'Dominance type domain reference.';
+comment on table ref_task_statuses is 'Task status domain reference.';
+comment on table ref_experiment_types is 'Experiment type domain reference.';
+comment on table ref_mutagen_types is 'Mutagen type domain reference.';
+comment on table ref_mutation_types is 'Mutation type domain reference.';
+comment on table ref_task_difficulties is 'Task difficulty domain reference.';
+
+-- ============================================================================
+-- SECTION 4. CORE GAME STATE TABLES
 -- ============================================================================
 
 create table labs (
@@ -110,8 +172,10 @@ create table genes (
     description        varchar2(255 char) null,
     created_at         timestamp default systimestamp not null,
     constraint pk_genes primary key (gene_id),
+    constraint fk_genes_gene_type foreign key (gene_type) references ref_gene_types (gene_type),
+    constraint fk_genes_species_type foreign key (species_type) references ref_species_types (species_type),
+    constraint fk_genes_dominance_type foreign key (dominance_type) references ref_dominance_types (dominance_type),
     constraint ck_genes_species_type check (species_type between 0 and 6),
-    constraint ck_genes_dominance_type check (dominance_type in ('FULL', 'INCOMPLETE', 'CODOMINANT')),
     constraint ck_genes_linkage_group check (linkage_group is null or linkage_group > 0)
 );
 
@@ -148,6 +212,7 @@ create table mutations (
     created_at          timestamp default systimestamp not null,
     constraint pk_mutations primary key (mutation_id),
     constraint uq_mutations_name unique (mutation_name),
+    constraint fk_mutations_mutation_type foreign key (mutation_type) references ref_mutation_types (mutation_type),
     constraint ck_mutations_cost_nonnegative check (cost >= 0)
 );
 
@@ -179,14 +244,17 @@ create table tasks (
     description         varchar2(255 char) null,
     rating_reward       number(12, 2) default 0 not null,
     money_reward        number(12, 2) default 0 not null,
+    difficulty_code     varchar2(30 char) default 'MEDIUM' not null,
     created_at          timestamp default systimestamp not null,
     constraint pk_tasks primary key (task_id),
     constraint uq_tasks_name unique (task_name),
+    constraint fk_tasks_difficulty_code foreign key (difficulty_code) references ref_task_difficulties (difficulty_code),
     constraint ck_tasks_money_reward_nonnegative check (money_reward >= 0)
 );
 
 comment on table tasks is 'Client orders with rewards.';
 comment on column tasks.task_id is 'Primary key.';
+comment on column tasks.difficulty_code is 'Task difficulty code from ref_task_difficulties.';
 
 create table creatures (
     creature_id                  number not null,
@@ -202,6 +270,7 @@ create table creatures (
     updated_at                   timestamp default systimestamp not null,
     constraint pk_creatures primary key (creature_id),
     constraint fk_creatures_lab_id foreign key (lab_id) references labs (lab_id),
+    constraint fk_creatures_species_type foreign key (species_type) references ref_species_types (species_type),
     constraint ck_creatures_species_type check (species_type between 1 and 6),
     constraint ck_creatures_has_wings check (phenotype_has_wings in ('Y', 'N') or phenotype_has_wings is null)
 );
@@ -212,7 +281,7 @@ comment on column creatures.species_type is 'Species type code from 1 to 6.';
 comment on column creatures.phenotype_summary is 'Compact phenotype text for collection screens.';
 
 -- ============================================================================
--- SECTION 4. RELATIONAL GAMEPLAY TABLES
+-- SECTION 5. RELATIONAL GAMEPLAY TABLES
 -- ============================================================================
 
 create table genotypes (
@@ -250,7 +319,7 @@ create table experiments (
     constraint fk_experiments_parent2_id foreign key (parent2_id) references creatures (creature_id),
     constraint fk_experiments_mutation_id foreign key (mutation_id) references mutations (mutation_id),
     constraint fk_experiments_offspring_id foreign key (offspring_id) references creatures (creature_id),
-    constraint ck_experiments_type check (experiment_type in ('CROSS', 'MUTATION', 'MUTAGEN')),
+    constraint fk_experiments_type foreign key (experiment_type) references ref_experiment_types (experiment_type),
     constraint ck_experiments_parents_different check (parent2_id is null or parent1_id <> parent2_id),
     constraint ck_experiments_cross_requires_parent2 check (
         (experiment_type = 'CROSS' and parent2_id is not null) or
@@ -289,8 +358,8 @@ create table lab_tasks (
     constraint pk_lab_tasks primary key (lab_task_id),
     constraint fk_lab_tasks_lab_id foreign key (lab_id) references labs (lab_id),
     constraint fk_lab_tasks_task_id foreign key (task_id) references tasks (task_id),
+    constraint fk_lab_tasks_status foreign key (task_status) references ref_task_statuses (task_status),
     constraint uq_lab_tasks_lab_task unique (lab_id, task_id),
-    constraint ck_lab_tasks_status check (task_status in ('ACTIVE', 'COMPLETED')),
     constraint ck_lab_tasks_dates check (
         (task_status = 'ACTIVE' and completed_at is null) or
         (task_status = 'COMPLETED' and completed_at is not null)

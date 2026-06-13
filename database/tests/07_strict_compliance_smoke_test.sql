@@ -28,6 +28,9 @@ declare
 
     v_rc                            sys_refcursor;
     v_dummy_num                     number;
+    v_ref_code                      varchar2(100);
+    v_ref_display_name              varchar2(100);
+    v_ref_numeric_code              number;
 
     v_suffix                        varchar2(16);
     v_inc_gene_id                   number;
@@ -422,6 +425,74 @@ begin
            );
     assert_true(v_dummy_num = 0, 'content coverage: mutation_rules are coherent per mutation species scope', 'mixed mutations=' || v_dummy_num);
 
+
+    select count(*)
+      into v_dummy_num
+      from genes g
+      left join ref_species_types rst
+        on rst.species_type = g.species_type
+      left join ref_gene_types rgt
+        on rgt.gene_type = g.gene_type
+      left join ref_dominance_types rdt
+        on rdt.dominance_type = g.dominance_type
+     where rst.species_type is null
+        or rgt.gene_type is null
+        or rdt.dominance_type is null;
+    assert_true(v_dummy_num = 0, 'reference domains: genes use valid species/gene/dominance values', 'invalid rows=' || v_dummy_num);
+
+    select count(*)
+      into v_dummy_num
+      from mutations m
+      left join ref_mutation_types rmt
+        on rmt.mutation_type = m.mutation_type
+     where rmt.mutation_type is null;
+    assert_true(v_dummy_num = 0, 'reference domains: mutations use valid mutation_type values', 'invalid rows=' || v_dummy_num);
+
+    select count(*)
+      into v_dummy_num
+      from tasks t
+      left join ref_task_difficulties rtd
+        on rtd.difficulty_code = t.difficulty_code
+     where t.difficulty_code is null
+        or rtd.difficulty_code is null;
+    assert_true(v_dummy_num = 0, 'reference domains: tasks use valid difficulty_code values', 'invalid rows=' || v_dummy_num);
+
+    select count(*)
+      into v_dummy_num
+      from creatures c
+      left join ref_species_types rst
+        on rst.species_type = c.species_type
+     where rst.species_type is null;
+    assert_true(v_dummy_num = 0, 'reference domains: creatures use valid species_type values', 'invalid rows=' || v_dummy_num);
+
+    select count(*)
+      into v_dummy_num
+      from lab_tasks lt
+      left join ref_task_statuses rts
+        on rts.task_status = lt.task_status
+     where rts.task_status is null;
+    assert_true(v_dummy_num = 0, 'reference domains: lab_tasks use valid task_status values', 'invalid rows=' || v_dummy_num);
+
+    select count(*)
+      into v_dummy_num
+      from experiments e
+      left join ref_experiment_types ret
+        on ret.experiment_type = e.experiment_type
+     where ret.experiment_type is null;
+    assert_true(v_dummy_num = 0, 'reference domains: experiments use valid experiment_type values', 'invalid rows=' || v_dummy_num);
+
+    v_dummy_num := 0;
+    v_rc := pkg_genetics_game.get_reference_cursor('TASK_DIFFICULTIES');
+    loop
+        fetch v_rc into v_ref_code, v_ref_display_name, v_ref_numeric_code;
+        exit when v_rc%notfound;
+        if v_ref_code is not null and v_ref_display_name is not null then
+            v_dummy_num := v_dummy_num + 1;
+        end if;
+    end loop;
+    close v_rc;
+    assert_true(v_dummy_num = 3, 'reference cursor returns task difficulty labels', 'rows=' || v_dummy_num);
+
     select count(*)
       into v_dummy_num
       from task_markers tm
@@ -516,7 +587,7 @@ begin
 
     v_inc_gene_id := genes_seq.nextval;
     insert into genes (gene_id, gene_name, gene_type, species_type, dominance_type, linkage_group, created_at)
-    values (v_inc_gene_id, 'strict_inc_' || v_suffix, 'strict_test', 0, 'INCOMPLETE', null, systimestamp);
+    values (v_inc_gene_id, 'strict_inc_' || v_suffix, 'trait', 0, 'INCOMPLETE', null, systimestamp);
 
     v_inc_a_low_id := alleles_seq.nextval;
     insert into alleles (allele_id, gene_id, dominance, trait_value, description, created_at)
@@ -532,7 +603,7 @@ begin
 
     v_codom_gene_id := genes_seq.nextval;
     insert into genes (gene_id, gene_name, gene_type, species_type, dominance_type, linkage_group, created_at)
-    values (v_codom_gene_id, 'strict_codom_' || v_suffix, 'strict_test', 0, 'CODOMINANT', null, systimestamp);
+    values (v_codom_gene_id, 'strict_codom_' || v_suffix, 'trait', 0, 'CODOMINANT', null, systimestamp);
 
     v_codom_a_id := alleles_seq.nextval;
     insert into alleles (allele_id, gene_id, dominance, trait_value, description, created_at)
@@ -709,13 +780,14 @@ begin
 
         v_custom_task_id := tasks_seq.nextval;
         insert into tasks (
-            task_id, task_name, description, money_reward, rating_reward, created_at
+            task_id, task_name, description, money_reward, rating_reward, difficulty_code, created_at
         ) values (
             v_custom_task_id,
             'strict_auto_task_' || v_suffix,
             'Auto-complete task for strict test ' || v_suffix,
             11,
             5,
+            'MEDIUM',
             systimestamp
         );
 

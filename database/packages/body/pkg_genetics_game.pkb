@@ -700,6 +700,60 @@ create or replace package body pkg_genetics_game as
         end if;
     end delete_lab;
 
+    function get_reference_cursor(
+        p_ref_name      in varchar2
+    ) return sys_refcursor is
+        v_cursor sys_refcursor;
+        v_ref_name varchar2(100) := upper(trim(p_ref_name));
+    begin
+        case v_ref_name
+            when 'SPECIES_TYPES' then
+                open v_cursor for
+                    select to_char(species_type) as code, display_name, species_type as numeric_code
+                      from ref_species_types
+                     order by species_type;
+            when 'GENE_TYPES' then
+                open v_cursor for
+                    select gene_type as code, display_name, cast(null as number) as numeric_code
+                      from ref_gene_types
+                     order by gene_type;
+            when 'DOMINANCE_TYPES' then
+                open v_cursor for
+                    select dominance_type as code, display_name, cast(null as number) as numeric_code
+                      from ref_dominance_types
+                     order by dominance_type;
+            when 'TASK_STATUSES' then
+                open v_cursor for
+                    select task_status as code, display_name, cast(null as number) as numeric_code
+                      from ref_task_statuses
+                     order by task_status;
+            when 'EXPERIMENT_TYPES' then
+                open v_cursor for
+                    select experiment_type as code, display_name, cast(null as number) as numeric_code
+                      from ref_experiment_types
+                     order by experiment_type;
+            when 'MUTAGEN_TYPES' then
+                open v_cursor for
+                    select mutagen_type as code, display_name, cast(null as number) as numeric_code
+                      from ref_mutagen_types
+                     order by mutagen_type;
+            when 'MUTATION_TYPES' then
+                open v_cursor for
+                    select to_char(mutation_type) as code, display_name, mutation_type as numeric_code
+                      from ref_mutation_types
+                     order by mutation_type;
+            when 'TASK_DIFFICULTIES' then
+                open v_cursor for
+                    select difficulty_code as code, display_name, cast(null as number) as numeric_code
+                      from ref_task_difficulties
+                     order by case difficulty_code when 'EASY' then 1 when 'MEDIUM' then 2 when 'HARD' then 3 else 4 end;
+            else
+                raise_application_error(-20074, 'Unknown reference name.');
+        end case;
+
+        return v_cursor;
+    end get_reference_cursor;
+
     function get_creatures_cursor(
         p_lab_id         in number
     ) return sys_refcursor is
@@ -712,6 +766,7 @@ create or replace package body pkg_genetics_game as
                 c.creature_id,
                 c.lab_id,
                 c.species_type,
+                rst.display_name as species_display_name,
                 c.creature_name,
                 c.phenotype_color,
                 c.phenotype_size,
@@ -721,6 +776,8 @@ create or replace package body pkg_genetics_game as
                 cast(null as timestamp) as created_at,
                 cast(null as timestamp) as updated_at
               from creatures c
+              join ref_species_types rst
+                on rst.species_type = c.species_type
              where c.lab_id = p_lab_id
              order by c.creature_id;
 
@@ -743,19 +800,28 @@ create or replace package body pkg_genetics_game as
                 gt.creature_id,
                 g.gene_id,
                 g.gene_name,
+                g.description as gene_display_name,
                 g.gene_type,
+                rgt.display_name as gene_type_display_name,
                 g.dominance_type,
+                rdt.display_name as dominance_display_name,
                 a1.allele_id as allele1_id,
                 a1.description as allele1_description,
+                a1.description as allele1_display_name,
                 a1.dominance as allele1_dominance,
                 a1.trait_value as allele1_trait_value,
                 a2.allele_id as allele2_id,
                 a2.description as allele2_description,
+                a2.description as allele2_display_name,
                 a2.dominance as allele2_dominance,
                 a2.trait_value as allele2_trait_value
               from genotypes gt
               join genes g
                 on g.gene_id = gt.gene_id
+              join ref_gene_types rgt
+                on rgt.gene_type = g.gene_type
+              join ref_dominance_types rdt
+                on rdt.dominance_type = g.dominance_type
               join alleles a1
                 on a1.allele_id = gt.allele1_id
               join alleles a2
@@ -1261,10 +1327,13 @@ create or replace package body pkg_genetics_game as
                 m.mutation_id,
                 m.mutation_name,
                 m.mutation_type,
+                rmt.display_name as mutation_type_display_name,
                 m.description,
                 m.cost as price,
                 m.rating_effect
               from mutations m
+              left join ref_mutation_types rmt
+                on rmt.mutation_type = m.mutation_type
              order by m.cost, m.mutation_id;
 
         return v_cursor;
@@ -1279,14 +1348,22 @@ create or replace package body pkg_genetics_game as
             select
                 mr.gene_id,
                 g.gene_name,
+                g.description as gene_display_name,
                 g.gene_type,
+                rgt.display_name as gene_type_display_name,
                 g.species_type,
+                rst.display_name as species_display_name,
                 mr.target_slot,
                 a.trait_value,
-                a.description as target_allele_description
+                a.description as target_allele_description,
+                a.description as target_allele_display_name
               from mutation_rules mr
               join genes g
                 on g.gene_id = mr.gene_id
+              join ref_gene_types rgt
+                on rgt.gene_type = g.gene_type
+              join ref_species_types rst
+                on rst.species_type = g.species_type
               join alleles a
                 on a.allele_id = mr.target_allele_id
              where mr.mutation_id = p_mutation_id
@@ -1912,6 +1989,7 @@ create or replace package body pkg_genetics_game as
             select
                 e.experiment_id,
                 e.experiment_type,
+                ret.display_name as experiment_type_display_name,
                 e.parent1_id,
                 p1.creature_name as parent1_name,
                 e.parent2_id,
@@ -1922,6 +2000,8 @@ create or replace package body pkg_genetics_game as
                 m.mutation_name,
                 e.created_at as created_at
               from experiments e
+              join ref_experiment_types ret
+                on ret.experiment_type = e.experiment_type
               left join creatures p1
                 on p1.creature_id = e.parent1_id
               left join creatures p2
@@ -1952,15 +2032,23 @@ create or replace package body pkg_genetics_game as
                 lt.lab_task_id,
                 lt.task_id,
                 t.task_name,
+                t.task_name as task_display_name,
                 t.description,
                 t.money_reward as reward_money,
                 t.rating_reward as reward_rating,
+                t.difficulty_code,
+                rtd.display_name as difficulty_display_name,
                 lt.task_status,
+                rts.display_name as task_status_display_name,
                 lt.assigned_at as created_at,
                 lt.completed_at
               from lab_tasks lt
               join tasks t
                 on t.task_id = lt.task_id
+              join ref_task_statuses rts
+                on rts.task_status = lt.task_status
+              join ref_task_difficulties rtd
+                on rtd.difficulty_code = t.difficulty_code
              where lt.lab_id = p_lab_id
              order by
                 case lt.task_status
