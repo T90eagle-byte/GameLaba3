@@ -200,7 +200,25 @@ This smoke-test validates strict multiuser/session behavior:
 - after closing session1, session2 can load the lab;
 - an old closed session token cannot reopen the lab (`-20020`).
 
-## 13) Inspect compile errors via USER_ERRORS
+## 13) Run LR2 package API compatibility smoke-test
+
+```sql
+@database/tests/09_lr2_package_api_compat_smoke_test.sql
+```
+
+This smoke-test validates LR2-compatible public package methods that are kept as wrappers over the current implementation:
+- `hash_password`;
+- `exit_lab`;
+- `show_lab_stats`;
+- `show_creatures`;
+- `get_dominant_allele`;
+- `get_inherited_allele`;
+- `get_linked_allele_set`;
+- `show_tasks`;
+- `show_mutation_history`;
+- no-argument `show_mutation_shop`.
+
+## 14) Inspect compile errors via USER_ERRORS
 
 ```sql
 select
@@ -282,7 +300,7 @@ order by object_type;
 ```
 
 
-## 14) DEV-only: unlock stale ACTIVE sessions (after old GUI crash)
+## 15) DEV-only: unlock stale ACTIVE sessions (after old GUI crash)
 
 If you still have a stale lab lock (`ORA-20072`) from an old GUI version that was closed without logout, you can close stale sessions for a specific user in dev environment:
 
@@ -309,6 +327,7 @@ After DDL, seed, package spec, and package body are applied, run smoke-tests in 
 @database/tests/06_tasks_smoke_test.sql
 @database/tests/07_strict_compliance_smoke_test.sql
 @database/tests/08_multiuser_sessions_smoke_test.sql
+@database/tests/09_lr2_package_api_compat_smoke_test.sql
 ```
 
 When deploying into a fresh schema, run the seed before smoke-tests.

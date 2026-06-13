@@ -442,6 +442,13 @@ create or replace package body pkg_genetics_game as
         end if;
     end update_user_profile;
 
+    function hash_password(
+        p_password in varchar2
+    ) return varchar2 is
+    begin
+        return hash_password_sha256(p_password);
+    end hash_password;
+
     procedure start_new_lab(
         p_session_token in varchar2,
         p_lab_id        out number
@@ -700,6 +707,46 @@ create or replace package body pkg_genetics_game as
         end if;
     end delete_lab;
 
+    procedure exit_lab(
+        p_lab_id in number
+    ) is
+    begin
+        assert_lab_access(p_lab_id => p_lab_id);
+
+        if g_current_lab_id = p_lab_id then
+            g_current_lab_id := null;
+        end if;
+    end exit_lab;
+
+    procedure show_lab_stats(
+        p_lab_id in number
+    ) is
+        v_wallet               number;
+        v_rating               number;
+        v_creature_count       number;
+        v_active_task_count    number;
+        v_completed_task_count number;
+        v_experiment_count     number;
+    begin
+        get_lab_stats(
+            p_lab_id               => p_lab_id,
+            p_wallet               => v_wallet,
+            p_rating               => v_rating,
+            p_creature_count       => v_creature_count,
+            p_active_task_count    => v_active_task_count,
+            p_completed_task_count => v_completed_task_count,
+            p_experiment_count     => v_experiment_count
+        );
+
+        dbms_output.put_line('Лаборатория #' || p_lab_id);
+        dbms_output.put_line('  Монеты: ' || to_char(v_wallet));
+        dbms_output.put_line('  Рейтинг: ' || to_char(v_rating));
+        dbms_output.put_line('  Существа: ' || to_char(v_creature_count));
+        dbms_output.put_line('  Активные задания: ' || to_char(v_active_task_count));
+        dbms_output.put_line('  Выполненные задания: ' || to_char(v_completed_task_count));
+        dbms_output.put_line('  Эксперименты: ' || to_char(v_experiment_count));
+    end show_lab_stats;
+
     function get_reference_cursor(
         p_ref_name      in varchar2
     ) return sys_refcursor is
@@ -942,6 +989,202 @@ create or replace package body pkg_genetics_game as
         when others then
             raise;
     end get_phenotype;
+
+    procedure show_creatures(
+        p_lab_id in number
+    ) is
+        v_cursor                 sys_refcursor;
+        v_creature_id            number;
+        v_lab_id                 number;
+        v_species_type           number;
+        v_species_display_name   varchar2(4000);
+        v_creature_name          varchar2(4000);
+        v_color                  varchar2(4000);
+        v_size                   varchar2(4000);
+        v_has_wings              varchar2(10);
+        v_nutrition_type         varchar2(4000);
+        v_summary                varchar2(4000);
+        v_created_at             timestamp;
+        v_updated_at             timestamp;
+    begin
+        v_cursor := get_creatures_cursor(
+            p_lab_id => p_lab_id
+        );
+
+        loop
+            fetch v_cursor into
+                v_creature_id,
+                v_lab_id,
+                v_species_type,
+                v_species_display_name,
+                v_creature_name,
+                v_color,
+                v_size,
+                v_has_wings,
+                v_nutrition_type,
+                v_summary,
+                v_created_at,
+                v_updated_at;
+            exit when v_cursor%notfound;
+
+            dbms_output.put_line(
+                '#' || v_creature_id || ' ' || nvl(v_creature_name, 'без имени') ||
+                ' [' || nvl(v_species_display_name, to_char(v_species_type)) || '] ' ||
+                nvl(v_summary, 'Фенотип не рассчитан')
+            );
+        end loop;
+
+        close v_cursor;
+    exception
+        when others then
+            if v_cursor%isopen then
+                close v_cursor;
+            end if;
+            raise;
+    end show_creatures;
+
+    function get_dominant_allele(
+        p_creature_id in number,
+        p_gene_id     in number
+    ) return varchar2 is
+        v_lab_id          number;
+        v_allele1_id      number;
+        v_allele2_id      number;
+        v_dominance_type  genes.dominance_type%type;
+        v_allele1_desc    alleles.description%type;
+        v_allele1_dom     alleles.dominance%type;
+        v_allele1_val     alleles.trait_value%type;
+        v_allele2_desc    alleles.description%type;
+        v_allele2_dom     alleles.dominance%type;
+        v_allele2_val     alleles.trait_value%type;
+        v_effective_desc  varchar2(4000);
+        v_mid_desc        varchar2(4000);
+        v_mid_value       number;
+    begin
+        v_lab_id := assert_creature_access(
+            p_creature_id => p_creature_id
+        );
+
+        select
+            gt.allele1_id,
+            gt.allele2_id,
+            g.dominance_type,
+            a1.description,
+            a1.dominance,
+            a1.trait_value,
+            a2.description,
+            a2.dominance,
+            a2.trait_value
+          into
+            v_allele1_id,
+            v_allele2_id,
+            v_dominance_type,
+            v_allele1_desc,
+            v_allele1_dom,
+            v_allele1_val,
+            v_allele2_desc,
+            v_allele2_dom,
+            v_allele2_val
+          from genotypes gt
+          join genes g
+            on g.gene_id = gt.gene_id
+          join alleles a1
+            on a1.allele_id = gt.allele1_id
+          join alleles a2
+            on a2.allele_id = gt.allele2_id
+         where gt.creature_id = p_creature_id
+           and gt.gene_id = p_gene_id;
+
+        if v_allele1_id = v_allele2_id then
+            v_effective_desc := v_allele1_desc;
+        elsif v_dominance_type = 'INCOMPLETE' then
+            v_mid_value := (v_allele1_val + v_allele2_val) / 2;
+            begin
+                select a.description
+                  into v_mid_desc
+                  from alleles a
+                 where a.gene_id = p_gene_id
+                   and a.trait_value = v_mid_value
+                   and rownum = 1;
+                v_effective_desc := v_mid_desc;
+            exception
+                when no_data_found then
+                    v_effective_desc := 'intermediate(' || v_allele1_desc || '/' || v_allele2_desc || ')';
+            end;
+        elsif v_dominance_type = 'CODOMINANT' then
+            v_effective_desc := v_allele1_desc || '/' || v_allele2_desc;
+        elsif v_allele1_dom > v_allele2_dom then
+            v_effective_desc := v_allele1_desc;
+        elsif v_allele2_dom > v_allele1_dom then
+            v_effective_desc := v_allele2_desc;
+        else
+            v_effective_desc := v_allele1_desc;
+        end if;
+
+        return v_effective_desc;
+    exception
+        when no_data_found then
+            raise_application_error(-20075, 'Selected creature has no genotype for the requested gene.');
+    end get_dominant_allele;
+
+    function get_inherited_allele(
+        p_parent_id in number,
+        p_gene_id   in number
+    ) return number is
+        v_lab_id     number;
+        v_allele1_id number;
+        v_allele2_id number;
+    begin
+        v_lab_id := assert_creature_access(
+            p_creature_id => p_parent_id
+        );
+
+        select gt.allele1_id, gt.allele2_id
+          into v_allele1_id, v_allele2_id
+          from genotypes gt
+         where gt.creature_id = p_parent_id
+           and gt.gene_id = p_gene_id;
+
+        if pick_random_allele_side() = 1 then
+            return v_allele1_id;
+        end if;
+
+        return v_allele2_id;
+    exception
+        when no_data_found then
+            raise_application_error(-20076, 'Selected parent has no genotype for the requested gene.');
+    end get_inherited_allele;
+
+    function get_linked_allele_set(
+        p_creature_id   in number,
+        p_linkage_group in number
+    ) return varchar2 is
+        v_lab_id  number;
+        v_result  varchar2(4000);
+    begin
+        v_lab_id := assert_creature_access(
+            p_creature_id => p_creature_id
+        );
+
+        if p_linkage_group is null then
+            return null;
+        end if;
+
+        select listagg(g.gene_name || '=' || a1.description || '/' || a2.description, '; ')
+                   within group (order by g.gene_id)
+          into v_result
+          from genotypes gt
+          join genes g
+            on g.gene_id = gt.gene_id
+          join alleles a1
+            on a1.allele_id = gt.allele1_id
+          join alleles a2
+            on a2.allele_id = gt.allele2_id
+         where gt.creature_id = p_creature_id
+           and g.linkage_group = p_linkage_group;
+
+        return v_result;
+    end get_linked_allele_set;
 
     function calculate_punnett_probabilities(
         p_parent1_id     in number,
@@ -2061,6 +2304,61 @@ create or replace package body pkg_genetics_game as
         return v_cursor;
     end get_tasks_cursor;
 
+    procedure show_tasks(
+        p_lab_id in number
+    ) is
+        v_cursor                   sys_refcursor;
+        v_lab_task_id              number;
+        v_task_id                  number;
+        v_task_name                varchar2(4000);
+        v_task_display_name        varchar2(4000);
+        v_description              varchar2(4000);
+        v_reward_money             number;
+        v_reward_rating            number;
+        v_difficulty_code          varchar2(100);
+        v_difficulty_display_name  varchar2(4000);
+        v_task_status              varchar2(100);
+        v_task_status_display_name varchar2(4000);
+        v_created_at               timestamp;
+        v_completed_at             timestamp;
+    begin
+        v_cursor := get_tasks_cursor(
+            p_lab_id => p_lab_id
+        );
+
+        loop
+            fetch v_cursor into
+                v_lab_task_id,
+                v_task_id,
+                v_task_name,
+                v_task_display_name,
+                v_description,
+                v_reward_money,
+                v_reward_rating,
+                v_difficulty_code,
+                v_difficulty_display_name,
+                v_task_status,
+                v_task_status_display_name,
+                v_created_at,
+                v_completed_at;
+            exit when v_cursor%notfound;
+
+            dbms_output.put_line(
+                '#' || v_task_id || ' ' || nvl(v_task_display_name, v_task_name) ||
+                ' [' || nvl(v_task_status_display_name, v_task_status) || '] ' ||
+                'сложность=' || nvl(v_difficulty_display_name, v_difficulty_code)
+            );
+        end loop;
+
+        close v_cursor;
+    exception
+        when others then
+            if v_cursor%isopen then
+                close v_cursor;
+            end if;
+            raise;
+    end show_tasks;
+
     function check_task(
         p_lab_id          in number,
         p_task_id         in number,
@@ -2376,5 +2674,60 @@ create or replace package body pkg_genetics_game as
 
         v_summary := get_phenotype(p_creature_id => p_creature_id);
     end create_creature_of_type;
+
+    procedure show_mutation_history(
+        p_lab_id in number
+    ) is
+        v_cursor                     sys_refcursor;
+        v_experiment_id              number;
+        v_experiment_type            varchar2(100);
+        v_experiment_type_display    varchar2(4000);
+        v_parent1_id                 number;
+        v_parent1_name               varchar2(4000);
+        v_parent2_id                 number;
+        v_parent2_name               varchar2(4000);
+        v_offspring_id               number;
+        v_offspring_name             varchar2(4000);
+        v_mutation_id                number;
+        v_mutation_name              varchar2(4000);
+        v_created_at                 timestamp;
+    begin
+        v_cursor := get_experiment_history(
+            p_lab_id => p_lab_id
+        );
+
+        loop
+            fetch v_cursor into
+                v_experiment_id,
+                v_experiment_type,
+                v_experiment_type_display,
+                v_parent1_id,
+                v_parent1_name,
+                v_parent2_id,
+                v_parent2_name,
+                v_offspring_id,
+                v_offspring_name,
+                v_mutation_id,
+                v_mutation_name,
+                v_created_at;
+            exit when v_cursor%notfound;
+
+            dbms_output.put_line(
+                '#' || v_experiment_id || ' ' || nvl(v_experiment_type_display, v_experiment_type) ||
+                ': ' || nvl(v_parent1_name, '?') ||
+                case when v_parent2_name is null then '' else ' + ' || v_parent2_name end ||
+                case when v_offspring_name is null then '' else ' -> ' || v_offspring_name end ||
+                case when v_mutation_name is null then '' else ' [' || v_mutation_name || ']' end
+            );
+        end loop;
+
+        close v_cursor;
+    exception
+        when others then
+            if v_cursor%isopen then
+                close v_cursor;
+            end if;
+            raise;
+    end show_mutation_history;
 end pkg_genetics_game;
 /

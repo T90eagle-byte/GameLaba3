@@ -28,6 +28,10 @@ create or replace package pkg_genetics_game as
         p_password      in varchar2 default null
     );
 
+    function hash_password(
+        p_password      in varchar2
+    ) return varchar2;
+
     ----------------------------------------------------------------------------
     -- B. Labs
     ----------------------------------------------------------------------------
@@ -65,6 +69,14 @@ create or replace package pkg_genetics_game as
         p_lab_id        in number
     );
 
+    procedure exit_lab(
+        p_lab_id        in number
+    );
+
+    procedure show_lab_stats(
+        p_lab_id        in number
+    );
+
     function get_reference_cursor(
         p_ref_name      in varchar2
     ) return sys_refcursor;
@@ -82,6 +94,25 @@ create or replace package pkg_genetics_game as
 
     function get_phenotype(
         p_creature_id    in number
+    ) return varchar2;
+
+    procedure show_creatures(
+        p_lab_id         in number
+    );
+
+    function get_dominant_allele(
+        p_creature_id    in number,
+        p_gene_id        in number
+    ) return varchar2;
+
+    function get_inherited_allele(
+        p_parent_id      in number,
+        p_gene_id        in number
+    ) return number;
+
+    function get_linked_allele_set(
+        p_creature_id    in number,
+        p_linkage_group  in number
     ) return varchar2;
 
     function calculate_punnett_probabilities(
@@ -160,6 +191,10 @@ create or replace package pkg_genetics_game as
         p_lab_id          in number
     ) return sys_refcursor;
 
+    procedure show_tasks(
+        p_lab_id          in number
+    );
+
     function check_task(
         p_lab_id          in number,
         p_task_id         in number,
@@ -187,6 +222,10 @@ create or replace package pkg_genetics_game as
         p_species_type    in number,
         p_variant         in number,
         p_creature_id     out number
+    );
+
+    procedure show_mutation_history(
+        p_lab_id          in number
     );
 end pkg_genetics_game;
 /
