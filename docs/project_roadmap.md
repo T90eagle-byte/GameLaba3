@@ -1,91 +1,67 @@
-# Project Roadmap: GameLR3 / BioAssembly
+# Project Roadmap: GameLR3 / «БиоСборка»
 
-## Completed Stages
+## Уже завершённые этапы
 
-### 1. Backend strict-pass
-- `pkg_genetics_game` is the central backend API.
-- Package spec/body compile.
-- `user_errors` is empty.
-- Smoke tests `01..08` were green after stabilization.
+### 1. Backend stabilization
+- `pkg_genetics_game` является центральным backend API.
+- Package spec/body согласованы и компилируются.
+- `STANDARD_HASH` заменил `DBMS_CRYPTO`.
+- Подготовлены smoke-tests `01..09`.
 
-### 2. Content compliance
-- Seed covers the required species, genes, alleles, mutations, tasks, and markers.
-- `mutation_rules` and `task_markers` cover universal traits and `species_type 1..6`.
-- Mixed mutation rules were split into coherent species-specific mutations.
-- Universal color content is expanded to 8 real alleles: green, blue, red, yellow, purple, orange, white, black.
+### 2. Domain reference tables
+- Доменные enum-значения вынесены в `ref_*` таблицы.
+- Package cursors возвращают display labels из БД.
+- Python не является источником истины для игровых enum-справочников.
 
-### 3. Economy
-- `buy_mutation`, `apply_mutation`, and `apply_mutagen` are handled by PL/SQL.
-- RADIATION: cost 50, rating_delta -5.
-- CHEMICAL: cost 100, rating_delta -2.
-- Task auto-complete can add wallet/rating rewards after experiments.
+### 3. LR2 package compatibility
+- В package добавлены LR2-compatible wrappers.
+- Прямые SQL-запросы к игровым таблицам убраны из `pkg_api.py`.
+- Python остаётся клиентом/display-layer.
 
-### 4. Multiuser
-- Session-bound lab access is complete.
-- One lab cannot be opened in two ACTIVE sessions.
-- `ORA-20072` and `ORA-20073` have Russian GUI messages.
-- Dev-only stale session script exists.
+### 4. Desktop GUI delivery
+- PySide6 GUI реализован и локально пригоден как desktop-клиент.
+- Основные игровые вкладки, портреты существ и onboarding-подсказки завершены.
+- GUI не удаляется и остаётся рабочей локальной версией.
 
-### 5. GUI foundation
-- Main screens and tabs are implemented.
-- Python remains GUI/display-layer.
-- All gameplay operations go through `pkg_genetics_game`.
+### 5. Backend audit and planning
+- Подготовлен `docs/backend_compliance_audit.md`.
+- Подготовлен `docs/backend_expansion_plan.md`.
+- Обновлены docs по запуску БД и карте схемы.
+- Добавлен `database/scripts/run_tests.py` для воспроизводимого запуска package/tests.
 
-### 6. User-friendly polish
-- Onboarding and empty states.
-- Lighter tables.
-- Mission screen for tasks.
-- Laboratory journal for history.
-- Scenario flow for experiments and mutations.
-- Creature portraits and Creature Art Pass 2.
+## Текущая стадия: backend checkpoint before expansion
+Цель текущей стадии — сохранить стабильный backend checkpoint и не потерять контекст перед следующим крупным этапом.
 
-### 7. Post-polish stabilization
-- Mutations compact portrait balanced: readable, centered, not full-width stretched.
-- Tasks checked-creature portrait replaced with compact-thumbnail and empty text state.
-- GUI logic for tasks and mutations was not changed; these are display-layer fixes only.
+Что уже есть:
+- backend-аудит завершён;
+- expansion-plan подготовлен;
+- runner для smoke-tests добавлен;
+- структура проекта подготовлена к будущему web-клиенту без переноса бизнес-логики в Python.
 
-### 8. GUI onboarding/help hints
-- Dashboard route explains the first-run loop: Creatures -> Experiment / Mutations -> Tasks -> History.
-- Creatures tab explains phenotype, genotype, inheritance, and color variants.
-- Experiment, Mutations, Tasks, and History tabs have compact paper-style workflow hints.
-- Tooltips were added to key stats and controls.
-- No backend, DDL, seed, tests, or `pkg_api.py` changes are part of this step.
+Что ещё нужно:
+- живой Oracle-прогон smoke-tests `01..09`;
+- подтверждение стабильности package на учебном стенде;
+- после этого — решение, идём ли в safe content expansion или сразу в web-client foundation.
 
-## Current Stage: final delivery preparation
-Goal: keep the project stable, run final checks, and prepare repository/instructions for submission/transfer.
+## Ограничения учебного стенда
+- Windows Server 2012 R2 Datacenter.
+- Python 3.12 x64.
+- DBeaver 21.2.1.
+- DBeaver может некорректно исполнять скрипты с `SET DEFINE OFF` и одиночным `/`.
+- PySide6/Qt6 не считается надёжным вариантом для пересдачи на этом стенде.
+- Поэтому долгосрочный переносимый клиент — web-клиент через браузер.
 
-Not allowed without a separate decision:
-- backend package spec/body changes;
-- DDL changes;
-- `pkg_api.py` changes;
-- seed/test changes;
-- new dependencies;
-- additional real genes, alleles, colors, or mechanics;
-- moving business logic into Python.
+## Следующие этапы
 
-## Final Delivery Tasks
-- Verify `.gitignore`.
-- Verify `requirements.txt`.
-- Verify `database/README_RUN.md`.
-- Verify no temporary repair files are present.
-- Final `python -m compileall -f python_client`.
-- Final mojibake marker-check.
-- Final manual GUI check.
-- Final Oracle `01..08` if required for submission or if SQL files changed.
-- Prepare for GitLab/university PC transfer.
+### Ближайший обязательный этап
+- Выполнить живой Oracle smoke-run `01..09` через стенд или рабочее Oracle окружение.
 
-## Future Optional Tracks
-- Expand dashboard into a richer progress panel.
-- Content expansion beyond the completed 8-color pass: more traits, tasks, and carefully designed allele families.
-- Mutagen diversity pass: more mutagen scenarios.
-- Economy balancing: tune penalties and rewards.
-- Strict task typing: a separate DDL/backend track for FIND/BREED/MUTATE if creature origin must be checked.
+### После подтверждения стабильности
+- Safe seed/content expansion quick wins из `docs/backend_expansion_plan.md`.
+- Подготовка backend contracts для будущего web-клиента.
 
-## Delivery Preparation
-Current delivery-prep scope is repository hygiene and transfer instructions only:
-- `.gitignore` cleanup;
-- root `requirements.txt`;
-- `database/README_RUN.md` transfer/run notes;
-- final verification checklist.
-
-No new gameplay or large GUI feature work should be started before submission unless a blocker is found.
+### Отложенные крупные треки
+- `rating_events` и история рейтинга.
+- Строгая provenance-модель для задач BREED/MUTATE.
+- Более крупные DDL-изменения для расширенной игровой прогрессии.
+- Сам web-клиент как отдельный этап после подтверждения backend stability.

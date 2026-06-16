@@ -120,6 +120,39 @@ Check compile output:
 show errors package body pkg_genetics_game
 ```
 
+
+## Запуск smoke-tests через Python runner
+
+If SQL Developer, SQLcl, SQL*Plus, or DBeaver are inconvenient on the university stand, you can run package files and smoke-tests through the local Python runner:
+
+```powershell
+./.venv/Scripts/python.exe database/scripts/run_tests.py --dry-run
+./.venv/Scripts/python.exe database/scripts/run_tests.py
+```
+
+Default runner behavior:
+
+- reads Oracle connection settings from `python_client/.env`;
+- supports either `ORACLE_SERVICE` or `ORACLE_SID`;
+- recompiles package spec/body before smoke-tests when `--files` is not used;
+- executes SQL files as whole scripts;
+- ignores SQL*Plus directives such as `set define off`, `set serveroutput on`, `show errors`;
+- treats a single `/` on its own line as a PL/SQL script delimiter;
+- prints `dbms_output` lines and final package status/user_errors.
+
+Useful examples:
+
+```powershell
+./.venv/Scripts/python.exe database/scripts/run_tests.py --files database/tests/05_mutations_experiments_smoke_test.sql database/tests/07_strict_compliance_smoke_test.sql
+./.venv/Scripts/python.exe database/scripts/run_tests.py --files database/packages/spec/pkg_genetics_game.pks database/packages/body/pkg_genetics_game.pkb
+```
+
+University-stand notes:
+
+- DBeaver 21.2.1 may fail on `SET DEFINE OFF` and a single `/` even when the SQL file is correct;
+- package body and smoke-tests are safer when executed as a whole script, not fragment-by-fragment with Ctrl+Enter;
+- some stands use SID-based Oracle connection strings rather than `service_name`, so the runner accepts both `ORACLE_SERVICE` and `ORACLE_SID`.
+
 ## 5) Run auth/labs smoke-test
 
 ```sql
@@ -356,4 +389,3 @@ After DDL, seed, package spec, and package body are applied, run smoke-tests in 
 ```
 
 When deploying into a fresh schema, run the seed before smoke-tests.
-DBeaver 21.2.1 на учебном стенде может некорректно выполнять PL/SQL package body и тестовые скрипты с SQL*Plus-директивами. При ошибках на SET DEFINE OFF или одиночном / эти строки нужно комментировать либо запускать package/tests через Python runner. Для просмотра таблиц, выполнения простых SELECT и проверки user_objects DBeaver подходит нормально.

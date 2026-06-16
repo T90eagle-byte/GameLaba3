@@ -1,77 +1,51 @@
 # Current Tasks
 
-## Current Status
-The project is past GUI/graphics polish and color expansion stabilization. Final GUI onboarding/help hints are being added before delivery preparation.
+## Текущий статус
+Проект находится на контрольной точке после backend-аудита, подготовки expansion-plan и добавления воспроизводимого runner для backend smoke-tests.
 
-Closed stages:
-- Backend strict-pass.
-- Content compliance pass.
-- Economy pass.
-- Multiuser strict-pass.
-- History `created_at` fix.
-- Display localization.
-- Session/logout GUI fixes.
-- Mixed `mutation_rules` split.
-- Reward-aware stabilization of test `05`.
-- Dashboard/Stabilization GUI polish.
-- Missions + Journal polish.
-- Experiment + Mutations polish.
-- Creature Display / Art Pass 2.
-- Mutations compact portrait sizing fix.
-- Tasks checked-creature compact-thumbnail fix.
-- Color expansion display stabilization.
+Уже закрыто:
+- backend compliance audit;
+- `STANDARD_HASH` вместо `DBMS_CRYPTO`;
+- ref-tables `ref_*` и backend labels из БД;
+- LR2-compatible package API;
+- перенос прямых SQL-вызовов из `pkg_api.py` в package;
+- docs-fix по `README_RUN`, `database_map`, roadmap и gameplay notes;
+- Python runner `database/scripts/run_tests.py`.
 
-## Current Work
-Final GUI onboarding/help hints:
-- Dashboard shows the first-run route through creatures, experiments/mutations, tasks, and history;
-- Creatures explain phenotype, genotype, inheritance, and color variants;
-- Genetic Experiment, Mutations, Tasks, and History tabs explain their workflow in compact help cards;
-- statistics, quick actions, task checks, mutagens, and journal filters have useful tooltips;
-- all changes are GUI/display-layer only.
+## Главная незакрытая точка
+Нужен живой Oracle-прогон smoke-tests `01..09`.
 
-## Acceptance Checklist
-- Auth: login, registration, errors, placeholders.
-- Lab Selection: create, open, delete lab, logout.
-- Main Shell: stats, quick actions, clear hints.
-- Creatures: table, selected card, large portraits, phenotype badges, genotype cards, ID for duplicate names.
-- Genetic Experiment: choose parents, choose gene, show probabilities, create child, see notifications.
-- Mutations: shop, buy, selected creature, compact portrait, compatibility, mutation, RADIATION, CHEMICAL.
-- Tasks: filter, mission card, compact-thumbnail for checked creature, check and complete task.
-- History: journal entries, type badges, date/time, details card, empty-state.
-- Closing: close with X, reopen same lab, no `ORA-20072`.
+Что известно сейчас:
+- локально runner подготовлен и dry-run проверен;
+- package/spec/body и docs согласованы;
+- локальный честный прогон против Oracle не выполнен из-за недоступности рабочего Oracle окружения в текущей машине;
+- поэтому статус backend считается подготовленным к прогону, но не окончательно подтверждённым live-run результатом.
 
-## Final Repository Checklist
-- `git status --short`.
-- `python -m compileall -f python_client`.
-- Mojibake marker-check on GUI and docs.
-- Confirm absence of:
-  - `fix_*.py`;
-  - `patch_*.py`;
-  - `*.bak_mojibake*`;
-  - `tmp_rus_test.txt`;
-  - tracked `__pycache__`;
-  - tracked `.venv`.
-- Confirm old Qt enum style is absent:
-  - `QHeaderView.Stretch`;
-  - `QHeaderView.ResizeToContents`;
-  - `QHeaderView.Interactive`;
-  - `QHeaderView.Fixed`.
-- Verify `.gitignore`.
-- Verify `requirements.txt`.
-- Verify `database/README_RUN.md`.
+## Что запускать на стенде
+Полный прогон:
+- `./.venv/Scripts/python.exe database/scripts/run_tests.py`
 
-## Final Stage Rules
-- Do not change backend package spec/body.
-- Do not change DDL.
-- Do not change seed unless a new content task explicitly requires it.
-- Do not change tests `01..08` unless a tested contract truly changes.
-- Do not change `pkg_api.py`.
-- Do not add dependencies, assets, genes, alleles, colors, or mechanics.
-- Do not move business logic into Python.
+Точечный прогон спорных тестов:
+- `./.venv/Scripts/python.exe database/scripts/run_tests.py --files database/tests/05_mutations_experiments_smoke_test.sql database/tests/07_strict_compliance_smoke_test.sql`
 
-## Final Transfer Preparation Status
-- Verify `.gitignore`, root `requirements.txt`, and `database/README_RUN.md` before the final commit.
-- Root `requirements.txt` should install the Python GUI dependencies through `python_client/requirements.txt`.
-- Final checks before transfer: `git status --short`, `python -m compileall -f python_client`, mojibake marker-check, temp-file check, manual GUI check.
-- Oracle `01..08` smoke-tests are recommended for final proof.
-- If only GUI/display docs changed, Oracle tests are not required for that step.
+## Следующий технический этап
+Вариант 1:
+- выполнить живой Oracle-прогон `01..09`;
+- зафиксировать реальные результаты;
+- только потом решать, нужны ли backend-fix или test-fix.
+
+Вариант 2:
+- если прогон подтверждает стабильность, переходить к безопасным seed/content quick wins из `docs/backend_expansion_plan.md`.
+
+Отложено до отдельного решения:
+- web-клиент;
+- крупный DDL-трек `rating_events`;
+- расширение provenance/task-origin модели;
+- новые большие backend-механики.
+
+## Правила текущей контрольной точки
+- Не переносить бизнес-логику из Oracle PL/SQL в Python.
+- Не начинать web-клиент в этой задаче.
+- Не менять package/DDL/seed/tests без доказанной необходимости.
+- Не трогать `.env`.
+- Не хардкодить Oracle host/port/SID/service name в коде или docs как источник истины.
