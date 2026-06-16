@@ -1,104 +1,68 @@
-# AI Context: GameLR3 / BioAssembly
+# AI Context: GameLR3 / «БиоСборка»
 
 ## Workspace
-- Current workspace: `C:\GameLR3`.
-- Do not use the old path under `C:\Users\User\DATA`.
-- Git commit messages should be written in Russian.
+- Актуальный workspace: `C:\GameLR3`.
+- Старый путь под `C:\Users\User\DATA` не использовать как рабочий ориентир в задачах.
+- Коммиты писать на русском языке.
 
-## Architecture
-- Backend is implemented in Oracle PL/SQL.
-- Central backend API: `pkg_genetics_game`.
-- Python is GUI client and display-layer only.
-- Python must not calculate genetics, mutations, tasks, economy, rating, or statistics.
-- All gameplay operations go through `pkg_genetics_game`.
-- GUI must not read `dbms_output`.
-- GUI user-facing text must stay Russian and UTF-8.
-- English is allowed only for technical API, enum, DB fields, and developer docs.
-- Python files that contain Cyrillic must be saved as UTF-8.
-- Before backend/content/GUI changes, re-check LR1/LR2 requirements and current docs.
-- Do not add external libraries or assets without separate approval.
+## Архитектура
+- Backend реализован на Oracle PL/SQL.
+- Центральный backend API: `pkg_genetics_game`.
+- Python-клиенты должны оставаться client/display-layer.
+- Бизнес-логика генетики, мутаций, заданий, экономики и рейтинга не переносится из PL/SQL в Python.
+- Текущий PySide6 GUI сохраняется как desktop-версия.
+- Следующий переносимый клиент планируется как web-клиент через браузер, но он ещё не реализуется на этой контрольной точке.
 
-## Stable State
-- Backend strict-pass is closed: package spec/body compile and `user_errors` is empty.
-- Oracle smoke tests `01..08` were green after stabilization.
-- Content compliance is closed: seed covers universal traits and `species_type 1..6`.
-- Color expansion pass adds 8 real backend/content alleles for the universal `color` gene: green, blue, red, yellow, purple, orange, white, black.
-- Economy pass is closed: buy/apply mutation, mutagens, rating, and task auto-complete are handled by PL/SQL.
-- Multiuser strict-pass is closed: session-bound lab access, `ORA-20072`, and `ORA-20073` are handled.
-- `get_experiment_history` returns real `experiments.created_at`.
-- Mixed `mutation_rules` were split into coherent species-specific mutations.
-- Test `05` is reward-aware for mutagen auto-complete rewards.
-- GUI opens, creates, and deletes normal labs; stale sessions are handled through the dev-only unlock script.
-- Closing with X works and `ORA-20072` is not reproduced for normal labs.
+## Причина смены стратегии клиента
+- На учебном стенде Windows Server 2012 R2 PySide6/Qt6 оказался ненадёжным вариантом из-за ошибок загрузки `QtGui/QtWidgets` даже после установки VC_redist.
+- Поэтому для пересдачи и переносимости основной будущий путь — web-клиент, работающий поверх уже стабилизированного Oracle backend.
+- Desktop GUI не удаляется и остаётся полезной локальной версией.
 
-## GUI State
-- Implemented screens: Auth, Lab Selection, Main Shell, Creatures, Genetic Experiment, Mutations, Tasks, Experiment History.
-- `Back to labs` returns to lab selection without logout.
-- `Logout` calls `logout_user`.
-- Closing the window with X performs safe logout, clears `SessionState`, and closes connection.
-- MainWindow initialization failures are handled with safe session cleanup.
-- Dev-only stale session script exists: `database/scripts/dev_unlock_stale_sessions.sql`.
-- Technical user-facing phrases about Oracle/PLSQL/backend were removed from ordinary GUI screens; connection errors may still mention Oracle.
+## Что уже стабилизировано
+- `STANDARD_HASH` используется вместо `DBMS_CRYPTO`.
+- `DBMS_CRYPTO` отсутствует в package body.
+- Доменные справочники `ref_*` вынесены в БД.
+- LR2-compatible wrappers добавлены в package API.
+- Прямые SQL-запросы к игровым таблицам убраны из `pkg_api.py`.
+- Python GUI остаётся display-layer only.
+- Подготовлен `docs/backend_compliance_audit.md`.
+- Подготовлен `docs/backend_expansion_plan.md`.
+- Обновлены `docs/current_tasks.md`, `docs/project_roadmap.md`, `docs/gameplay_rules.md`.
+- Обновлён `database/README_RUN.md`.
+- Добавлен `database/scripts/run_tests.py` для воспроизводимого запуска backend smoke-tests `01..09`.
 
-## Display and Polish
-- Display localization is handled through `python_client/app/services/display_names.py`.
-- Task difficulty is GUI/display classification, not DB schema.
-- Task wording is honest: current backend checks creature traits by `task_markers`, not creature origin.
-- GUI completed Dashboard/Stabilization, Missions + Journal, Experiment + Mutations, and Creature Display / Art polish.
-- `CreaturePortraitWidget` is display-layer only and supports paper-style portraits with `large`, `compact`, and `mini` modes.
-- Visual style is paper-lab notebook inspired by the mood of Alchemy on Paper, without copying assets or interface.
-- Creature Art Pass 2 is complete: fish, crustaceans, mollusks, turtles, and mammals use more recognizable QPainterPath/Bezier silhouettes.
-- Display-only variation is based on existing creature data such as `creature_key`; it does not add gameplay traits.
+## Backend Test Runner
+- Runner читает подключение из `python_client/.env`.
+- Поддерживаются оба варианта подключения: `ORACLE_SERVICE` и `ORACLE_SID`.
+- Runner нужен в том числе для стендов, где DBeaver 21.2.1 нестабилен на `SET DEFINE OFF` и одиночном `/`.
+- Основная команда полного прогона на стенде:
+  - `./.venv/Scripts/python.exe database/scripts/run_tests.py`
+- Точечный прогон спорных тестов:
+  - `./.venv/Scripts/python.exe database/scripts/run_tests.py --files database/tests/05_mutations_experiments_smoke_test.sql database/tests/07_strict_compliance_smoke_test.sql`
 
-## Latest GUI/Art Fixes
-- Mutations tab compact portrait was balanced after Art Pass 2:
-  - `CreaturePortraitWidget` compact `sizeHint` is about `440x220`.
-  - default compact canvas limit is about `460x230`.
-  - Mutations tab uses canvas limit `560x260` and minimum size `500x230`.
-  - portrait is centered and no longer stretches to the full card width.
-- Tasks tab checked-creature portrait was improved:
-  - old mini icon was replaced with compact-thumbnail.
-  - canvas limit is `340x190`, minimum size is `300x170`.
-  - portrait is hidden until a creature is selected.
-  - empty state text says to select a creature for task checking.
-- These fixes did not change `check_task`, `complete_task`, backend calls, genotype, phenotype, or DB data.
-- GUI onboarding/help hints were added as display-layer only: help cards and tooltips explain mechanics already implemented in PL/SQL.
+## Текущая контрольная точка
+- Backend-аудит выполнен.
+- Expansion plan подготовлен.
+- Runner для backend-тестов добавлен.
+- Живой Oracle-прогон `01..09` локально не выполнен, потому что в текущем окружении не были доступны рабочие Oracle endpoints / Docker daemon / `sqlplus` / `sqlcl`.
+- Поэтому главный текущий риск — нужен честный живой Oracle-прогон `01..09` на стенде или на машине с доступной БД.
 
-## Current Stage
-Final GUI onboarding/help hints and delivery preparation.
+## Ограничения учебного стенда
+- ОС: Windows Server 2012 R2 Datacenter.
+- Python: 3.12 x64.
+- SQL-клиент: DBeaver 21.2.1.
+- Oracle connection может использовать host/port/SID, например SID `ORCL`; реальные значения брать только из `.env` и не хардкодить.
+- DBeaver может ошибаться на `SET DEFINE OFF` и одиночном `/`.
+- Package body и smoke-tests надёжнее запускать целиком или через Python runner.
+- Будущий web-клиент тоже должен читать подключение из `.env` и поддерживать SID/service_name.
 
-Current GUI-help notes:
-- concise paper-style help cards explain the game loop without mentioning backend internals;
-- Dashboard route: Creatures -> Genetic Experiment / Mutations -> Tasks -> History;
-- Creatures tab explains phenotype, genotype, inheritance, and color variants;
-- Experiment, Mutations, Tasks, and History tabs explain their workflows as display-layer hints;
-- these hints do not add mechanics and do not move business logic into Python.
+## Следующий технический этап
+- Приоритет 1: выполнить живой Oracle-прогон `01..09` и зафиксировать реальный статус backend.
+- Приоритет 2: если backend smoke-tests зелёные, переходить к безопасным quick wins из `docs/backend_expansion_plan.md`.
+- Крупный DDL-трек `rating_events` и похожие расширения отложены до подтверждения стабильности backend.
 
-Next steps:
-- run final `python -m compileall -f python_client`;
-- run mojibake marker-check for GUI, services, seed, tests, and docs;
-- perform final manual GUI check;
-- prepare repository for GitLab/university PC transfer.
-
-Do not change without explicit reason after this color-pass:
-- backend package spec/body;
-- DDL;
-- additional seed/test content;
-- `pkg_api.py`;
-- dependencies;
-- additional real genes, alleles, colors, or mechanics.
-
-## Required Checks
-- `git status --short`.
-- `python -m compileall -f python_client`.
-- Mojibake marker-check for GUI and docs.
-- Check that no temporary repair files are tracked or present.
-- Check that old Qt header enum style is not used in Python code.
-- Check that `__pycache__` and `.venv` are not tracked by git.
-
-## Final Transfer Preparation Checkpoint
-- Root `requirements.txt` delegates to `python_client/requirements.txt`.
-- `.gitignore` includes local venv, env files, Python cache, logs, backup files, mojibake repair leftovers, patch scripts, and temporary text files.
-- `database/README_RUN.md` documents workspace, Python GUI setup, local `.env`, Oracle run order, smoke-test order `01..08`, and dev stale-session unlock script.
-- Final preparation changed docs/config only, but the following color-pass intentionally changes seed/tests and GUI display files.
-- The color-pass does not change backend package spec/body, DDL, `pkg_api.py`, or gameplay mechanics outside the real color allele content.
+## Что пока не делать
+- Не начинать backend-content expansion без отдельного решения.
+- Не начинать web-клиент в рамках этой контрольной точки.
+- Не менять package, DDL, seed, tests и GUI без явной необходимости.
+- Не трогать `.env`.

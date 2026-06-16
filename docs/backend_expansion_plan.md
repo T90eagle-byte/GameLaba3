@@ -11,6 +11,24 @@ The plan follows the current architecture:
 - No gameplay rules should be moved into Python or a future web frontend.
 - Web client preparation means backend stability and API clarity, not browser-side genetics.
 
+## Current Gate Before Expansion
+
+Before any real content expansion starts, the project still needs one honest live Oracle smoke-run of tests `01..09` on a working environment.
+
+Current checkpoint:
+
+- backend compliance audit is done;
+- backend expansion planning is done;
+- `database/scripts/run_tests.py` is added for reproducible execution of package and tests;
+- local dry-run is checked, but a live Oracle execution was not completed in the current environment.
+
+Because of that, the next real implementation step should be one of these:
+
+1. run the live Oracle smoke-tests and confirm backend stability;
+2. only after that, start safe quick wins from this plan.
+
+Large DDL tracks such as `rating_events` stay postponed until backend stability is confirmed by that live run.
+
 ## Current Baseline
 
 The current backend already provides:
