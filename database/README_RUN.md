@@ -356,4 +356,3 @@ After DDL, seed, package spec, and package body are applied, run smoke-tests in 
 ```
 
 When deploying into a fresh schema, run the seed before smoke-tests.
-DBeaver 21.2.1 на учебном стенде может некорректно выполнять PL/SQL package body и тестовые скрипты с SQL*Plus-директивами. При ошибках на SET DEFINE OFF или одиночном / эти строки нужно комментировать либо запускать package/tests через Python runner. Для просмотра таблиц, выполнения простых SELECT и проверки user_objects DBeaver подходит нормально.

@@ -1,7 +1,7 @@
 # Current Tasks
 
 ## Current Status
-The project is past GUI/graphics polish and color expansion stabilization. Final GUI onboarding/help hints are being added before delivery preparation.
+The project is past GUI polish, ref-table migration, LR2-compatible package API, and backend compliance audit. Current focus is backend stabilization, smoke-test confidence, and a practical expansion plan before future web-client work.
 
 Closed stages:
 - Backend strict-pass.
@@ -22,12 +22,12 @@ Closed stages:
 - Color expansion display stabilization.
 
 ## Current Work
-Final GUI onboarding/help hints:
-- Dashboard shows the first-run route through creatures, experiments/mutations, tasks, and history;
-- Creatures explain phenotype, genotype, inheritance, and color variants;
-- Genetic Experiment, Mutations, Tasks, and History tabs explain their workflow in compact help cards;
-- statistics, quick actions, task checks, mutagens, and journal filters have useful tooltips;
-- all changes are GUI/display-layer only.
+Backend stabilization and expansion planning:
+- verify that `STANDARD_HASH`, `ref_*`, and LR2-compatible wrappers remain aligned;
+- confirm that smoke-tests `05` and `07` still match reward-aware mutagen semantics;
+- avoid new gameplay implementation unless it is clearly safe and does not require large DDL;
+- prepare a month-long backend expansion plan for genes, mutations, tasks, and rating;
+- keep Python as client/display-layer only.
 
 ## Acceptance Checklist
 - Auth: login, registration, errors, placeholders.
@@ -60,14 +60,12 @@ Final GUI onboarding/help hints:
 - Verify `requirements.txt`.
 - Verify `database/README_RUN.md`.
 
-## Final Stage Rules
-- Do not change backend package spec/body.
-- Do not change DDL.
-- Do not change seed unless a new content task explicitly requires it.
-- Do not change tests `01..08` unless a tested contract truly changes.
-- Do not change `pkg_api.py`.
-- Do not add dependencies, assets, genes, alleles, colors, or mechanics.
+## Current Stage Rules
 - Do not move business logic into Python.
+- Do not start a web client in this task.
+- Do not change DDL or package contracts without a clear backend reason.
+- Do not weaken smoke-tests without evidence that the old expectation is wrong.
+- Do not touch `.env` or add local runner artifacts to git.
 
 ## Final Transfer Preparation Status
 - Verify `.gitignore`, root `requirements.txt`, and `database/README_RUN.md` before the final commit.

@@ -51,8 +51,8 @@
 - Tooltips were added to key stats and controls.
 - No backend, DDL, seed, tests, or `pkg_api.py` changes are part of this step.
 
-## Current Stage: final delivery preparation
-Goal: keep the project stable, run final checks, and prepare repository/instructions for submission/transfer.
+## Current Stage: backend stabilization and expansion planning
+Goal: keep the backend stable, confirm package/test/documentation alignment, and prepare a practical expansion path before any future web-client work.
 
 Not allowed without a separate decision:
 - backend package spec/body changes;
@@ -63,18 +63,14 @@ Not allowed without a separate decision:
 - additional real genes, alleles, colors, or mechanics;
 - moving business logic into Python.
 
-## Final Delivery Tasks
-- Verify `.gitignore`.
-- Verify `requirements.txt`.
-- Verify `database/README_RUN.md`.
-- Verify no temporary repair files are present.
-- Final `python -m compileall -f python_client`.
-- Final mojibake marker-check.
-- Final manual GUI check.
-- Final Oracle `01..08` if required for submission or if SQL files changed.
-- Prepare for GitLab/university PC transfer.
+## Current Backend Tasks
+- Verify `STANDARD_HASH` usage and absence of stale crypto requirements in docs.
+- Verify that `ref_*`, DDL, seed, package spec/body, and smoke-tests remain aligned.
+- Review reward-aware mutagen expectations in tests `05` and `07`.
+- Run Oracle `01..09` when a real Oracle runner becomes available.
+- Prepare `docs/backend_expansion_plan.md` for the next month of backend growth.
 
-## Future Optional Tracks
+## Next Backend Tracks
 - Expand dashboard into a richer progress panel.
 - Content expansion beyond the completed 8-color pass: more traits, tasks, and carefully designed allele families.
 - Mutagen diversity pass: more mutagen scenarios.

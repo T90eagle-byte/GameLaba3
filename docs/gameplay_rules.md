@@ -42,7 +42,7 @@ Python GUI only calls backend API and displays returned data.
 - Creature origin is not checked in the current model.
 - Simple tasks are find/tutorial goals: find, select, or present a matching creature.
 - Strict FIND/BREED/MUTATE task typing would be a separate DDL/backend track.
-- Task difficulty in GUI is display-layer hint and is not stored in DB.
+- Task difficulty is stored in DB via `tasks.difficulty_code`; GUI only displays the backend value.
 - Checked-creature portrait in the Tasks tab is display-only and does not affect `check_task` or `complete_task`.
 
 ## History
