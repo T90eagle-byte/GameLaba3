@@ -114,22 +114,17 @@ create or replace package body pkg_genetics_game as
         return v_lab_id;
     end assert_creature_access;
     function hash_password_sha256(
-        p_password in varchar2
-    ) return varchar2 is
-    begin
-        if p_password is null then
-            raise_application_error(-20010, 'Password cannot be null.');
-        end if;
+    p_password in varchar2
+) return varchar2
+is
+    v_hash varchar2(64);
+begin
+    select lower(rawtohex(standard_hash(p_password, 'SHA256')))
+      into v_hash
+      from dual;
 
-        return lower(
-            rawtohex(
-                dbms_crypto.hash(
-                    utl_i18n.string_to_raw(p_password, 'AL32UTF8'),
-                    dbms_crypto.hash_sh256
-                )
-            )
-        );
-    end hash_password_sha256;
+    return v_hash;
+end hash_password_sha256;
 
     function generate_session_token
     return varchar2 is
