@@ -44,16 +44,41 @@ Run the GUI from repository root:
 
 ## Prerequisites
 
-- The schema must have `EXECUTE` on `DBMS_CRYPTO`.
-- If `UTL_I18N` is used (for password hashing input encoding), the schema must also have `EXECUTE` on `UTL_I18N`.
+- Password hashing uses Oracle `STANDARD_HASH(..., 'SHA256')`; no extra crypto or input-encoding grants are required for hashing.
 - The schema must have access to `DBMS_RANDOM`, because the package body uses it for random allele/mutation-related selection.
-- Without these grants, package body compilation can fail.
+- Without `DBMS_RANDOM`, package body compilation or runtime genetic operations can fail.
 
 Practical notes:
 
 - The DDL does not contain `DROP` blocks, so the first full run is best done in a clean schema.
 - This version adds domain reference tables and `tasks.difficulty_code`; existing schemas should be recreated for verification unless a separate migration is prepared.
 - If the project path contains spaces or Cyrillic characters, run SQL Developer/SQLcl from the project root or use quoted absolute paths to the `.sql` files.
+
+## Особенности вузовского стенда
+
+Target university environment can differ from a local developer machine:
+
+- Windows Server 2012 R2;
+- DBeaver 21.2.1;
+- Oracle host, port and SID are local settings and should be configured through `python_client/.env`;
+- do not commit `.env`, passwords, or machine-specific connection values.
+
+DBeaver 21.2.1 can be sensitive to SQL*Plus-style scripts:
+
+- `SET DEFINE OFF` may not behave exactly like in SQL*Plus/SQLcl depending on execution mode;
+- a single `/` delimiter can be skipped or sent incorrectly when running fragments with Ctrl+Enter;
+- package body compilation is safer when the whole file is executed as a script, not as a selected fragment;
+- long smoke-tests are also safer when run as full scripts.
+
+If DBeaver breaks package or smoke-test execution, use SQLcl/SQL*Plus or run the same files through a small Python runner based on `python-oracledb`. The runner should:
+
+- read connection parameters from `python_client/.env`;
+- execute SQL files in order from this guide;
+- preserve UTF-8 text;
+- handle package files as complete scripts, including the final `/` delimiter;
+- print `user_errors` after package compilation.
+
+The runner is an execution helper only. It must not add gameplay SQL to the Python GUI client.
 
 ## 1) Run DDL
 

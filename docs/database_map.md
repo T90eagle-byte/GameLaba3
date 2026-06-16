@@ -1,102 +1,240 @@
 # Database Map
 
-## 1) Источники и приоритет
+## 1. Sources and Priority
 
-Карта основана на:
-- `docs/ПСБД_ЛР1.pdf`
-- `docs/ПСБД_ЛР2.pdf`
-- фактическом DDL: `database/ddl/01_create_tables.sql`
+This map reflects the current backend state:
 
-При расхождении деталей оперативный приоритет у актуального DDL и текущего package API.
+- LR1 requirements PDF in `docs/`;
+- LR2 requirements PDF in `docs/`;
+- `database/ddl/01_create_tables.sql`;
+- `database/packages/spec/pkg_genetics_game.pks`;
+- `database/packages/body/pkg_genetics_game.pkb`;
+- smoke-tests `database/tests/01..09_*.sql`.
 
-## 2) Физическая схема (актуальная)
+If documents and implementation differ, the current DDL and public `pkg_genetics_game` API are the operational source of truth.
 
-Таблицы:
-- `users`
-- `sessions`
-- `labs`
-- `genes`
-- `alleles`
-- `creatures`
-- `genotypes`
-- `experiments`
-- `mutations`
-- `mutation_rules`
-- `tasks`
-- `lab_tasks`
-- `lab_mutations`
-- `task_markers`
+## 2. Backend Architecture
 
-Все PK поддерживаются отдельными sequence (`*_seq`).
+The backend is implemented in Oracle:
 
-## 3) Ключевые связи и ограничения
+- physical schema and constraints live in `database/ddl/01_create_tables.sql`;
+- seed data lives in `database/seeds/01_seed_core_game_data.sql`;
+- gameplay operations are implemented in `pkg_genetics_game`;
+- the Python GUI calls package functions/procedures and reads `SYS_REFCURSOR`;
+- domain enum labels are stored in `ref_*` tables, not as Python source-of-truth dictionaries.
 
-### Авторизация и лаборатории
-- `users.login` уникален.
-- `sessions.session_token` уникален.
-- В `sessions` есть `status in ('ACTIVE', 'CLOSED')`.
-- В `sessions` есть `unique (session_id, user_id)`.
-- `labs` связана с пользователем и сессией:
-  - FK `labs.user_id -> users.user_id`
-  - FK `labs.session_id -> sessions.session_id`
-  - составной FK `(session_id, user_id) -> sessions(session_id, user_id)`
+Password hashing uses Oracle `STANDARD_HASH(..., 'SHA256')`. No extra crypto or input-encoding packages are required for password hashing.
 
-### Генетика
-- В `genes` обязательны поля:
-  - `species_type` (0..6)
-  - `dominance_type` (`FULL`, `INCOMPLETE`, `CODOMINANT`)
-  - `linkage_group` (nullable)
-- В `alleles` есть `unique (allele_id, gene_id)` для усиления целостности.
-- В `genotypes` составные FK:
-  - `(allele1_id, gene_id) -> alleles(allele_id, gene_id)`
-  - `(allele2_id, gene_id) -> alleles(allele_id, gene_id)`
-- В `creatures` есть кеш фенотипа:
-  - `phenotype_color`
-  - `phenotype_size`
-  - `phenotype_has_wings`
-  - `phenotype_nutrition_type`
-  - `phenotype_summary`
+## 3. Sequences
 
-### Мутации и эксперименты
-- `mutation_rules`:
-  - FK `mutation_id -> mutations`
-  - FK `gene_id -> genes`
-  - составной FK `(target_allele_id, gene_id) -> alleles(allele_id, gene_id)`
-  - `target_slot in ('1', '2', 'ANY')`
-- `experiments`:
-  - `experiment_type in ('CROSS', 'MUTATION', 'MUTAGEN')`
-  - `CROSS` требует `parent2_id is not null`
-  - `MUTATION`/`MUTAGEN` требуют `parent2_id is null`
+Primary keys are backed by separate sequences:
 
-### Задания
-- `lab_tasks` использует `task_status` (`ACTIVE`, `COMPLETED`), не `status`.
-- `task_markers` задают требуемые `allele_id` для проверки выполнения.
+- `users_seq`;
+- `sessions_seq`;
+- `labs_seq`;
+- `genes_seq`;
+- `alleles_seq`;
+- `mutations_seq`;
+- `mutation_rules_seq`;
+- `tasks_seq`;
+- `creatures_seq`;
+- `genotypes_seq`;
+- `experiments_seq`;
+- `lab_mutations_seq`;
+- `lab_tasks_seq`;
+- `task_markers_seq`.
 
-## 4) Seed coverage (MVP)
+## 4. Domain Reference Tables
 
-`database/seeds/01_seed_core_game_data.sql` заполняет:
-- 6 типов существ
-- 12 генов
-- 24 аллеля
-- 4 мутации
-- `mutation_rules`
-- 6 заданий
-- `task_markers`
+Domain enum values are stored in database reference tables. The GUI uses labels returned by package cursors and keeps only formatting/fallback helpers.
 
-## 5) Соответствие package API
+| Table | Key | Purpose |
+| --- | --- | --- |
+| `ref_species_types` | `species_type` | Species and universal gene scope, codes 0..6. |
+| `ref_gene_types` | `gene_type` | Gene categories: trait, morphology, performance, physiology. |
+| `ref_dominance_types` | `dominance_type` | Dominance models: FULL, INCOMPLETE, CODOMINANT. |
+| `ref_task_statuses` | `task_status` | Task statuses: ACTIVE, COMPLETED. |
+| `ref_experiment_types` | `experiment_type` | Experiment kinds: CROSS, MUTATION, MUTAGEN. |
+| `ref_mutagen_types` | `mutagen_type` | Mutagen kinds: RADIATION, CHEMICAL. |
+| `ref_mutation_types` | `mutation_type` | Mutation categories, codes 1..8. |
+| `ref_task_difficulties` | `difficulty_code` | Task difficulty values: EASY, MEDIUM, HARD. |
 
-Схема согласована с:
-- `database/packages/spec/pkg_genetics_game.pks`
-- `database/packages/body/pkg_genetics_game.pkb`
+Each reference table includes `display_name`.
 
-В package body реализованы все группы API, stubs отсутствуют.
+## 5. Auth, Sessions, and Labs
 
-## 6) Принцип интеграции с Python GUI
+### `users`
 
-Python получает данные только через:
-- `SYS_REFCURSOR`
-- OUT-параметры
-- простые RETURN-типы
+- `user_id` - primary key.
+- `login` - unique login with format `^[a-z][a-z0-9_]{0,19}$`.
+- `password_hash` - SHA-256 hex string.
+- `username`, `created_at`, `updated_at`.
 
-`dbms_output` — только для smoke-tests и ручной диагностики, не для GUI.
+### `sessions`
 
+- `session_id` - primary key.
+- `user_id -> users(user_id)`.
+- `session_token` - unique opaque client token.
+- `status` - `ACTIVE` or `CLOSED`.
+- `unique (session_id, user_id)` supports a composite lab relationship.
+
+`status` remains a technical CHECK value and is not currently represented by a `ref_*` table.
+
+### `labs`
+
+- `lab_id` - primary key.
+- `user_id -> users(user_id)`.
+- `session_id -> sessions(session_id)`.
+- `(session_id, user_id) -> sessions(session_id, user_id)`.
+- `wallet`, `rating`.
+- Aggregate counters: `creature_count`, `active_task_count`, `completed_task_count`, `experiment_count`.
+
+`labs.session_id` is NOT NULL. In the current model, `exit_lab` clears package context and does not set `labs.session_id` to NULL.
+
+## 6. Genetics
+
+### `genes`
+
+- `gene_id` - primary key.
+- `gene_type -> ref_gene_types(gene_type)`.
+- `species_type -> ref_species_types(species_type)`.
+- `dominance_type -> ref_dominance_types(dominance_type)`.
+- `linkage_group` - nullable linked inheritance group.
+- `gene_name`, `description`.
+
+`species_type = 0` means a universal gene. Species-specific genes use values 1..6.
+
+### `alleles`
+
+- `allele_id` - primary key.
+- `gene_id -> genes(gene_id)`.
+- `unique (allele_id, gene_id)` supports composite foreign keys.
+- `dominance`, `description`, `trait_value`.
+
+### `creatures`
+
+- `creature_id` - primary key.
+- `lab_id -> labs(lab_id)`.
+- `species_type -> ref_species_types(species_type)`.
+- `creature_name`.
+- Cached phenotype fields for GUI display: `phenotype_color`, `phenotype_size`, `phenotype_has_wings`, `phenotype_nutrition_type`, `phenotype_summary`.
+
+Creatures allow species values 1..6 only. Universal species code 0 is for genes, not creature rows.
+
+### `genotypes`
+
+- `genotype_id` - primary key.
+- `creature_id -> creatures(creature_id)`.
+- `gene_id -> genes(gene_id)`.
+- `(allele1_id, gene_id) -> alleles(allele_id, gene_id)`.
+- `(allele2_id, gene_id) -> alleles(allele_id, gene_id)`.
+- `unique (creature_id, gene_id)`.
+
+Composite allele foreign keys prevent an allele from being attached to the wrong gene.
+
+## 7. Mutations and Experiments
+
+### `mutations`
+
+- `mutation_id` - primary key.
+- `mutation_name` - unique technical name.
+- `mutation_type -> ref_mutation_types(mutation_type)`.
+- `description`, `cost`, `rating_effect`.
+
+### `mutation_rules`
+
+- `mutation_rule_id` - primary key.
+- `mutation_id -> mutations(mutation_id)`.
+- `gene_id -> genes(gene_id)`.
+- `(target_allele_id, gene_id) -> alleles(allele_id, gene_id)`.
+- `target_slot` - `1`, `2`, or `ANY`.
+
+### `experiments`
+
+- `experiment_id` - primary key.
+- `lab_id -> labs(lab_id)`.
+- `parent1_id`, `parent2_id`, `offspring_id -> creatures(creature_id)`.
+- `mutation_id -> mutations(mutation_id)`, nullable.
+- `experiment_type -> ref_experiment_types(experiment_type)`.
+- `created_at`.
+
+Constraints require `parent2_id` for `CROSS` and forbid it for `MUTATION`/`MUTAGEN`.
+
+### `lab_mutations`
+
+- `lab_mutation_id` - primary key.
+- `lab_id -> labs(lab_id)`.
+- `mutation_id -> mutations(mutation_id)`.
+- `quantity`.
+- `unique (lab_id, mutation_id)`.
+
+## 8. Tasks
+
+### `tasks`
+
+- `task_id` - primary key.
+- `task_name` - unique technical name.
+- `description`.
+- `rating_reward`, `money_reward`.
+- `difficulty_code -> ref_task_difficulties(difficulty_code)`.
+- `created_at`.
+
+`difficulty_code` makes task difficulty a database domain value instead of a Python dictionary.
+
+### `lab_tasks`
+
+- `lab_task_id` - primary key.
+- `lab_id -> labs(lab_id)`.
+- `task_id -> tasks(task_id)`.
+- `task_status -> ref_task_statuses(task_status)`.
+- `assigned_at`, `completed_at`.
+- `unique (lab_id, task_id)`.
+
+### `task_markers`
+
+- `task_marker_id` - primary key.
+- `task_id -> tasks(task_id)`.
+- `allele_id -> alleles(allele_id)`.
+- `unique (task_id, allele_id)`.
+
+Task completion checks are marker-based: `check_task` checks required alleles. Creature origin is not checked.
+
+## 9. Package API and Display Labels
+
+The central backend API is `pkg_genetics_game`. The Python client does not query gameplay tables directly.
+
+Package cursors return technical fields plus display labels from database reference tables where the GUI needs them:
+
+- `get_reference_cursor(p_ref_name)` - whitelist-based access to `ref_*` tables.
+- `get_creatures_cursor` - creature rows plus `species_display_name`.
+- `get_genotype_cursor` - genes, alleles, gene type labels, dominance labels, and allele display fields.
+- `get_tasks_cursor` - tasks, statuses, `difficulty_code`, and `difficulty_display_name`.
+- `show_mutation_shop` - mutation shop rows plus `mutation_type_display_name`.
+- `get_experiment_history` - experiment history rows plus `experiment_type_display_name`.
+
+LR2 demonstration procedures such as `show_creatures`, `show_tasks`, `show_mutation_history`, and `show_lab_stats` use `dbms_output` only for manual diagnostics and smoke-tests. The GUI does not depend on `dbms_output`.
+
+## 10. Seed Coverage
+
+`database/seeds/01_seed_core_game_data.sql` fills:
+
+- all `ref_*` domain tables;
+- species values 1..6 plus universal gene scope 0 in `ref_species_types`;
+- genes, alleles, and inheritance metadata;
+- mutations and `mutation_rules`;
+- tasks with `difficulty_code`;
+- `task_markers`.
+
+Smoke-test `02_seed_data_smoke_test.sql` checks reference data, non-null `tasks.difficulty_code`, and seed relationship consistency.
+
+## 11. Python GUI Integration
+
+Python GUI remains a display/client layer:
+
+- calls `pkg_genetics_game` through `callproc`/`callfunc`;
+- reads `SYS_REFCURSOR`;
+- contains no direct SQL queries to gameplay tables;
+- does not calculate genetics, mutations, tasks, economy, or rating;
+- uses display labels from package cursors, while `display_names.py` keeps only formatting and fallback helpers.
+
+`DBMS_OUTPUT` is for smoke-tests and manual backend diagnostics, not for the user interface.
