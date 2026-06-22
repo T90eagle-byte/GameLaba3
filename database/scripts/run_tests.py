@@ -34,11 +34,30 @@ PLSQL_START_RE = re.compile(
     r"^(declare|begin|create\s+or\s+replace\s+(package(\s+body)?|procedure|function|trigger|type(\s+body)?))\b",
     re.IGNORECASE,
 )
-SKIP_DIRECTIVE_RE = re.compile(
-    r"^(set\b|show\s+errors\b|whenever\b|prompt\b)",
-    re.IGNORECASE,
-)
 AT_DIRECTIVE_RE = re.compile(r"^@(.+)$")
+
+
+def is_sqlplus_directive(stripped_line: str) -> bool:
+    normalized = stripped_line.lstrip("\ufeff").strip()
+    if normalized.endswith(";"):
+        normalized = normalized[:-1].strip()
+    normalized = re.sub(r"\s+", " ", normalized).lower()
+
+    if not normalized:
+        return False
+    if normalized == "set define off":
+        return True
+    if normalized in {"set verify off", "set verify on"}:
+        return True
+    if re.fullmatch(r"set serveroutput on( size (unlimited|\d+))?", normalized):
+        return True
+    if normalized.startswith("show errors"):
+        return True
+    if normalized.startswith("prompt"):
+        return True
+    if normalized.startswith("whenever "):
+        return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -130,6 +149,7 @@ def iter_statements(path: Path) -> Iterable[tuple[str, int]]:
     in_plsql = False
 
     for line_no, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        raw_line = raw_line.lstrip("\ufeff")
         stripped = raw_line.strip()
 
         if not stripped:
@@ -147,12 +167,12 @@ def iter_statements(path: Path) -> Iterable[tuple[str, int]]:
                 yield from iter_statements(include_target)
                 continue
 
-            if SKIP_DIRECTIVE_RE.match(stripped):
+            if is_sqlplus_directive(stripped):
                 continue
 
+            statement_start_line = line_no
             if PLSQL_START_RE.match(stripped):
                 in_plsql = True
-                statement_start_line = line_no
 
         if in_plsql and stripped == "/":
             statement = "\n".join(current).strip()
@@ -185,6 +205,10 @@ def execute_sql_file(connection: oracledb.Connection, path: Path) -> None:
                 cursor.execute(statement)
                 drain_dbms_output(cursor)
             except Exception as exc:
+                try:
+                    drain_dbms_output(cursor)
+                except Exception as output_exc:
+                    print(f"Could not read DBMS_OUTPUT after error: {output_exc}")
                 preview = statement.splitlines()[0][:120]
                 raise RuntimeError(
                     f"{rel_path}:{line_no}: {exc} | statement starts with: {preview}"
