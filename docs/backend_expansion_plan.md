@@ -414,3 +414,17 @@ If only one safe backend batch is chosen next, it should be:
 4. update seed tests and gameplay tests only where new content changes expected counts or accessible combinations.
 
 This batch gives the biggest gameplay gain with the lowest architectural risk.
+
+## First Quick Win Batch Status
+The first safe implementation batch follows this plan:
+- add `medium_size` to the existing universal `size` gene;
+- add third variants to selected species-specific genes;
+- add directed mutations that target those new alleles;
+- add marker-based tasks using the new variants;
+- update seed consistency tests without depending on random starter generation.
+
+Still postponed:
+- new genes;
+- strict task provenance;
+- `rating_events`;
+- web client implementation.

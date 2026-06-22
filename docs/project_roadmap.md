@@ -65,3 +65,11 @@
 - Строгая provenance-модель для задач BREED/MUTATE.
 - Более крупные DDL-изменения для расширенной игровой прогрессии.
 - Сам web-клиент как отдельный этап после подтверждения backend stability.
+
+## Active Quick Win Batch
+Current branch: `backend-content-expansion-quick-wins`.
+
+Goal:
+- increase gameplay variety through existing backend data model;
+- keep `pkg_genetics_game` API unchanged;
+- keep expansion marker-based and honest until strict task provenance is implemented as a separate DDL/backend track.

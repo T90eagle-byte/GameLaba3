@@ -564,6 +564,7 @@ begin
     upsert_allele('color', 0, 1, 'black_color', 80);
 
     upsert_allele('size', 0, 2, 'compact_size', 10);
+    upsert_allele('size', 0, 2, 'medium_size', 15);
     upsert_allele('size', 0, 1, 'large_size', 20);
 
     upsert_allele('nutrition_type', 0, 2, 'herbivore', 10);
@@ -574,27 +575,34 @@ begin
 
     upsert_allele('fin_shape', 1, 2, 'pointed_fin', 10);
     upsert_allele('fin_shape', 1, 1, 'broad_fin', 20);
+    upsert_allele('fin_shape', 1, 3, 'crescent_fin', 30);
 
     upsert_allele('fin_shape', 2, 2, 'rounded_fin', 10);
     upsert_allele('fin_shape', 2, 1, 'forked_fin', 20);
+    upsert_allele('fin_shape', 2, 3, 'ribbon_fin', 30);
 
     upsert_allele('shell_armor', 3, 2, 'thick_armor', 10);
     upsert_allele('shell_armor', 3, 1, 'light_armor', 20);
+    upsert_allele('shell_armor', 3, 3, 'ridged_armor', 30);
 
     upsert_allele('claw_form', 3, 2, 'short_claws', 10);
     upsert_allele('claw_form', 3, 1, 'long_claws', 20);
+    upsert_allele('claw_form', 3, 3, 'hooked_claws', 30);
 
     upsert_allele('beak_nose_shape', 4, 2, 'rounded_nose', 10);
     upsert_allele('beak_nose_shape', 4, 1, 'sharp_beak', 20);
+    upsert_allele('beak_nose_shape', 4, 3, 'spiral_profile', 30);
 
     upsert_allele('shell_armor', 5, 2, 'smooth_shell', 10);
     upsert_allele('shell_armor', 5, 1, 'spiked_shell', 20);
+    upsert_allele('shell_armor', 5, 3, 'plated_shell', 30);
 
     upsert_allele('speed_level', 5, 2, 'slow_speed', 10);
     upsert_allele('speed_level', 5, 1, 'fast_speed', 20);
 
     upsert_allele('fur_density', 6, 2, 'short_fur', 10);
     upsert_allele('fur_density', 6, 1, 'dense_fur', 20);
+    upsert_allele('fur_density', 6, 3, 'soft_fur', 30);
 
     -- -------------------------------------------------------------------------
     -- 3) Mutations
@@ -611,6 +619,14 @@ begin
     upsert_mutation('aquatic_form_turtle_shell_mutation', 8, 'Усиливает панцирь у черепах.', 205, 2);
     upsert_mutation('morphology_refine_mollusk_mutation', 8, 'Тонкая корректировка формы клюва/носа у моллюсков.', 215, 2);
     upsert_mutation('morphology_refine_mammal_mutation', 8, 'Тонкая корректировка плотности шерсти у млекопитающих.', 220, 2);
+    upsert_mutation('red_color_mutation', 3, 'Смещает окраску в сторону красного фенотипа.', 185, 1);
+    upsert_mutation('medium_size_mutation', 4, 'Стабилизирует средний размер тела.', 165, 1);
+    upsert_mutation('cartilaginous_crescent_fin_mutation', 7, 'Формирует серповидный плавник у хрящевых рыб.', 205, 2);
+    upsert_mutation('bony_ribbon_fin_mutation', 7, 'Формирует ленточный плавник у костных рыб.', 205, 2);
+    upsert_mutation('hooked_claws_mutation', 8, 'Формирует крючковатые клешни у ракообразных.', 215, 2);
+    upsert_mutation('spiral_profile_mutation', 8, 'Усиливает спиральный профиль у моллюсков.', 215, 2);
+    upsert_mutation('plated_shell_mutation', 8, 'Формирует пластинчатый панцирь у черепах.', 215, 2);
+    upsert_mutation('soft_fur_mutation', 8, 'Формирует мягкую шерсть у млекопитающих.', 215, 2);
 
     -- -------------------------------------------------------------------------
     -- 4) Mutation rules
@@ -657,6 +673,14 @@ begin
     upsert_mutation_rule('morphology_refine_mutation', 'claw_form', 3, 'long_claws', 'ANY');
     upsert_mutation_rule('morphology_refine_mollusk_mutation', 'beak_nose_shape', 4, 'sharp_beak', 'ANY');
     upsert_mutation_rule('morphology_refine_mammal_mutation', 'fur_density', 6, 'dense_fur', 'ANY');
+    upsert_mutation_rule('red_color_mutation', 'color', 0, 'red_color', 'ANY');
+    upsert_mutation_rule('medium_size_mutation', 'size', 0, 'medium_size', 'ANY');
+    upsert_mutation_rule('cartilaginous_crescent_fin_mutation', 'fin_shape', 1, 'crescent_fin', 'ANY');
+    upsert_mutation_rule('bony_ribbon_fin_mutation', 'fin_shape', 2, 'ribbon_fin', 'ANY');
+    upsert_mutation_rule('hooked_claws_mutation', 'claw_form', 3, 'hooked_claws', 'ANY');
+    upsert_mutation_rule('spiral_profile_mutation', 'beak_nose_shape', 4, 'spiral_profile', 'ANY');
+    upsert_mutation_rule('plated_shell_mutation', 'shell_armor', 5, 'plated_shell', 'ANY');
+    upsert_mutation_rule('soft_fur_mutation', 'fur_density', 6, 'soft_fur', 'ANY');
 
     -- -------------------------------------------------------------------------
     -- 5) Tasks
@@ -756,6 +780,77 @@ begin
         210,
         'MEDIUM'
     );
+    upsert_task(
+        'task_red_specimen',
+        'Найдите в лаборатории существо с красной окраской тела и предъявите его для проверки.',
+        18,
+        170,
+        'EASY'
+    );
+
+    upsert_task(
+        'task_medium_specimen',
+        'Найдите в лаборатории существо со средним размером тела и предъявите его для проверки.',
+        18,
+        170,
+        'EASY'
+    );
+
+    upsert_task(
+        'task_winged_red_specimen',
+        'Отберите существо с крыльями и красной окраской тела.',
+        26,
+        240,
+        'MEDIUM'
+    );
+
+    upsert_task(
+        'task_crescent_fin_cartilaginous',
+        'Отберите хрящевую рыбу с серповидным плавником и хищным типом питания.',
+        32,
+        280,
+        'HARD'
+    );
+
+    upsert_task(
+        'task_ribbon_fin_bony',
+        'Отберите костную рыбу с ленточным плавником и крупным размером.',
+        30,
+        260,
+        'MEDIUM'
+    );
+
+    upsert_task(
+        'task_hooked_crustacean',
+        'Отберите ракообразное с крючковатыми клешнями и ребристым панцирем.',
+        34,
+        300,
+        'HARD'
+    );
+
+    upsert_task(
+        'task_spiral_mollusk',
+        'Отберите моллюска со спиральным профилем и фиолетовой окраской тела.',
+        30,
+        270,
+        'MEDIUM'
+    );
+
+    upsert_task(
+        'task_plated_turtle',
+        'Отберите черепаху с пластинчатым панцирем и высокой скоростью.',
+        32,
+        290,
+        'HARD'
+    );
+
+    upsert_task(
+        'task_soft_fur_mammal',
+        'Отберите млекопитающее с мягкой шерстью и белой окраской тела.',
+        30,
+        270,
+        'MEDIUM'
+    );
 
     -- -------------------------------------------------------------------------
     -- 6) Task markers
@@ -792,6 +887,30 @@ begin
 
     upsert_task_marker('task_mammal_short_fur', 'fur_density', 6, 'short_fur');
     upsert_task_marker('task_mammal_short_fur', 'size', 0, 'compact_size');
+    upsert_task_marker('task_red_specimen', 'color', 0, 'red_color');
+
+    upsert_task_marker('task_medium_specimen', 'size', 0, 'medium_size');
+
+    upsert_task_marker('task_winged_red_specimen', 'has_wings', 0, 'wings');
+    upsert_task_marker('task_winged_red_specimen', 'color', 0, 'red_color');
+
+    upsert_task_marker('task_crescent_fin_cartilaginous', 'fin_shape', 1, 'crescent_fin');
+    upsert_task_marker('task_crescent_fin_cartilaginous', 'nutrition_type', 0, 'carnivore');
+
+    upsert_task_marker('task_ribbon_fin_bony', 'fin_shape', 2, 'ribbon_fin');
+    upsert_task_marker('task_ribbon_fin_bony', 'size', 0, 'large_size');
+
+    upsert_task_marker('task_hooked_crustacean', 'claw_form', 3, 'hooked_claws');
+    upsert_task_marker('task_hooked_crustacean', 'shell_armor', 3, 'ridged_armor');
+
+    upsert_task_marker('task_spiral_mollusk', 'beak_nose_shape', 4, 'spiral_profile');
+    upsert_task_marker('task_spiral_mollusk', 'color', 0, 'purple_color');
+
+    upsert_task_marker('task_plated_turtle', 'shell_armor', 5, 'plated_shell');
+    upsert_task_marker('task_plated_turtle', 'speed_level', 5, 'fast_speed');
+
+    upsert_task_marker('task_soft_fur_mammal', 'fur_density', 6, 'soft_fur');
+    upsert_task_marker('task_soft_fur_mammal', 'color', 0, 'white_color');
 end;
 /
 

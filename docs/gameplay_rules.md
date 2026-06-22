@@ -50,3 +50,9 @@ Python GUI only calls backend API and displays returned data.
 - `created_at` comes from `experiments.created_at`.
 - GUI must not invent wallet/rating deltas when backend does not store them.
 - Final wallet/rating changes may include task auto-complete rewards.
+
+## First Safe Content Expansion
+- This pass extends only existing genes through seed data.
+- No new genes, DDL, package API, or client-side gameplay logic are introduced.
+- New content adds `medium_size`, additional species-specific allele variants, directed mutations, and marker-based tasks.
+- New task wording remains trait-based: find, select, or present matching creatures. Creature origin is still not checked by backend.
