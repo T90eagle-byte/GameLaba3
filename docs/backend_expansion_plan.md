@@ -11,27 +11,26 @@ The plan follows the current architecture:
 - No gameplay rules should be moved into Python or a future web frontend.
 - Web client preparation means backend stability and API clarity, not browser-side genetics.
 
-## Current Gate Before Expansion
+## Completed Quick Win Checkpoint
 
-Before any real content expansion starts, the project still needs one honest live Oracle smoke-run of tests `01..09` on a working environment.
+The first safe backend/content expansion has been completed and confirmed by a live Oracle smoke-run.
 
-Current checkpoint:
+Confirmed checkpoint:
 
 - backend compliance audit is done;
 - backend expansion planning is done;
-- `database/scripts/run_tests.py` is added for reproducible execution of package and tests;
-- local dry-run is checked, but a live Oracle execution was not completed in the current environment.
+- `database/scripts/run_tests.py` is added and fixed for reproducible seed/package/test execution;
+- the first seed-only content expansion is implemented without DDL or package changes;
+- seed through runner passed;
+- `02_seed_data_smoke_test.sql`: `Passed: 32`, `Failed: 0`;
+- `07_strict_compliance_smoke_test.sql`: `Passed: 46`, `Failed: 0`;
+- full Oracle smoke suite `01..09` passed with `Failed: 0`;
+- `PKG_GENETICS_GAME` package and package body are `VALID`;
+- `user_errors` is clean.
 
-Because of that, the next real implementation step should be one of these:
+The next large backend track is rating foundation / `rating_events`. It should be handled as a separate DDL/backend/test stage, not mixed with another content expansion.
 
-1. run the live Oracle smoke-tests and confirm backend stability;
-2. only after that, start safe quick wins from this plan.
-
-Large DDL tracks such as `rating_events` stay postponed until backend stability is confirmed by that live run.
-
-## Current Baseline
-
-The current backend already provides:
+## Current BaselineThe current backend already provides:
 
 - authentication, sessions, and lab ownership;
 - species, genes, alleles, genotypes, phenotype cache;
@@ -154,6 +153,43 @@ Main caution:
 
 - do not make starter generation so random that smoke-tests become flaky.
 
+## First Quick Win Batch: Completed
+
+The first implemented batch stayed inside the existing data model.
+
+Added alleles:
+
+- `medium_size`;
+- `crescent_fin`;
+- `ribbon_fin`;
+- `ridged_armor`;
+- `hooked_claws`;
+- `spiral_profile`;
+- `plated_shell`;
+- `soft_fur`.
+
+Added directed mutations:
+
+- `red_color_mutation`;
+- `medium_size_mutation`;
+- `cartilaginous_crescent_fin_mutation`;
+- `bony_ribbon_fin_mutation`;
+- `hooked_claws_mutation`;
+- `spiral_profile_mutation`;
+- `plated_shell_mutation`;
+- `soft_fur_mutation`.
+
+Added marker-based tasks:
+
+- `task_red_specimen`;
+- `task_medium_specimen`;
+- `task_winged_red_specimen`;
+- `task_crescent_fin_cartilaginous`;
+- `task_ribbon_fin_bony`;
+- `task_hooked_crustacean`;
+- `task_spiral_mollusk`;
+- `task_plated_turtle`;
+- `task_soft_fur_mammal`.
 ## Medium-Scope Backend Improvements
 
 These are still realistic within a month, but they touch package logic and need focused test work.
@@ -404,26 +440,27 @@ GUI-neutral but backend-visible:
 - if yes, define provenance DDL and package changes as a separate milestone;
 - do not mix provenance DDL with smaller content expansion in the same commit.
 
-## Recommended First Implementation Batch
+## First Implementation Batch: Completed
 
-If only one safe backend batch is chosen next, it should be:
+The first safe backend/content batch has already been implemented and confirmed by tests.
 
-1. add `medium_size` and one extra allele for two or three species-specific genes;
-2. add six to ten new marker-based tasks that use existing semantics honestly;
-3. add two to four new directed mutations that target those new alleles;
-4. update seed tests and gameplay tests only where new content changes expected counts or accessible combinations.
+Implemented scope:
 
-This batch gives the biggest gameplay gain with the lowest architectural risk.
+1. added `medium_size` to the existing universal `size` gene;
+2. added third variants to selected species-specific genes;
+3. added directed mutations that target those new alleles;
+4. added marker-based tasks using the new variants;
+5. updated seed consistency tests without depending on random starter generation.
 
-## First Quick Win Batch Status
-The first safe implementation batch follows this plan:
-- add `medium_size` to the existing universal `size` gene;
-- add third variants to selected species-specific genes;
-- add directed mutations that target those new alleles;
-- add marker-based tasks using the new variants;
-- update seed consistency tests without depending on random starter generation.
+Confirmed result:
+
+- no DDL changes;
+- no package spec/body changes;
+- no `pkg_api.py` changes;
+- full Oracle smoke suite `01..09` passed with `Failed: 0`.
 
 Still postponed:
+
 - new genes;
 - strict task provenance;
 - `rating_events`;

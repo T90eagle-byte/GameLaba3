@@ -1,12 +1,12 @@
 # Project Roadmap: GameLR3 / «БиоСборка»
 
-## Уже завершённые этапы
+## Завершённые этапы
 
 ### 1. Backend stabilization
 - `pkg_genetics_game` является центральным backend API.
-- Package spec/body согласованы и компилируются.
+- Package spec/body компилируются.
 - `STANDARD_HASH` заменил `DBMS_CRYPTO`.
-- Подготовлены smoke-tests `01..09`.
+- Smoke-tests `01..09` подготовлены и проходят.
 
 ### 2. Domain reference tables
 - Доменные enum-значения вынесены в `ref_*` таблицы.
@@ -19,57 +19,42 @@
 - Python остаётся клиентом/display-layer.
 
 ### 4. Desktop GUI delivery
-- PySide6 GUI реализован и локально пригоден как desktop-клиент.
-- Основные игровые вкладки, портреты существ и onboarding-подсказки завершены.
-- GUI не удаляется и остаётся рабочей локальной версией.
+- PySide6 GUI реализован как desktop-версия.
+- GUI не удалять: он остаётся локальным клиентом.
+- Из-за Windows Server 2012 R2 будущий переносимый клиент планируется как browser-based web-client.
 
-### 5. Backend audit and planning
+### 5. Backend audit and test runner
 - Подготовлен `docs/backend_compliance_audit.md`.
 - Подготовлен `docs/backend_expansion_plan.md`.
-- Обновлены docs по запуску БД и карте схемы.
-- Добавлен `database/scripts/run_tests.py` для воспроизводимого запуска package/tests.
+- Добавлен `database/scripts/run_tests.py`.
+- Runner исправлен для seed/package/tests: BOM, SQL*Plus directives, одиночный `/`, `DBMS_OUTPUT` при ошибке.
 
-## Текущая стадия: backend checkpoint before expansion
-Цель текущей стадии — сохранить стабильный backend checkpoint и не потерять контекст перед следующим крупным этапом.
+### 6. First backend content expansion
+- Выполнен первый seed-only content expansion.
+- DDL не менялся.
+- Package spec/body не менялись.
+- `pkg_api.py` не менялся.
+- PySide6 GUI/layout не менялся.
+- Полный Oracle smoke suite `01..09` прошёл с `Failed: 0`.
 
-Что уже есть:
-- backend-аудит завершён;
-- expansion-plan подготовлен;
-- runner для smoke-tests добавлен;
-- структура проекта подготовлена к будущему web-клиенту без переноса бизнес-логики в Python.
+## Текущая стадия: checkpoint after backend content expansion
+Цель текущей стадии — сохранить зелёную контрольную точку перед следующим крупным backend треком.
 
-Что ещё нужно:
-- живой Oracle-прогон smoke-tests `01..09`;
-- подтверждение стабильности package на учебном стенде;
-- после этого — решение, идём ли в safe content expansion или сразу в web-client foundation.
+Текущий стабильный статус:
+- content expansion подтверждён tests;
+- package `VALID`;
+- `user_errors` clean;
+- runner пригоден для локального Docker и учебного стенда;
+- web-клиент ещё не начинался.
 
-## Ограничения учебного стенда
-- Windows Server 2012 R2 Datacenter.
-- Python 3.12 x64.
-- DBeaver 21.2.1.
-- DBeaver может некорректно исполнять скрипты с `SET DEFINE OFF` и одиночным `/`.
-- PySide6/Qt6 не считается надёжным вариантом для пересдачи на этом стенде.
-- Поэтому долгосрочный переносимый клиент — web-клиент через браузер.
+## Следующий крупный этап
+### Rating foundation / `rating_events`
+- спроектировать DDL для истории рейтинга;
+- добавить package-запись rating events рядом с текущими изменениями рейтинга;
+- покрыть smoke-tests;
+- подготовить backend contract для будущего web dashboard.
 
-## Следующие этапы
-
-### Ближайший обязательный этап
-- Выполнить живой Oracle smoke-run `01..09` через стенд или рабочее Oracle окружение.
-
-### После подтверждения стабильности
-- Safe seed/content expansion quick wins из `docs/backend_expansion_plan.md`.
-- Подготовка backend contracts для будущего web-клиента.
-
-### Отложенные крупные треки
-- `rating_events` и история рейтинга.
-- Строгая provenance-модель для задач BREED/MUTATE.
-- Более крупные DDL-изменения для расширенной игровой прогрессии.
-- Сам web-клиент как отдельный этап после подтверждения backend stability.
-
-## Active Quick Win Batch
-Current branch: `backend-content-expansion-quick-wins`.
-
-Goal:
-- increase gameplay variety through existing backend data model;
-- keep `pkg_genetics_game` API unchanged;
-- keep expansion marker-based and honest until strict task provenance is implemented as a separate DDL/backend track.
+## Отложено
+- Web-клиент как отдельный этап после rating foundation или после отдельного решения.
+- Strict provenance tasks для BREED/MUTATE.
+- Новая большая волна genes/alleles/mutations/tasks.

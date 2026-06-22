@@ -1,60 +1,50 @@
 # Current Tasks
 
 ## Текущий статус
-Проект находится на контрольной точке после backend-аудита, подготовки expansion-plan и добавления воспроизводимого runner для backend smoke-tests.
+Первый безопасный backend/content expansion завершён и подтверждён живым Oracle-прогоном.
 
-Уже закрыто:
+Закрыто:
 - backend compliance audit;
 - `STANDARD_HASH` вместо `DBMS_CRYPTO`;
 - ref-tables `ref_*` и backend labels из БД;
 - LR2-compatible package API;
 - перенос прямых SQL-вызовов из `pkg_api.py` в package;
-- docs-fix по `README_RUN`, `database_map`, roadmap и gameplay notes;
-- Python runner `database/scripts/run_tests.py`.
+- backend-test runner для package/seed/tests;
+- первый seed-only content expansion без DDL и без package changes.
 
-## Главная незакрытая точка
-Нужен живой Oracle-прогон smoke-tests `01..09`.
+## Подтверждённая контрольная точка
+- Seed через runner прошёл.
+- Smoke-test `02`: `Passed: 32`, `Failed: 0`.
+- Smoke-test `07`: `Passed: 46`, `Failed: 0`.
+- Полный Oracle smoke suite `01..09`: все тесты с `Failed: 0`.
+- Package `PKG_GENETICS_GAME`: `VALID`.
+- `user_errors`: clean.
+- Runner пригоден для локального Docker Oracle и учебного стенда.
 
-Что известно сейчас:
-- локально runner подготовлен и dry-run проверен;
-- package/spec/body и docs согласованы;
-- локальный честный прогон против Oracle не выполнен из-за недоступности рабочего Oracle окружения в текущей машине;
-- поэтому статус backend считается подготовленным к прогону, но не окончательно подтверждённым live-run результатом.
+## Что изменилось в content expansion
+Добавлены только данные существующей модели:
+- новые allele codes для существующих genes;
+- coherent directed mutations;
+- честные marker-based tasks;
+- fallback display labels в Python.
 
-## Что запускать на стенде
-Полный прогон:
-- `./.venv/Scripts/python.exe database/scripts/run_tests.py`
+Не менялось:
+- DDL;
+- package spec/body;
+- `pkg_api.py`;
+- PySide6 GUI/layout;
+- web-клиент.
 
-Точечный прогон спорных тестов:
-- `./.venv/Scripts/python.exe database/scripts/run_tests.py --files database/tests/05_mutations_experiments_smoke_test.sql database/tests/07_strict_compliance_smoke_test.sql`
+## Следующий крупный этап
+Rating foundation / `rating_events`.
 
-## Следующий технический этап
-Вариант 1:
-- выполнить живой Oracle-прогон `01..09`;
-- зафиксировать реальные результаты;
-- только потом решать, нужны ли backend-fix или test-fix.
+Цель:
+- сделать рейтинг объяснимым;
+- добавить backend-историю изменений рейтинга;
+- подготовить данные для будущего web dashboard.
 
-Вариант 2:
-- если прогон подтверждает стабильность, переходить к безопасным seed/content quick wins из `docs/backend_expansion_plan.md`.
-
-Отложено до отдельного решения:
-- web-клиент;
-- крупный DDL-трек `rating_events`;
-- расширение provenance/task-origin модели;
-- новые большие backend-механики.
-
-## Правила текущей контрольной точки
-- Не переносить бизнес-логику из Oracle PL/SQL в Python.
-- Не начинать web-клиент в этой задаче.
-- Не менять package/DDL/seed/tests без доказанной необходимости.
-- Не трогать `.env`.
-- Не хардкодить Oracle host/port/SID/service name в коде или docs как источник истины.
-
-## Current Implementation Batch
-First safe backend content expansion is being implemented on branch `backend-content-expansion-quick-wins`.
-
-Scope:
-- seed-only allele, mutation, and task additions for existing genes;
-- smoke-test updates for seed coverage and consistency;
-- display fallback labels only;
-- no DDL, no package API changes, no web client, no PySide6 layout work.
+## Правила перед следующим этапом
+- Не начинать web-клиент одновременно с rating DDL.
+- Не переносить расчёты рейтинга в Python.
+- Не расширять контент снова без отдельной задачи.
+- DDL/package/test changes для `rating_events` делать отдельным сфокусированным коммитом.
