@@ -36,6 +36,7 @@ TRAIT_LABELS = {
     "white": "белая окраска",
     "black": "чёрная окраска",
     "compact_size": "компактный размер",
+    "medium_size": "средний размер",
     "large_size": "крупный размер",
     "herbivore": "травоядный тип питания",
     "carnivore": "хищный тип питания",
@@ -45,20 +46,27 @@ TRAIT_LABELS = {
     "n": "без крыльев",
     "pointed_fin": "заострённый плавник",
     "broad_fin": "широкий плавник",
+    "crescent_fin": "серповидный плавник",
     "rounded_fin": "округлый плавник",
     "forked_fin": "раздвоенный плавник",
+    "ribbon_fin": "ленточный плавник",
     "thick_armor": "прочный панцирь",
     "light_armor": "лёгкий панцирь",
+    "ridged_armor": "ребристый панцирь",
     "short_claws": "короткие клешни",
     "long_claws": "длинные клешни",
+    "hooked_claws": "крючковатые клешни",
     "rounded_nose": "округлая форма",
     "sharp_beak": "острый клюв",
+    "spiral_profile": "спиральный профиль",
     "smooth_shell": "гладкий панцирь",
     "spiked_shell": "шипастый панцирь",
+    "plated_shell": "пластинчатый панцирь",
     "slow_speed": "низкая скорость",
     "fast_speed": "высокая скорость",
     "short_fur": "короткая шерсть",
     "dense_fur": "густая шерсть",
+    "soft_fur": "мягкая шерсть",
 }
 
 
@@ -78,6 +86,14 @@ MUTATION_NAME_LABELS = {
     "morphology_refine_mutation": "Мутация клешней (ракообразные)",
     "morphology_refine_mollusk_mutation": "Мутация профиля (моллюски)",
     "morphology_refine_mammal_mutation": "Мутация шерсти (млекопитающие)",
+    "red_color_mutation": "Мутация красной окраски",
+    "medium_size_mutation": "Мутация среднего размера",
+    "cartilaginous_crescent_fin_mutation": "Мутация серповидного плавника (хрящевые рыбы)",
+    "bony_ribbon_fin_mutation": "Мутация ленточного плавника (костные рыбы)",
+    "hooked_claws_mutation": "Мутация крючковатых клешней",
+    "spiral_profile_mutation": "Мутация спирального профиля",
+    "plated_shell_mutation": "Мутация пластинчатого панциря",
+    "soft_fur_mutation": "Мутация мягкой шерсти",
 }
 
 TASK_NAME_LABELS = {
@@ -93,6 +109,15 @@ TASK_NAME_LABELS = {
     "task_herbivore_line": "Травоядная линия",
     "task_spiked_turtle": "Шипастая черепаха",
     "task_mammal_short_fur": "Млекопитающее с короткой шерстью",
+    "task_red_specimen": "Красный образец",
+    "task_medium_specimen": "Средний образец",
+    "task_winged_red_specimen": "Крылатый красный образец",
+    "task_crescent_fin_cartilaginous": "Хрящевая рыба с серповидным плавником",
+    "task_ribbon_fin_bony": "Костная рыба с ленточным плавником",
+    "task_hooked_crustacean": "Ракообразное с крючковатыми клешнями",
+    "task_spiral_mollusk": "Моллюск со спиральным профилем",
+    "task_plated_turtle": "Черепаха с пластинчатым панцирем",
+    "task_soft_fur_mammal": "Млекопитающее с мягкой шерстью",
 }
 
 

@@ -525,6 +525,58 @@ begin
             having count(distinct tm.allele_id) > 1
            );
     assert_true(v_dummy_num = 0, 'content coverage: no conflicting task_markers by gene in one task', 'conflicting groups=' || v_dummy_num);
+    select count(distinct lower(a.description))
+      into v_dummy_num
+      from alleles a
+      join genes g
+        on g.gene_id = a.gene_id
+     where (g.gene_name = 'size' and g.species_type = 0 and lower(a.description) = 'medium_size')
+        or (g.gene_name = 'fin_shape' and g.species_type = 1 and lower(a.description) = 'crescent_fin')
+        or (g.gene_name = 'fin_shape' and g.species_type = 2 and lower(a.description) = 'ribbon_fin')
+        or (g.gene_name = 'shell_armor' and g.species_type = 3 and lower(a.description) = 'ridged_armor')
+        or (g.gene_name = 'claw_form' and g.species_type = 3 and lower(a.description) = 'hooked_claws')
+        or (g.gene_name = 'beak_nose_shape' and g.species_type = 4 and lower(a.description) = 'spiral_profile')
+        or (g.gene_name = 'shell_armor' and g.species_type = 5 and lower(a.description) = 'plated_shell')
+        or (g.gene_name = 'fur_density' and g.species_type = 6 and lower(a.description) = 'soft_fur');
+    assert_true(v_dummy_num = 8, 'content expansion: required allele codes exist', 'covered=' || v_dummy_num);
+
+    select count(distinct lower(m.mutation_name))
+      into v_dummy_num
+      from mutations m
+      join mutation_rules mr
+        on mr.mutation_id = m.mutation_id
+      join alleles a
+        on a.allele_id = mr.target_allele_id
+     where (lower(m.mutation_name) = 'red_color_mutation' and lower(a.description) = 'red_color')
+        or (lower(m.mutation_name) = 'medium_size_mutation' and lower(a.description) = 'medium_size')
+        or (lower(m.mutation_name) = 'cartilaginous_crescent_fin_mutation' and lower(a.description) = 'crescent_fin')
+        or (lower(m.mutation_name) = 'bony_ribbon_fin_mutation' and lower(a.description) = 'ribbon_fin')
+        or (lower(m.mutation_name) = 'hooked_claws_mutation' and lower(a.description) = 'hooked_claws')
+        or (lower(m.mutation_name) = 'spiral_profile_mutation' and lower(a.description) = 'spiral_profile')
+        or (lower(m.mutation_name) = 'plated_shell_mutation' and lower(a.description) = 'plated_shell')
+        or (lower(m.mutation_name) = 'soft_fur_mutation' and lower(a.description) = 'soft_fur');
+    assert_true(v_dummy_num = 8, 'content expansion: new mutations target expected alleles', 'covered=' || v_dummy_num);
+
+    select count(*)
+      into v_dummy_num
+      from tasks t
+     where lower(t.task_name) in (
+            'task_red_specimen',
+            'task_medium_specimen',
+            'task_winged_red_specimen',
+            'task_crescent_fin_cartilaginous',
+            'task_ribbon_fin_bony',
+            'task_hooked_crustacean',
+            'task_spiral_mollusk',
+            'task_plated_turtle',
+            'task_soft_fur_mammal'
+       )
+       and exists (
+            select 1
+              from task_markers tm
+             where tm.task_id = t.task_id
+       );
+    assert_true(v_dummy_num = 9, 'content expansion: new tasks have markers', 'covered=' || v_dummy_num);
 
     select min(c.creature_id)
       into v_lab1_creature_id

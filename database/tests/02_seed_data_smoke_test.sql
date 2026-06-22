@@ -42,7 +42,7 @@ begin
 
     -- 2) Allele count >= 30
     select count(*) into v_value from alleles;
-    assert_true(v_value >= 30, 'Allele count >= 30', 'actual=' || v_value);
+    assert_true(v_value >= 38, 'Allele count >= 38 after content expansion', 'actual=' || v_value);
 
     -- 2a) Color gene has at least 8 configured alleles
     select count(*)
@@ -67,6 +67,21 @@ begin
             'purple_color', 'orange_color', 'white_color', 'black_color'
        );
     assert_true(v_value = 8, 'Required 8 color allele codes exist', 'covered=' || v_value);
+    -- 2c) First safe content expansion allele codes exist
+    select count(distinct lower(a.description))
+      into v_value
+      from alleles a
+      join genes g
+        on g.gene_id = a.gene_id
+     where (g.gene_name = 'size' and g.species_type = 0 and lower(a.description) = 'medium_size')
+        or (g.gene_name = 'fin_shape' and g.species_type = 1 and lower(a.description) = 'crescent_fin')
+        or (g.gene_name = 'fin_shape' and g.species_type = 2 and lower(a.description) = 'ribbon_fin')
+        or (g.gene_name = 'shell_armor' and g.species_type = 3 and lower(a.description) = 'ridged_armor')
+        or (g.gene_name = 'claw_form' and g.species_type = 3 and lower(a.description) = 'hooked_claws')
+        or (g.gene_name = 'beak_nose_shape' and g.species_type = 4 and lower(a.description) = 'spiral_profile')
+        or (g.gene_name = 'shell_armor' and g.species_type = 5 and lower(a.description) = 'plated_shell')
+        or (g.gene_name = 'fur_density' and g.species_type = 6 and lower(a.description) = 'soft_fur');
+    assert_true(v_value = 8, 'Required content expansion allele codes exist', 'covered=' || v_value);
 
     -- 3) Each gene has at least 2 alleles
     select count(*)
@@ -83,7 +98,22 @@ begin
 
     -- 4) Mutation count >= 8
     select count(*) into v_value from mutations;
-    assert_true(v_value >= 8, 'Mutation count >= 8', 'actual=' || v_value);
+    assert_true(v_value >= 20, 'Mutation count >= 20 after content expansion', 'actual=' || v_value);
+    -- 4a) First safe content expansion mutation codes exist
+    select count(distinct lower(m.mutation_name))
+      into v_value
+      from mutations m
+     where lower(m.mutation_name) in (
+            'red_color_mutation',
+            'medium_size_mutation',
+            'cartilaginous_crescent_fin_mutation',
+            'bony_ribbon_fin_mutation',
+            'hooked_claws_mutation',
+            'spiral_profile_mutation',
+            'plated_shell_mutation',
+            'soft_fur_mutation'
+       );
+    assert_true(v_value = 8, 'Required content expansion mutations exist', 'covered=' || v_value);
 
     -- 5) mutation_rules reference existing mutation_id/gene_id/target_allele_id
     select count(*)
@@ -150,7 +180,23 @@ begin
 
     -- 11) Task count >= 12
     select count(*) into v_value from tasks;
-    assert_true(v_value >= 12, 'Task count >= 12', 'actual=' || v_value);
+    assert_true(v_value >= 21, 'Task count >= 21 after content expansion', 'actual=' || v_value);
+    -- 11a) First safe content expansion task codes exist
+    select count(distinct lower(t.task_name))
+      into v_value
+      from tasks t
+     where lower(t.task_name) in (
+            'task_red_specimen',
+            'task_medium_specimen',
+            'task_winged_red_specimen',
+            'task_crescent_fin_cartilaginous',
+            'task_ribbon_fin_bony',
+            'task_hooked_crustacean',
+            'task_spiral_mollusk',
+            'task_plated_turtle',
+            'task_soft_fur_mammal'
+       );
+    assert_true(v_value = 9, 'Required content expansion tasks exist', 'covered=' || v_value);
 
     -- 12) Each task has at least one task_marker
     select count(*)

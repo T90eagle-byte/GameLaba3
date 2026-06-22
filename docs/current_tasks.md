@@ -49,3 +49,12 @@
 - Не менять package/DDL/seed/tests без доказанной необходимости.
 - Не трогать `.env`.
 - Не хардкодить Oracle host/port/SID/service name в коде или docs как источник истины.
+
+## Current Implementation Batch
+First safe backend content expansion is being implemented on branch `backend-content-expansion-quick-wins`.
+
+Scope:
+- seed-only allele, mutation, and task additions for existing genes;
+- smoke-test updates for seed coverage and consistency;
+- display fallback labels only;
+- no DDL, no package API changes, no web client, no PySide6 layout work.
