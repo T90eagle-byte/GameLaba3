@@ -22,6 +22,7 @@ create sequence experiments_seq start with 1 increment by 1 nocache nocycle;
 create sequence lab_mutations_seq start with 1 increment by 1 nocache nocycle;
 create sequence lab_tasks_seq start with 1 increment by 1 nocache nocycle;
 create sequence task_markers_seq start with 1 increment by 1 nocache nocycle;
+create sequence rating_events_seq start with 1 increment by 1 nocache nocycle;
 
 -- ============================================================================
 -- SECTION 2. AUTHORIZATION AND SESSION TABLES
@@ -122,6 +123,12 @@ create table ref_task_difficulties (
     constraint pk_ref_task_difficulties primary key (difficulty_code)
 );
 
+create table ref_rating_event_types (
+    event_type         varchar2(30 char) not null,
+    display_name       varchar2(100 char) not null,
+    constraint pk_ref_rating_event_types primary key (event_type)
+);
+
 comment on table ref_species_types is 'Species type domain reference.';
 comment on table ref_gene_types is 'Gene type domain reference.';
 comment on table ref_dominance_types is 'Dominance type domain reference.';
@@ -130,6 +137,7 @@ comment on table ref_experiment_types is 'Experiment type domain reference.';
 comment on table ref_mutagen_types is 'Mutagen type domain reference.';
 comment on table ref_mutation_types is 'Mutation type domain reference.';
 comment on table ref_task_difficulties is 'Task difficulty domain reference.';
+comment on table ref_rating_event_types is 'Rating/economy event type domain reference.';
 
 -- ============================================================================
 -- SECTION 4. CORE GAME STATE TABLES
@@ -382,3 +390,28 @@ create table task_markers (
 
 comment on table task_markers is 'Required alleles for task completion checks.';
 comment on column task_markers.task_marker_id is 'Primary key.';
+
+create table rating_events (
+    rating_event_id    number not null,
+    lab_id             number not null,
+    creature_id        number null,
+    task_id            number null,
+    experiment_id      number null,
+    event_type         varchar2(30 char) not null,
+    rating_delta       number(12, 2) default 0 not null,
+    wallet_delta       number(12, 2) default 0 not null,
+    description        varchar2(1000 char) null,
+    created_at         timestamp default systimestamp not null,
+    constraint pk_rating_events primary key (rating_event_id),
+    constraint fk_rating_events_lab_id foreign key (lab_id) references labs (lab_id),
+    constraint fk_rating_events_creature_id foreign key (creature_id) references creatures (creature_id),
+    constraint fk_rating_events_task_id foreign key (task_id) references tasks (task_id),
+    constraint fk_rating_events_experiment_id foreign key (experiment_id) references experiments (experiment_id),
+    constraint fk_rating_events_type foreign key (event_type) references ref_rating_event_types (event_type)
+);
+
+comment on table rating_events is 'Append-only explanation log for lab wallet and rating changes.';
+comment on column rating_events.rating_event_id is 'Primary key.';
+comment on column rating_events.event_type is 'Domain event type from ref_rating_event_types.';
+comment on column rating_events.rating_delta is 'Actual rating delta recorded after aggregate update, including zero when clipping applies.';
+comment on column rating_events.wallet_delta is 'Actual wallet delta recorded after aggregate update.';

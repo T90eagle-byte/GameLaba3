@@ -24,11 +24,11 @@ Confirmed checkpoint:
 - seed through runner passed;
 - `02_seed_data_smoke_test.sql`: `Passed: 32`, `Failed: 0`;
 - `07_strict_compliance_smoke_test.sql`: `Passed: 46`, `Failed: 0`;
-- full Oracle smoke suite `01..09` passed with `Failed: 0`;
+- full Oracle smoke suite `01..09` passed with `Failed: 0` before the rating-events DDL track;
 - `PKG_GENETICS_GAME` package and package body are `VALID`;
 - `user_errors` is clean.
 
-The next large backend track is rating foundation / `rating_events`. It should be handled as a separate DDL/backend/test stage, not mixed with another content expansion.
+The current large backend track is rating foundation / `rating_events`. It is handled as a separate DDL/backend/test stage and is not mixed with another content expansion.
 
 ## Current BaselineThe current backend already provides:
 
@@ -40,7 +40,7 @@ The next large backend track is rating foundation / `rating_events`. It should b
 - experiment history;
 - domain reference tables `ref_*`;
 - LR2-compatible package wrappers;
-- smoke-tests `01..09`.
+- smoke-tests `01..10` after the rating-events track.
 
 That baseline is strong enough for content growth. The next month should focus on extending content safely before introducing major schema changes.
 
@@ -390,7 +390,7 @@ These ideas are attractive, but they are poor next steps for the current codebas
 
 - seed changes: at least `02`, then whichever gameplay tests cover the affected content;
 - package body changes: usually `03`, `04`, `05`, `06`, `07`, and sometimes `09`;
-- DDL changes: fresh deploy plus full `01..09`.
+- DDL changes: fresh deploy plus full `01..10`.
 
 ## GUI / Future Web Client Compatibility Risks
 
@@ -430,9 +430,9 @@ GUI-neutral but backend-visible:
 
 ### Week 3: rating and rarity design
 
-- decide whether rarity is computed-only or persisted;
-- if computed-only, prototype package-only rarity bonuses first;
-- if persisted history is required, finalize DDL for `rating_events` before implementation.
+- implement `rating_events` as an explanation log for wallet/rating changes;
+- keep `labs.wallet` and `labs.rating` as aggregate state;
+- reserve `RARE_TRAIT_BONUS` until a stable backend rarity criterion is designed.
 
 ### Week 4: provenance and strict tasks design
 
@@ -457,7 +457,7 @@ Confirmed result:
 - no DDL changes;
 - no package spec/body changes;
 - no `pkg_api.py` changes;
-- full Oracle smoke suite `01..09` passed with `Failed: 0`.
+- full Oracle smoke suite `01..09` passed with `Failed: 0` before the rating-events DDL track.
 
 Still postponed:
 
@@ -465,3 +465,12 @@ Still postponed:
 - strict task provenance;
 - `rating_events`;
 - web client implementation.
+
+### Rating events implementation note
+
+`rating_events` explains backend aggregate changes and does not replace `labs.wallet` or `labs.rating`. Events are written by `pkg_genetics_game`; future clients should display them through package cursors and must not calculate rating/economy deltas themselves.
+
+
+### Current rating-events implementation
+
+The `backend-rating-events` branch implements the planned rating foundation as a separate DDL/backend/test track. `RARE_TRAIT_BONUS` is included in the reference table as a reserved event type, but no automatic rare trait reward is awarded until a stable backend rarity rule is designed and tested.

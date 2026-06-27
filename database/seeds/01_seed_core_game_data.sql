@@ -534,6 +534,41 @@ begin
     when matched then update set tgt.display_name = src.display_name
     when not matched then insert (difficulty_code, display_name) values (src.difficulty_code, src.display_name);
 
+    merge into ref_rating_event_types tgt
+    using (select 'TASK_REWARD' as event_type, 'Награда за задание' as display_name from dual) src
+    on (tgt.event_type = src.event_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (event_type, display_name) values (src.event_type, src.display_name);
+
+    merge into ref_rating_event_types tgt
+    using (select 'MUTAGEN_PENALTY' as event_type, 'Штраф мутагена' as display_name from dual) src
+    on (tgt.event_type = src.event_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (event_type, display_name) values (src.event_type, src.display_name);
+
+    merge into ref_rating_event_types tgt
+    using (select 'MUTATION_PURCHASE' as event_type, 'Покупка мутации' as display_name from dual) src
+    on (tgt.event_type = src.event_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (event_type, display_name) values (src.event_type, src.display_name);
+
+    merge into ref_rating_event_types tgt
+    using (select 'EXPERIMENT_COST' as event_type, 'Стоимость эксперимента' as display_name from dual) src
+    on (tgt.event_type = src.event_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (event_type, display_name) values (src.event_type, src.display_name);
+
+    merge into ref_rating_event_types tgt
+    using (select 'RARE_TRAIT_BONUS' as event_type, 'Бонус редкого признака' as display_name from dual) src
+    on (tgt.event_type = src.event_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (event_type, display_name) values (src.event_type, src.display_name);
+
+    merge into ref_rating_event_types tgt
+    using (select 'SYSTEM_ADJUSTMENT' as event_type, 'Системная корректировка' as display_name from dual) src
+    on (tgt.event_type = src.event_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (event_type, display_name) values (src.event_type, src.display_name);
     -- -------------------------------------------------------------------------
     -- 1) Genes (4 universal + species-specific genes)
     -- -------------------------------------------------------------------------

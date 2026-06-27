@@ -115,6 +115,7 @@ declare
     procedure direct_cleanup is
     begin
         begin
+            delete from rating_events where lab_id in (v_lab1_id, v_lab2_id);
             delete from lab_tasks where lab_id in (v_lab1_id, v_lab2_id);
             delete from lab_mutations where lab_id in (v_lab1_id, v_lab2_id);
             delete from experiments where lab_id in (v_lab1_id, v_lab2_id);
