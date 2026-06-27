@@ -2,93 +2,61 @@
 
 ## Workspace
 - Актуальный workspace: `C:\GameLR3`.
+- Основная ветка: `main`.
 - Коммиты писать на русском языке.
-- `.env`, `.venv`, `__pycache__`, временные файлы и backup-файлы не коммитить.
+- Не коммитить `.env`, `.venv`, `__pycache__`, временные файлы и backup-файлы.
 
 ## Архитектура
 - Backend реализован на Oracle PL/SQL.
 - Центральный backend API: `pkg_genetics_game`.
-- Python остаётся client/display-layer: не считает генетику, мутации, задания, экономику или рейтинг.
-- PySide6 GUI сохраняется как desktop-версия.
-- Будущий основной переносимый клиент — web-клиент через браузер, но web-клиент ещё не начинался.
+- Python/PySide6 остается client/display-layer: не считает генетику, мутации, задания, экономику или рейтинг.
+- Будущий переносимый клиент должен быть web-клиентом через браузер, но web-клиент пока не начат.
 - Бизнес-логика должна оставаться в Oracle PL/SQL package.
 
 ## Причина будущего web-клиента
-- На учебном стенде Windows Server 2012 R2 PySide6/Qt6 ненадёжен из-за ошибок загрузки `QtGui/QtWidgets`.
-- Для пересдачи и переносимости основной будущий клиент должен работать через браузер.
-- Desktop GUI не удалять: он остаётся локальной версией.
+- На учебном стенде Windows Server 2012 R2 PySide6/Qt6 ненадежен из-за ошибок загрузки `QtGui/QtWidgets`.
+- Desktop GUI не удалять: он остается локальной desktop-версией.
+- Для пересдачи и переносимости следующий клиентский трек должен идти через браузер.
 
-## Стабильный backend baseline
+## Закрытая backend-фаза
+Backend-фаза завершена и зафиксирована в `main`.
+
+Выполнено:
 - `STANDARD_HASH` используется вместо `DBMS_CRYPTO`.
 - `DBMS_CRYPTO` отсутствует в package body.
 - Доменные справочники `ref_*` вынесены в БД и связаны FK.
 - LR2-compatible wrappers добавлены в package API.
 - Прямые SQL-запросы к игровым таблицам убраны из `pkg_api.py`.
-- `database/scripts/run_tests.py` запускает package/seed/tests через `python-oracledb` и читает подключение из `python_client/.env`.
-- Runner поддерживает `ORACLE_SERVICE` и `ORACLE_SID`.
+- Первый seed-only backend/content expansion выполнен.
+- `rating_events` реализован как explainable log для изменений `labs.wallet` и `labs.rating`.
+- `database/scripts/run_tests.py` запускает package/seed/tests через `python-oracledb`, читает подключение из `python_client/.env`, поддерживает `ORACLE_SERVICE` и `ORACLE_SID`.
+- Runner корректно обрабатывает UTF-8 BOM, SQL*Plus-директивы и одиночный `/`.
 
-## Backend Test Runner
-- Runner корректно обрабатывает UTF-8 BOM.
-- Standalone SQL*Plus-директивы игнорируются через whitelist: `set define off`, `set verify on/off`, `set serveroutput on ...`, `show errors`, `prompt`, `whenever ...`.
-- Одиночный `/` используется как разделитель PL/SQL-блока и не отправляется в Oracle.
-- При ошибке runner пытается вывести `DBMS_OUTPUT`, чтобы падения smoke-tests были диагностируемыми.
+## Финальная сверка backend
+- Главный актуальный документ по соответствию backend требованиям: `docs/backend_final_requirements_review.md`.
+- Старый `docs/backend_compliance_audit.md` оставлен как предварительный исторический аудит.
+- Финальная сверка зафиксировала: backend соответствует ЛР1/ЛР2 с честными адаптациями под текущую session-token модель.
 
-## Завершённый content expansion checkpoint
-Первый безопасный backend/content expansion завершён без DDL и без package changes.
+Подтвержденные проверки после rating-events:
+- Полный Oracle runner `01..10` прошел с `Failed: 0`.
+- `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`.
+- `user_errors`: clean.
 
-Добавлены аллели существующих генов:
-- `medium_size`;
-- `crescent_fin`;
-- `ribbon_fin`;
-- `ridged_armor`;
-- `hooked_claws`;
-- `spiral_profile`;
-- `plated_shell`;
-- `soft_fur`.
+## Важные ограничения для следующего этапа
+- Не переносить бизнес-логику в Python/web/frontend.
+- Web-клиент должен вызывать server-side слой, который обращается к `pkg_genetics_game`.
+- Браузер не должен напрямую подключаться к Oracle.
+- `rating_events` — журнал объяснения изменений, не замена `labs.wallet` и `labs.rating`.
+- `display_names.py` остается fallback/display layer, не source of truth для gameplay.
 
-Добавлены directed mutations:
-- `red_color_mutation`;
-- `medium_size_mutation`;
-- `cartilaginous_crescent_fin_mutation`;
-- `bony_ribbon_fin_mutation`;
-- `hooked_claws_mutation`;
-- `spiral_profile_mutation`;
-- `plated_shell_mutation`;
-- `soft_fur_mutation`.
-
-Добавлены marker-based задания:
-- `task_red_specimen`;
-- `task_medium_specimen`;
-- `task_winged_red_specimen`;
-- `task_crescent_fin_cartilaginous`;
-- `task_ribbon_fin_bony`;
-- `task_hooked_crustacean`;
-- `task_spiral_mollusk`;
-- `task_plated_turtle`;
-- `task_soft_fur_mammal`.
-
-## Подтверждённые проверки
-- Seed через runner прошёл.
-- `02_seed_data_smoke_test.sql`: `Passed: 32`, `Failed: 0`.
-- `07_strict_compliance_smoke_test.sql`: `Passed: 46`, `Failed: 0`.
-- Полный Oracle smoke suite `01..09` прошёл: все тесты с `Failed: 0`.
-- `PKG_GENETICS_GAME` package и package body находятся в `VALID`.
-- `user_errors` чистый.
-- `python -m compileall -f python_client` прошёл.
-- `python -m py_compile database\scripts\run_tests.py` прошёл.
-- `git diff --check` прошёл.
-- Mojibake marker-check прошёл: `HITS=0`.
-
-## Текущий следующий этап
-Следующий крупный backend этап: rating foundation.
-
-Цель будущего этапа:
-- добавить объяснимую историю рейтинга;
-- спроектировать/реализовать `rating_events` отдельным DDL/backend треком;
-- подготовить backend данные для будущего web dashboard.
+## Следующая фаза
+Следующий этап после паузы:
+1. Создать `docs/web_client_plan.md`.
+2. Спроектировать минимальный web-client architecture поверх `pkg_genetics_game`.
+3. Затем делать минимальный Flask/Jinja web-каркас.
 
 Пока не делать:
-- не начинать web-клиент;
-- не добавлять новые гены/аллели/мутации/задания;
-- не менять package, DDL, seed, tests или PySide6 GUI без отдельной задачи;
+- не начинать web-клиент без плана;
+- не добавлять новые genes/alleles/mutations/tasks;
+- не менять DDL/package/seed/tests/PySide6 GUI без отдельной задачи;
 - не переносить бизнес-логику в Python.

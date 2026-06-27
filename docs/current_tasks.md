@@ -1,41 +1,37 @@
 # Current Tasks
 
 ## Current Stage
-Rating foundation / `rating_events` is in progress on branch `backend-rating-events`.
+Backend-фаза закрыта. Проект готов к паузе или к следующей фазе: planning web-клиента.
 
-Goal:
-- keep `labs.wallet` and `labs.rating` as aggregate state;
-- add `rating_events` as an explainable backend log for wallet/rating changes;
-- record events inside `pkg_genetics_game`, not in Python;
-- cover the feature with `10_rating_events_smoke_test.sql`;
-- extend the default runner from `01..09` to `01..10`.
+## Backend Checkpoint
+- `backend-rating-events` влит в `main`.
+- `rating_events` реализован как backend-журнал объяснения изменений экономики и рейтинга.
+- `labs.wallet` и `labs.rating` остаются aggregate state.
+- `rating_events` не заменяет агрегаты, а объясняет изменения.
+- `RARE_TRAIT_BONUS` зарезервирован, но не начисляется автоматически.
 
-## Already Stable
-- Backend compliance audit is done.
-- `STANDARD_HASH` replaced `DBMS_CRYPTO`.
-- Domain refs `ref_*` are in DB.
-- LR2-compatible package API exists.
-- Direct SQL calls were removed from `pkg_api.py`.
-- First seed-only content expansion is merged into `main`.
-- Previous full Oracle smoke suite `01..09` was green before this new DDL track.
+## Актуальные документы
+- Главный документ по соответствию backend требованиям: `docs/backend_final_requirements_review.md`.
+- `docs/backend_compliance_audit.md` является предварительным/историческим аудитом.
+- `docs/database_map.md` описывает актуальную структуру БД, `ref_*`, `difficulty_code`, `rating_events` и package cursors.
+- `database/README_RUN.md` описывает runner и запуск tests `01..10`.
 
-## Current Scope
-Changing now:
-- DDL: `ref_rating_event_types`, `rating_events`, `rating_events_seq`;
-- seed: rating event type refs;
-- package spec/body: rating event cursor/history and event writes;
-- tests: new `10` plus reference/cleanup checks;
-- docs/README.
+## Подтвержденные проверки
+- Полный Oracle runner `01..10` прошел с `Failed: 0`.
+- `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`.
+- `user_errors`: clean.
+- `STANDARD_HASH` используется вместо `DBMS_CRYPTO`.
+- Прямые SQL-запросы к игровым таблицам в `pkg_api.py` отсутствуют.
 
-Not changing now:
-- PySide6 GUI/layout;
-- web client;
-- new genes/alleles/mutations/tasks;
-- Python-side business logic.
+## Следующая фаза
+Следующий шаг — не backend-доработки, а web-client planning:
+1. Создать `docs/web_client_plan.md`.
+2. Зафиксировать архитектуру web-клиента как display/client layer поверх `pkg_genetics_game`.
+3. После утверждения плана сделать минимальный Flask/Jinja web-каркас.
 
-## Next Gate
-Before merging this branch:
-- fresh deploy or compatible migration for the new DDL;
-- package `VALID`;
-- `user_errors` clean;
-- full runner `01..10` with `Failed: 0`.
+## Не делать без отдельной задачи
+- Не менять DDL, seed, package spec/body и smoke-tests.
+- Не начинать web-клиент без `docs/web_client_plan.md`.
+- Не переносить генетику, экономику, рейтинг или задания в Python/web/frontend.
+- Не удалять PySide6 GUI: он остается desktop-версией.
+- Не добавлять новую волну backend content expansion.
