@@ -48,8 +48,14 @@ Python GUI only calls backend API and displays returned data.
 ## History
 - Experiment history displays backend records.
 - `created_at` comes from `experiments.created_at`.
-- GUI must not invent wallet/rating deltas when backend does not store them.
 - Final wallet/rating changes may include task auto-complete rewards.
+
+## Rating and Economy Events
+- `labs.wallet` and `labs.rating` remain the current aggregate state.
+- `rating_events` explains why those aggregates changed.
+- Backend package records events for task rewards, mutation purchases, and mutagen penalties.
+- Future web/GUI clients may display `get_rating_events_cursor`; they must not calculate deltas themselves.
+- `RARE_TRAIT_BONUS` is reserved for a later backend rule and is not awarded automatically yet.
 
 ## First Safe Content Expansion
 - This pass extends only existing genes through seed data.

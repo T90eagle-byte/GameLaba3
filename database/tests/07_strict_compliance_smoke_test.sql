@@ -163,6 +163,9 @@ declare
             end if;
 
             begin
+                delete from rating_events re
+                 where re.lab_id = p_lab_id;
+
                 delete from lab_tasks lt
                  where lt.lab_id = p_lab_id;
 
@@ -270,6 +273,13 @@ declare
         safe_logout('user1', v_session1_token);
 
         begin
+            delete from rating_events re
+             where re.lab_id in (
+                    select l.lab_id
+                      from labs l
+                     where l.user_id in (v_user1_id, v_user2_id)
+             );
+
             delete from lab_tasks lt
              where lt.lab_id in (
                     select l.lab_id
@@ -480,6 +490,27 @@ begin
         on ret.experiment_type = e.experiment_type
      where ret.experiment_type is null;
     assert_true(v_dummy_num = 0, 'reference domains: experiments use valid experiment_type values', 'invalid rows=' || v_dummy_num);
+
+
+    select count(*)
+      into v_dummy_num
+      from rating_events re
+      left join ref_rating_event_types ret
+        on ret.event_type = re.event_type
+     where ret.event_type is null;
+    assert_true(v_dummy_num = 0, 'reference domains: rating_events use valid event_type values', 'invalid rows=' || v_dummy_num);
+
+    v_dummy_num := 0;
+    v_rc := pkg_genetics_game.get_reference_cursor('RATING_EVENT_TYPES');
+    loop
+        fetch v_rc into v_ref_code, v_ref_display_name, v_ref_numeric_code;
+        exit when v_rc%notfound;
+        if v_ref_code is not null and v_ref_display_name is not null then
+            v_dummy_num := v_dummy_num + 1;
+        end if;
+    end loop;
+    close v_rc;
+    assert_true(v_dummy_num = 6, 'reference cursor returns rating event type labels', 'rows=' || v_dummy_num);
 
     v_dummy_num := 0;
     v_rc := pkg_genetics_game.get_reference_cursor('TASK_DIFFICULTIES');

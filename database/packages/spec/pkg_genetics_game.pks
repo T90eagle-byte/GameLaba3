@@ -77,6 +77,15 @@ create or replace package pkg_genetics_game as
         p_lab_id        in number
     );
 
+    function get_rating_events_cursor(
+        p_session_token in varchar2,
+        p_lab_id        in number
+    ) return sys_refcursor;
+
+    procedure show_rating_history(
+        p_lab_id        in number
+    );
+
     function get_reference_cursor(
         p_ref_name      in varchar2
     ) return sys_refcursor;

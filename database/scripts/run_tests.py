@@ -28,6 +28,7 @@ SMOKE_TEST_FILES = [
     REPO_ROOT / "database" / "tests" / "07_strict_compliance_smoke_test.sql",
     REPO_ROOT / "database" / "tests" / "08_multiuser_sessions_smoke_test.sql",
     REPO_ROOT / "database" / "tests" / "09_lr2_package_api_compat_smoke_test.sql",
+    REPO_ROOT / "database" / "tests" / "10_rating_events_smoke_test.sql",
 ]
 
 PLSQL_START_RE = re.compile(

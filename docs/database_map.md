@@ -9,7 +9,7 @@ This map reflects the current backend state:
 - `database/ddl/01_create_tables.sql`;
 - `database/packages/spec/pkg_genetics_game.pks`;
 - `database/packages/body/pkg_genetics_game.pkb`;
-- smoke-tests `database/tests/01..09_*.sql`.
+- smoke-tests `database/tests/01..10_*.sql`.
 
 If documents and implementation differ, the current DDL and public `pkg_genetics_game` API are the operational source of truth.
 
@@ -42,7 +42,8 @@ Primary keys are backed by separate sequences:
 - `experiments_seq`;
 - `lab_mutations_seq`;
 - `lab_tasks_seq`;
-- `task_markers_seq`.
+- `task_markers_seq`;
+- `rating_events_seq`.
 
 ## 4. Domain Reference Tables
 
@@ -58,6 +59,7 @@ Domain enum values are stored in database reference tables. The GUI uses labels 
 | `ref_mutagen_types` | `mutagen_type` | Mutagen kinds: RADIATION, CHEMICAL. |
 | `ref_mutation_types` | `mutation_type` | Mutation categories, codes 1..8. |
 | `ref_task_difficulties` | `difficulty_code` | Task difficulty values: EASY, MEDIUM, HARD. |
+| `ref_rating_event_types` | `event_type` | Rating/economy event kinds: TASK_REWARD, MUTAGEN_PENALTY, MUTATION_PURCHASE, EXPERIMENT_COST, RARE_TRAIT_BONUS, SYSTEM_ADJUSTMENT. |
 
 Each reference table includes `display_name`.
 
@@ -88,6 +90,8 @@ Each reference table includes `display_name`.
 - `(session_id, user_id) -> sessions(session_id, user_id)`.
 - `wallet`, `rating`.
 - Aggregate counters: `creature_count`, `active_task_count`, `completed_task_count`, `experiment_count`.
+
+`labs.wallet` and `labs.rating` remain the current aggregate state. Detailed explanations for changes are stored in `rating_events`.
 
 `labs.session_id` is NOT NULL. In the current model, `exit_lab` clears package context and does not set `labs.session_id` to NULL.
 
@@ -199,7 +203,19 @@ Constraints require `parent2_id` for `CROSS` and forbid it for `MUTATION`/`MUTAG
 
 Task completion checks are marker-based: `check_task` checks required alleles. Creature origin is not checked.
 
-## 9. Package API and Display Labels
+## 9. Rating and Economy Events
+
+### `rating_events`
+
+- `rating_event_id` - primary key.
+- `lab_id -> labs(lab_id)`.
+- Optional links: `creature_id -> creatures`, `task_id -> tasks`, `experiment_id -> experiments`.
+- `event_type -> ref_rating_event_types(event_type)`.
+- `rating_delta`, `wallet_delta`, `description`, `created_at`.
+
+`rating_events` is an append-only explanation log. It does not replace `labs.wallet` or `labs.rating`; those fields remain aggregate state. Package code records events after the aggregate update so future clients can explain why wallet/rating changed. `RARE_TRAIT_BONUS` is reserved but is not automatically awarded yet.
+
+## 10. Package API and Display Labels
 
 The central backend API is `pkg_genetics_game`. The Python client does not query gameplay tables directly.
 
@@ -211,10 +227,11 @@ Package cursors return technical fields plus display labels from database refere
 - `get_tasks_cursor` - tasks, statuses, `difficulty_code`, and `difficulty_display_name`.
 - `show_mutation_shop` - mutation shop rows plus `mutation_type_display_name`.
 - `get_experiment_history` - experiment history rows plus `experiment_type_display_name`.
+- `get_rating_events_cursor` - rating/economy event history with event type labels.
 
 LR2 demonstration procedures such as `show_creatures`, `show_tasks`, `show_mutation_history`, and `show_lab_stats` use `dbms_output` only for manual diagnostics and smoke-tests. The GUI does not depend on `dbms_output`.
 
-## 10. Seed Coverage
+## 11. Seed Coverage
 
 `database/seeds/01_seed_core_game_data.sql` fills:
 
@@ -227,7 +244,7 @@ LR2 demonstration procedures such as `show_creatures`, `show_tasks`, `show_mutat
 
 Smoke-test `02_seed_data_smoke_test.sql` checks reference data, non-null `tasks.difficulty_code`, and seed relationship consistency.
 
-## 11. Python GUI Integration
+## 12. Python GUI Integration
 
 Python GUI remains a display/client layer:
 

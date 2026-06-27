@@ -230,7 +230,7 @@ This smoke-test validates the tasks block end-to-end:
 - completion and rewards (`complete_task`) with lab stats update;
 - repeat completion protection (`-20064`) and negative checks for invalid IDs/lab ownership.
 
-After successful `01..06` smoke-tests, the full PL/SQL backend MVP is covered by baseline smoke checks.
+After successful `01..06` smoke-tests, the baseline PL/SQL backend MVP is covered by smoke checks. Continue with `07..10` for strict compliance, sessions, LR2 API compatibility, and rating event history.
 
 ## 11) Run strict compliance smoke-test
 
@@ -262,6 +262,7 @@ This smoke-test validates strict multiuser/session behavior:
 
 ```sql
 @database/tests/09_lr2_package_api_compat_smoke_test.sql
+@database/tests/10_rating_events_smoke_test.sql
 ```
 
 This smoke-test validates LR2-compatible public package methods that are kept as wrappers over the current implementation:
@@ -276,7 +277,21 @@ This smoke-test validates LR2-compatible public package methods that are kept as
 - `show_mutation_history`;
 - no-argument `show_mutation_shop`.
 
-## 14) Inspect compile errors via USER_ERRORS
+## 14) Run rating events smoke-test
+
+```sql
+@database/tests/10_rating_events_smoke_test.sql
+```
+
+This smoke-test validates the explainable wallet/rating event log:
+- required `ref_rating_event_types`;
+- `get_rating_events_cursor`;
+- `MUTATION_PURCHASE`, `TASK_REWARD`, and `MUTAGEN_PENALTY` events;
+- event deltas matching aggregate `labs.wallet` / `labs.rating` changes for the tested scenario;
+- repeat task completion does not duplicate rewards;
+- foreign lab access is blocked.
+
+## 15) Inspect compile errors via USER_ERRORS
 
 ```sql
 select
@@ -386,6 +401,7 @@ After DDL, seed, package spec, and package body are applied, run smoke-tests in 
 @database/tests/07_strict_compliance_smoke_test.sql
 @database/tests/08_multiuser_sessions_smoke_test.sql
 @database/tests/09_lr2_package_api_compat_smoke_test.sql
+@database/tests/10_rating_events_smoke_test.sql
 ```
 
 When deploying into a fresh schema, run the seed before smoke-tests.

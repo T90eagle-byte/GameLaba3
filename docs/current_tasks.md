@@ -1,50 +1,41 @@
 # Current Tasks
 
-## Текущий статус
-Первый безопасный backend/content expansion завершён и подтверждён живым Oracle-прогоном.
+## Current Stage
+Rating foundation / `rating_events` is in progress on branch `backend-rating-events`.
 
-Закрыто:
-- backend compliance audit;
-- `STANDARD_HASH` вместо `DBMS_CRYPTO`;
-- ref-tables `ref_*` и backend labels из БД;
-- LR2-compatible package API;
-- перенос прямых SQL-вызовов из `pkg_api.py` в package;
-- backend-test runner для package/seed/tests;
-- первый seed-only content expansion без DDL и без package changes.
+Goal:
+- keep `labs.wallet` and `labs.rating` as aggregate state;
+- add `rating_events` as an explainable backend log for wallet/rating changes;
+- record events inside `pkg_genetics_game`, not in Python;
+- cover the feature with `10_rating_events_smoke_test.sql`;
+- extend the default runner from `01..09` to `01..10`.
 
-## Подтверждённая контрольная точка
-- Seed через runner прошёл.
-- Smoke-test `02`: `Passed: 32`, `Failed: 0`.
-- Smoke-test `07`: `Passed: 46`, `Failed: 0`.
-- Полный Oracle smoke suite `01..09`: все тесты с `Failed: 0`.
-- Package `PKG_GENETICS_GAME`: `VALID`.
-- `user_errors`: clean.
-- Runner пригоден для локального Docker Oracle и учебного стенда.
+## Already Stable
+- Backend compliance audit is done.
+- `STANDARD_HASH` replaced `DBMS_CRYPTO`.
+- Domain refs `ref_*` are in DB.
+- LR2-compatible package API exists.
+- Direct SQL calls were removed from `pkg_api.py`.
+- First seed-only content expansion is merged into `main`.
+- Previous full Oracle smoke suite `01..09` was green before this new DDL track.
 
-## Что изменилось в content expansion
-Добавлены только данные существующей модели:
-- новые allele codes для существующих genes;
-- coherent directed mutations;
-- честные marker-based tasks;
-- fallback display labels в Python.
+## Current Scope
+Changing now:
+- DDL: `ref_rating_event_types`, `rating_events`, `rating_events_seq`;
+- seed: rating event type refs;
+- package spec/body: rating event cursor/history and event writes;
+- tests: new `10` plus reference/cleanup checks;
+- docs/README.
 
-Не менялось:
-- DDL;
-- package spec/body;
-- `pkg_api.py`;
+Not changing now:
 - PySide6 GUI/layout;
-- web-клиент.
+- web client;
+- new genes/alleles/mutations/tasks;
+- Python-side business logic.
 
-## Следующий крупный этап
-Rating foundation / `rating_events`.
-
-Цель:
-- сделать рейтинг объяснимым;
-- добавить backend-историю изменений рейтинга;
-- подготовить данные для будущего web dashboard.
-
-## Правила перед следующим этапом
-- Не начинать web-клиент одновременно с rating DDL.
-- Не переносить расчёты рейтинга в Python.
-- Не расширять контент снова без отдельной задачи.
-- DDL/package/test changes для `rating_events` делать отдельным сфокусированным коммитом.
+## Next Gate
+Before merging this branch:
+- fresh deploy or compatible migration for the new DDL;
+- package `VALID`;
+- `user_errors` clean;
+- full runner `01..10` with `Failed: 0`.

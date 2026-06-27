@@ -83,6 +83,21 @@ begin
         or (g.gene_name = 'fur_density' and g.species_type = 6 and lower(a.description) = 'soft_fur');
     assert_true(v_value = 8, 'Required content expansion allele codes exist', 'covered=' || v_value);
 
+
+    -- 2d) Rating/economy event type reference values exist
+    select count(*)
+      into v_value
+      from ref_rating_event_types ret
+     where ret.event_type in (
+            'TASK_REWARD',
+            'MUTAGEN_PENALTY',
+            'MUTATION_PURCHASE',
+            'EXPERIMENT_COST',
+            'RARE_TRAIT_BONUS',
+            'SYSTEM_ADJUSTMENT'
+       );
+    assert_true(v_value = 6, 'Rating event type ref contains 6 values', 'actual=' || v_value);
+
     -- 3) Each gene has at least 2 alleles
     select count(*)
       into v_value

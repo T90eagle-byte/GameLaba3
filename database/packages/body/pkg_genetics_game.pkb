@@ -113,6 +113,44 @@ create or replace package body pkg_genetics_game as
 
         return v_lab_id;
     end assert_creature_access;
+
+
+    procedure record_rating_event(
+        p_lab_id         in number,
+        p_event_type     in varchar2,
+        p_rating_delta   in number default 0,
+        p_wallet_delta   in number default 0,
+        p_description    in varchar2 default null,
+        p_creature_id    in number default null,
+        p_task_id        in number default null,
+        p_experiment_id  in number default null
+    ) is
+    begin
+        insert into rating_events (
+            rating_event_id,
+            lab_id,
+            creature_id,
+            task_id,
+            experiment_id,
+            event_type,
+            rating_delta,
+            wallet_delta,
+            description,
+            created_at
+        ) values (
+            rating_events_seq.nextval,
+            p_lab_id,
+            p_creature_id,
+            p_task_id,
+            p_experiment_id,
+            upper(trim(p_event_type)),
+            nvl(p_rating_delta, 0),
+            nvl(p_wallet_delta, 0),
+            substr(p_description, 1, 1000),
+            systimestamp
+        );
+    end record_rating_event;
+
     function hash_password_sha256(
     p_password in varchar2
 ) return varchar2
@@ -670,6 +708,9 @@ end hash_password_sha256;
             p_lab_id        => p_lab_id
         );
 
+        delete from rating_events re
+         where re.lab_id = p_lab_id;
+
         delete from genotypes g
          where g.creature_id in (
              select c.creature_id
@@ -789,12 +830,60 @@ end hash_password_sha256;
                     select difficulty_code as code, display_name, cast(null as number) as numeric_code
                       from ref_task_difficulties
                      order by case difficulty_code when 'EASY' then 1 when 'MEDIUM' then 2 when 'HARD' then 3 else 4 end;
+            when 'RATING_EVENT_TYPES' then
+                open v_cursor for
+                    select event_type as code, display_name, cast(null as number) as numeric_code
+                      from ref_rating_event_types
+                     order by event_type;
             else
                 raise_application_error(-20074, 'Unknown reference name.');
         end case;
 
         return v_cursor;
     end get_reference_cursor;
+
+
+
+    function get_rating_events_cursor(
+        p_session_token in varchar2,
+        p_lab_id        in number
+    ) return sys_refcursor is
+        v_cursor sys_refcursor;
+    begin
+        load_lab(
+            p_session_token => p_session_token,
+            p_lab_id        => p_lab_id
+        );
+
+        assert_lab_access(p_lab_id => p_lab_id);
+
+        open v_cursor for
+            select
+                re.rating_event_id,
+                re.lab_id,
+                re.creature_id,
+                c.creature_name,
+                re.task_id,
+                t.task_name,
+                re.experiment_id,
+                re.event_type,
+                ret.display_name as event_type_display_name,
+                re.rating_delta,
+                re.wallet_delta,
+                re.description,
+                re.created_at
+              from rating_events re
+              join ref_rating_event_types ret
+                on ret.event_type = re.event_type
+              left join creatures c
+                on c.creature_id = re.creature_id
+              left join tasks t
+                on t.task_id = re.task_id
+             where re.lab_id = p_lab_id
+             order by re.created_at desc, re.rating_event_id desc;
+
+        return v_cursor;
+    end get_rating_events_cursor;
 
     function get_creatures_cursor(
         p_lab_id         in number
@@ -1667,13 +1756,14 @@ end hash_password_sha256;
     ) return number is
         v_lab_wallet      number(12, 2);
         v_mutation_cost   number(12, 2);
+        v_mutation_name   mutations.mutation_name%type;
         v_exists_count    number;
     begin
         assert_lab_access(p_lab_id => p_lab_id);
 
         begin
-            select m.cost
-              into v_mutation_cost
+            select m.cost, m.mutation_name
+              into v_mutation_cost, v_mutation_name
               from mutations m
              where m.mutation_id = p_mutation_id;
         exception
@@ -1714,6 +1804,16 @@ end hash_password_sha256;
             );
         end if;
 
+        if nvl(v_mutation_cost, 0) <> 0 then
+            record_rating_event(
+                p_lab_id       => p_lab_id,
+                p_event_type   => 'MUTATION_PURCHASE',
+                p_rating_delta => 0,
+                p_wallet_delta => -v_mutation_cost,
+                p_description  => 'Покупка мутации: ' || v_mutation_name
+            );
+        end if;
+
         return 1;
     end buy_mutation;
 
@@ -1728,6 +1828,9 @@ end hash_password_sha256;
         v_selected_slot         pls_integer;
         v_summary               varchar2(1000);
         v_experiment_id         number;
+        v_rating_before         number(12, 2);
+        v_rating_after_update   number(12, 2);
+        v_rating_actual_delta   number(12, 2);
 
         v_wallet                number;
         v_rating                number;
@@ -1824,6 +1927,12 @@ end hash_password_sha256;
             raise_application_error(-20047, 'Failed to decrease mutation quantity.');
         end if;
 
+        select l.rating
+          into v_rating_before
+          from labs l
+         where l.lab_id = v_lab_id
+         for update;
+
         update labs l
            set l.rating = greatest(0, l.rating + nvl(v_mutation_rating_effect, 0))
          where l.lab_id = v_lab_id;
@@ -1831,6 +1940,13 @@ end hash_password_sha256;
         if sql%rowcount = 0 then
             raise_application_error(-20057, 'Lab not found.');
         end if;
+
+        select l.rating
+          into v_rating_after_update
+          from labs l
+         where l.lab_id = v_lab_id;
+
+        v_rating_actual_delta := v_rating_after_update - v_rating_before;
 
         v_experiment_id := experiments_seq.nextval;
 
@@ -1851,6 +1967,18 @@ end hash_password_sha256;
             p_creature_id,
             'MUTATION'
         );
+
+        if nvl(v_rating_actual_delta, 0) <> 0 then
+            record_rating_event(
+                p_lab_id        => v_lab_id,
+                p_event_type    => 'SYSTEM_ADJUSTMENT',
+                p_rating_delta  => v_rating_actual_delta,
+                p_wallet_delta  => 0,
+                p_description   => 'Эффект применённой мутации',
+                p_creature_id   => p_creature_id,
+                p_experiment_id => v_experiment_id
+            );
+        end if;
 
         auto_complete_matching_tasks(
             p_lab_id      => v_lab_id,
@@ -1887,6 +2015,9 @@ end hash_password_sha256;
         v_wallet_cost           number(12, 2);
         v_rating_delta          number(12, 2);
         v_lab_wallet            number(12, 2);
+        v_lab_rating_before     number(12, 2);
+        v_lab_rating_after      number(12, 2);
+        v_rating_actual_delta   number(12, 2);
         v_summary               varchar2(1000);
         v_experiment_id         number;
 
@@ -1929,8 +2060,8 @@ end hash_password_sha256;
                 raise_application_error(-20049, 'Source creature not found.');
         end;
 
-        select l.wallet
-          into v_lab_wallet
+        select l.wallet, l.rating
+          into v_lab_wallet, v_lab_rating_before
           from labs l
          where l.lab_id = v_lab_id
          for update;
@@ -1947,6 +2078,13 @@ end hash_password_sha256;
         if sql%rowcount = 0 then
             raise_application_error(-20057, 'Lab not found.');
         end if;
+
+        select l.rating
+          into v_lab_rating_after
+          from labs l
+         where l.lab_id = v_lab_id;
+
+        v_rating_actual_delta := v_lab_rating_after - v_lab_rating_before;
 
         v_new_name := substr(v_source_name || '_mutagen_' || lower(substr(rawtohex(sys_guid()), 1, 8)), 1, 255);
         p_new_creature_id := creatures_seq.nextval;
@@ -2142,6 +2280,16 @@ end hash_password_sha256;
             null,
             p_new_creature_id,
             'MUTAGEN'
+        );
+
+        record_rating_event(
+            p_lab_id        => v_lab_id,
+            p_event_type    => 'MUTAGEN_PENALTY',
+            p_rating_delta  => v_rating_actual_delta,
+            p_wallet_delta  => -v_wallet_cost,
+            p_description   => 'Применение мутагена: ' || v_mutagen_mode,
+            p_creature_id   => p_new_creature_id,
+            p_experiment_id => v_experiment_id
         );
 
         auto_complete_matching_tasks(
@@ -2495,6 +2643,16 @@ end hash_password_sha256;
             raise_application_error(-20057, 'Lab not found.');
         end if;
 
+        record_rating_event(
+            p_lab_id       => p_lab_id,
+            p_event_type   => 'TASK_REWARD',
+            p_rating_delta => nvl(v_rating_reward, 0),
+            p_wallet_delta => nvl(v_money_reward, 0),
+            p_description  => 'Награда за выполненное задание',
+            p_creature_id  => p_creature_id,
+            p_task_id      => p_task_id
+        );
+
         refill_active_tasks(
             p_lab_id        => p_lab_id,
             p_target_active => 3
@@ -2669,6 +2827,59 @@ end hash_password_sha256;
 
         v_summary := get_phenotype(p_creature_id => p_creature_id);
     end create_creature_of_type;
+
+
+
+    procedure show_rating_history(
+        p_lab_id in number
+    ) is
+        v_event_id      number;
+        v_event_type    varchar2(4000);
+        v_event_label   varchar2(4000);
+        v_rating_delta  number;
+        v_wallet_delta  number;
+        v_description   varchar2(4000);
+        v_created_at    timestamp;
+        v_cursor        sys_refcursor;
+    begin
+        assert_lab_access(p_lab_id => p_lab_id);
+
+        open v_cursor for
+            select
+                re.rating_event_id,
+                re.event_type,
+                ret.display_name,
+                re.rating_delta,
+                re.wallet_delta,
+                re.description,
+                re.created_at
+              from rating_events re
+              join ref_rating_event_types ret
+                on ret.event_type = re.event_type
+             where re.lab_id = p_lab_id
+             order by re.created_at, re.rating_event_id;
+
+        loop
+            fetch v_cursor
+             into v_event_id,
+                  v_event_type,
+                  v_event_label,
+                  v_rating_delta,
+                  v_wallet_delta,
+                  v_description,
+                  v_created_at;
+            exit when v_cursor%notfound;
+
+            dbms_output.put_line(
+                '[' || v_event_type || '] '
+                || v_event_label
+                || ': rating ' || to_char(v_rating_delta)
+                || ', wallet ' || to_char(v_wallet_delta)
+                || case when v_description is null then '' else ' - ' || v_description end
+            );
+        end loop;
+        close v_cursor;
+    end show_rating_history;
 
     procedure show_mutation_history(
         p_lab_id in number
