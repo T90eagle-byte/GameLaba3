@@ -130,6 +130,14 @@ create or replace package pkg_genetics_game as
         p_gene_id        in number
     ) return sys_refcursor;
 
+    function preview_offspring_options(
+        p_session_token  in varchar2,
+        p_lab_id         in number,
+        p_parent1_id     in number,
+        p_parent2_id     in number,
+        p_options_count  in number default 3
+    ) return sys_refcursor;
+
     procedure crossbreed(
         p_lab_id          in number,
         p_parent1_id      in number,

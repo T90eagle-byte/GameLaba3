@@ -1,7 +1,7 @@
-﻿# Current Tasks
+# Current Tasks
 
 ## Current Stage
-Ближайшая фаза — backend/docs hardening под уровень “хорошо” (4). Web-клиент пока не начинать.
+Ближайшая фаза — завершить проверку backend hardening под уровень “хорошо” (4), затем перейти к планированию web-клиента. Web-клиент пока не начинать.
 
 ## Почему не сразу web
 Backend уже стабилен и прошел финальную сверку, но перед переносом в web нужно сделать защиту требований уровня 4 максимально ясной:
@@ -9,13 +9,13 @@ Backend уже стабилен и прошел финальную сверку,
 - объяснить “эволюционную линию” как последовательность скрещиваний/мутаций до нужного фенотипа;
 - подготовить короткий demo script для пересдачи;
 - подготовить requirements cheatsheet;
-- решить, как демонстрировать 3 варианта потомства на базе текущего `calculate_punnett_probabilities` и GUI/будущего web-preview.
+- P0 по трём вариантам потомства закрыт через stateless backend API `preview_offspring_options`, который по умолчанию возвращает 3 варианта без изменения состояния лаборатории.
 
 ## Backend Checkpoint
 - `backend-rating-events` влит в `main`.
 - `rating_events` реализован как backend-журнал объяснения изменений экономики и рейтинга.
 - `labs.wallet` и `labs.rating` остаются aggregate state.
-- Полный Oracle runner `01..10` прошел с `Failed: 0`.
+- Полный Oracle runner `01..11` должен быть прогнан после hardening; предыдущий стабильный checkpoint `01..10` проходил с `Failed: 0`.
 - `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`.
 - `user_errors`: clean.
 
@@ -26,7 +26,7 @@ Backend уже стабилен и прошел финальную сверку,
 - `docs/database_map.md` описывает актуальную структуру БД, `ref_*`, `difficulty_code`, `rating_events` и package cursors.
 
 ## Не делать в текущей фазе
-- Не менять DDL, seed, package spec/body и smoke-tests.
+- Не менять DDL/seed без отдельной причины; package/test изменения допустимы только для завершения offspring preview hardening.
 - Не добавлять требования на 5: экосистему, смертность, совет по этике, закрытие лаборатории.
 - Не начинать Flask/Jinja до отдельной команды.
 - Не переносить генетику, экономику, рейтинг или задания в Python/web/frontend.

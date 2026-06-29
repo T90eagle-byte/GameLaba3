@@ -1,10 +1,10 @@
-﻿# Технический аудит backend hardening для уровня "хорошо"
+# Технический аудит backend hardening для уровня "хорошо"
 
 Дата аудита: 2026-06-29
 Ветка: `main`
 Исходная точка: `e75aee1 Подготовить материалы для защиты уровня хорошо`, `git status --short` был чистым.
 
-Этот документ фиксирует только анализ. DDL, seed, package, tests, runner и GUI в рамках аудита не изменялись.
+Этот документ начинался как анализ. После hardening P0 закрывается отдельной backend-доработкой: `preview_offspring_options` + smoke-test `11`. DDL, seed и GUI при этом не меняются.
 
 ## 1. Краткий вывод
 
@@ -21,11 +21,11 @@
 
 - “заказы клиента”: фактически это текущие `tasks`, но в UI/docs их нужно называть заказами клиента;
 - “эволюционная линия”: фактически это последовательность `CROSS`/`MUTATION`/`MUTAGEN` операций в `experiments`, ведущая к выполнению task;
-- “3 случайных варианта потомства”: сейчас backend показывает вероятности через Punnett cursor и создаёт потомка, но отдельного stateless cursor ровно на 3 preview-варианта нет.
+- “3 случайных варианта потомства”: P0 закрывается через stateless cursor `preview_offspring_options`, который по умолчанию возвращает 3 preview-варианта без создания существа.
 
 Минимальные backend/API-доработки, которые стоит сделать перед web-клиентом и защитой уровня 4:
 
-- P0: добавить backend API для preview трёх вариантов потомства без создания существа;
+- P0: backend API для preview трёх вариантов потомства без создания существа добавлен как `preview_offspring_options`;
 - P1: усилить формулировку “заказ клиента” в seed/docs/UI label без DDL;
 - P1: явно показывать `get_experiment_history` как “эволюционную линию”;
 - P2: добавить Python wrapper для нового preview API только после появления package API.
@@ -94,18 +94,19 @@
 | `calculate_punnett_probabilities(p_parent1_id, p_parent2_id, p_gene_id)` | Возвращает вероятности allele-pair вариантов для одного выбранного гена. |
 | `crossbreed(p_lab_id, p_parent1_id, p_parent2_id, p_offspring_name, p_offspring_id out)` | Создаёт реального потомка, наследует полный генотип, учитывает linkage groups, пишет `experiments`. |
 | `04_crossbreed_smoke_test.sql` | Проверяет, что Punnett cursor возвращает rows, сумма вероятностей около 1, а `crossbreed` создаёт offspring. |
-| `pkg_api.py` | Имеет wrappers для `calculate_punnett_probabilities` и `crossbreed`; preview на 3 варианта отсутствует. |
+| `pkg_api.py` | Имеет wrappers для `calculate_punnett_probabilities`, `preview_offspring_options` и `crossbreed`. |
 
 Честный ответ:
 
-- Backend сейчас возвращает вероятности вариантов, а не ровно 3 случайных preview-варианта потомства.
-- Для демонстрации можно показать вероятностную таблицу и затем выполнить несколько скрещиваний, но это не буквально “показывает 3 случайных варианта”.
-- Если преподаватель спросит строго, лучше иметь минимальный backend API для preview трёх вариантов.
+- Backend теперь возвращает ровно 3 случайных preview-варианта потомства по умолчанию через `preview_offspring_options`.
+- Вероятностная таблица по отдельному гену остаётся в `calculate_punnett_probabilities`.
+- Реальное создание потомка остаётся отдельной state-changing операцией `crossbreed`.
 
-Рекомендуемая минимальная доработка P0:
+Реализованная минимальная доработка P0:
 
 ```sql
 function preview_offspring_options(
+    p_session_token in varchar2,
     p_lab_id        in number,
     p_parent1_id    in number,
     p_parent2_id    in number,
@@ -135,7 +136,7 @@ function preview_offspring_options(
 - проверить, что parents same species, иначе ожидаемая ошибка;
 - обновить runner до `01..11`, если будет отдельный test 11.
 
-Итог: для железного закрытия буквального требования лучше сделать P0 backend-hardening с новым package cursor.
+Итог: буквальное требование по трём вариантам закрывается новым package cursor и test `11_offspring_preview_smoke_test.sql`.
 
 ## 5. Риски мутагенов и последствия
 
@@ -159,7 +160,7 @@ function preview_offspring_options(
 
 | Приоритет | Доработка | Зачем | Риск | Нужен ли DDL | Нужны ли tests |
 | --- | --- | --- | --- | --- | --- |
-| P0 | Добавить `preview_offspring_options(... default 3)` в package | Буквально закрыть “показывает 3 случайных варианта потомства” | Средний: важно не дублировать и не ломать `crossbreed` | Нет | Да, лучше `11_offspring_preview_smoke_test.sql` |
+| P0 | `preview_offspring_options(... default 3)` в package | Буквально закрыть “показывает 3 случайных варианта потомства” | Средний: важно подтвердить отсутствие side effects | Нет | Да, `11_offspring_preview_smoke_test.sql` |
 | P1 | Переименовать UI/docs блок `Задания` в “Заказы клиента” для web/demo | Чётче закрыть формулировку уровня 4 | Низкий | Нет | Нет, если только docs/UI |
 | P1 | Точечно усилить seed descriptions префиксом “Заказ клиента:” | Чтобы даже в БД формулировка выглядела как заказ | Низкий, но потребует rerun seed/tests | Нет | Да, минимум `02`, `06`, `07` |
 | P1 | Показывать `get_experiment_history` как “эволюционную линию” | Защитить адаптацию “волко-собаки” | Низкий | Нет | Нет, уже покрыто `05`, `09` |
@@ -191,4 +192,4 @@ git checkout -b backend-level4-hardening
    - без новой таблицы;
    - в web/demo показывать `get_experiment_history` как timeline.
 
-Если P0 не делать, можно переходить к `docs/web_client_plan.md`, но риск по буквальной фразе “3 случайных варианта” останется и его придётся закрывать объяснением на защите.
+После успешного runner `01..11` можно переходить к `docs/web_client_plan.md`: риск по буквальной фразе “3 случайных варианта” закрыт backend API.

@@ -1112,7 +1112,7 @@ end hash_password_sha256;
             exit when v_cursor%notfound;
 
             dbms_output.put_line(
-                '#' || v_creature_id || ' ' || nvl(v_creature_name, 'без имени') ||
+                '#' || v_creature_id || ' ' || nvl(v_creature_name, 'Р±РµР· РёРјРµРЅРё') ||
                 ' [' || nvl(v_species_display_name, to_char(v_species_type)) || '] ' ||
                 nvl(v_summary, 'Фенотип не рассчитан')
             );
@@ -1356,6 +1356,250 @@ end hash_password_sha256;
             raise_application_error(-20030, 'Genotype for selected gene is missing in one or both parents.');
     end calculate_punnett_probabilities;
 
+
+    function preview_offspring_options(
+        p_session_token  in varchar2,
+        p_lab_id         in number,
+        p_parent1_id     in number,
+        p_parent2_id     in number,
+        p_options_count  in number default 3
+    ) return sys_refcursor is
+        v_cursor               sys_refcursor;
+        v_session_id           number;
+        v_user_id              number;
+        v_lab_user_id          number;
+        v_lab_session_id       number;
+        v_parent1_species_type number;
+        v_parent2_species_type number;
+        v_gene_count           number;
+        v_options_count        pls_integer;
+    begin
+        if p_parent1_id is null or p_parent2_id is null then
+            raise_application_error(-20031, 'Both parent ids are required.');
+        end if;
+
+        if p_parent1_id = p_parent2_id then
+            raise_application_error(-20032, 'Parent ids must be different.');
+        end if;
+
+        get_active_session(
+            p_session_token => p_session_token,
+            p_session_id    => v_session_id,
+            p_user_id       => v_user_id
+        );
+
+        set_current_session_context(
+            p_user_id       => v_user_id,
+            p_session_id    => v_session_id,
+            p_session_token => p_session_token
+        );
+
+        begin
+            select l.user_id, l.session_id
+              into v_lab_user_id, v_lab_session_id
+              from labs l
+             where l.lab_id = p_lab_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20023, 'Lab not found or access denied.');
+        end;
+
+        if v_lab_user_id <> v_user_id then
+            raise_application_error(-20023, 'Lab not found or access denied.');
+        end if;
+
+        if v_lab_session_id is null or v_lab_session_id <> v_session_id then
+            raise_application_error(-20073, 'Selected lab is not active in current session.');
+        end if;
+
+        g_current_lab_id := p_lab_id;
+
+        if assert_creature_access(
+            p_creature_id     => p_parent1_id,
+            p_expected_lab_id => p_lab_id
+        ) is null then
+            null;
+        end if;
+
+        if assert_creature_access(
+            p_creature_id     => p_parent2_id,
+            p_expected_lab_id => p_lab_id
+        ) is null then
+            null;
+        end if;
+
+        begin
+            select c.species_type
+              into v_parent1_species_type
+              from creatures c
+             where c.creature_id = p_parent1_id
+               and c.lab_id = p_lab_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20034, 'Parent1 does not exist in the selected lab.');
+        end;
+
+        begin
+            select c.species_type
+              into v_parent2_species_type
+              from creatures c
+             where c.creature_id = p_parent2_id
+               and c.lab_id = p_lab_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20035, 'Parent2 does not exist in the selected lab.');
+        end;
+
+        if v_parent1_species_type <> v_parent2_species_type then
+            raise_application_error(-20036, 'Crossbreeding is allowed only for parents of the same species_type in MVP.');
+        end if;
+
+        select count(*)
+          into v_gene_count
+          from genotypes gp1
+          join genotypes gp2
+            on gp2.gene_id = gp1.gene_id
+           and gp2.creature_id = p_parent2_id
+         where gp1.creature_id = p_parent1_id;
+
+        if v_gene_count = 0 then
+            raise_application_error(-20037, 'Parents have no common genes for crossbreeding.');
+        end if;
+
+        v_options_count := least(greatest(nvl(trunc(p_options_count), 3), 1), 10);
+
+        open v_cursor for
+            with options as (
+                select level as option_no
+                  from dual
+                connect by level <= v_options_count
+            ),
+            common_genes as (
+                select
+                    gp1.gene_id,
+                    lower(g.gene_name) as gene_name,
+                    g.species_type,
+                    g.linkage_group,
+                    g.dominance_type,
+                    gp1.allele1_id as parent1_allele1_id,
+                    gp1.allele2_id as parent1_allele2_id,
+                    gp2.allele1_id as parent2_allele1_id,
+                    gp2.allele2_id as parent2_allele2_id
+                  from genotypes gp1
+                  join genotypes gp2
+                    on gp2.gene_id = gp1.gene_id
+                   and gp2.creature_id = p_parent2_id
+                  join genes g
+                    on g.gene_id = gp1.gene_id
+                 where gp1.creature_id = p_parent1_id
+            ),
+            inheritance_sides as (
+                select
+                    side_seed.option_no,
+                    side_seed.link_key,
+                    case when dbms_random.value(0, 1) < 0.5 then 1 else 2 end as parent1_side,
+                    case when dbms_random.value(0, 1) < 0.5 then 1 else 2 end as parent2_side
+                  from (
+                        select distinct
+                            o.option_no,
+                            case
+                                when cg.linkage_group is null then 'G' || to_char(cg.gene_id)
+                                else 'L' || to_char(cg.linkage_group)
+                            end as link_key
+                          from options o
+                          cross join common_genes cg
+                  ) side_seed
+            ),
+            selected_genes as (
+                select
+                    o.option_no,
+                    cg.gene_id,
+                    cg.gene_name,
+                    cg.species_type,
+                    cg.linkage_group,
+                    cg.dominance_type,
+                    case
+                        when s.parent1_side = 1 then cg.parent1_allele1_id
+                        else cg.parent1_allele2_id
+                    end as allele1_id,
+                    case
+                        when s.parent2_side = 1 then cg.parent2_allele1_id
+                        else cg.parent2_allele2_id
+                    end as allele2_id
+                  from options o
+                  join common_genes cg
+                    on 1 = 1
+                  join inheritance_sides s
+                    on s.option_no = o.option_no
+                   and s.link_key = case
+                                        when cg.linkage_group is null then 'G' || to_char(cg.gene_id)
+                                        else 'L' || to_char(cg.linkage_group)
+                                    end
+            ),
+            effective_genes as (
+                select
+                    sg.option_no,
+                    sg.gene_id,
+                    sg.gene_name,
+                    sg.species_type,
+                    sg.linkage_group,
+                    sg.allele1_id,
+                    sg.allele2_id,
+                    a1.description as allele1_description,
+                    a2.description as allele2_description,
+                    case
+                        when sg.allele1_id = sg.allele2_id then a1.description
+                        when sg.dominance_type = 'INCOMPLETE' then
+                            nvl(
+                                (
+                                    select max(am.description)
+                                      from alleles am
+                                     where am.gene_id = sg.gene_id
+                                       and am.trait_value = (a1.trait_value + a2.trait_value) / 2
+                                ),
+                                'intermediate(' || a1.description || '/' || a2.description || ')'
+                            )
+                        when sg.dominance_type = 'CODOMINANT' then a1.description || '/' || a2.description
+                        when a1.dominance > a2.dominance then a1.description
+                        when a2.dominance > a1.dominance then a2.description
+                        else a1.description
+                    end as effective_description
+                  from selected_genes sg
+                  join alleles a1
+                    on a1.allele_id = sg.allele1_id
+                  join alleles a2
+                    on a2.allele_id = sg.allele2_id
+            )
+            select
+                o.option_no,
+                v_parent1_species_type as species_type,
+                rst.display_name as species_label,
+                round(1 / v_options_count, 6) as probability,
+                substr(
+                    listagg(eg.gene_name || '=' || eg.effective_description, '; ')
+                        within group (order by eg.species_type, eg.gene_name, eg.gene_id),
+                    1,
+                    1000
+                ) as phenotype_summary,
+                substr(
+                    listagg(eg.gene_name || ':' || eg.allele1_description || '/' || eg.allele2_description, '; ')
+                        within group (order by eg.species_type, eg.gene_name, eg.gene_id),
+                    1,
+                    4000
+                ) as genotype_summary,
+                'PREVIEW_ONLY' as source_note
+              from options o
+              join ref_species_types rst
+                on rst.species_type = v_parent1_species_type
+              left join effective_genes eg
+                on eg.option_no = o.option_no
+             group by
+                o.option_no,
+                rst.display_name
+             order by o.option_no;
+
+        return v_cursor;
+    end preview_offspring_options;
     procedure auto_complete_matching_tasks(
         p_lab_id      in number,
         p_creature_id in number
@@ -2287,7 +2531,7 @@ end hash_password_sha256;
             p_event_type    => 'MUTAGEN_PENALTY',
             p_rating_delta  => v_rating_actual_delta,
             p_wallet_delta  => -v_wallet_cost,
-            p_description   => 'Применение мутагена: ' || v_mutagen_mode,
+                p_description   => 'Эффект применённой мутации',
             p_creature_id   => p_new_creature_id,
             p_experiment_id => v_experiment_id
         );
@@ -2459,7 +2703,7 @@ end hash_password_sha256;
         v_reward_money             number;
         v_reward_rating            number;
         v_difficulty_code          varchar2(100);
-        v_difficulty_display_name  varchar2(4000);
+        v_difficulty_display_name varchar2(4000);
         v_task_status              varchar2(100);
         v_task_status_display_name varchar2(4000);
         v_created_at               timestamp;
@@ -2648,7 +2892,7 @@ end hash_password_sha256;
             p_event_type   => 'TASK_REWARD',
             p_rating_delta => nvl(v_rating_reward, 0),
             p_wallet_delta => nvl(v_money_reward, 0),
-            p_description  => 'Награда за выполненное задание',
+                p_description   => 'Эффект применённой мутации',
             p_creature_id  => p_creature_id,
             p_task_id      => p_task_id
         );

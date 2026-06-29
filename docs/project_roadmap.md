@@ -1,4 +1,4 @@
-﻿# Project Roadmap: GameLR3 / «БиоСборка»
+# Project Roadmap: GameLR3 / «БиоСборка»
 
 ## Completed Stages
 
@@ -47,16 +47,20 @@
 - `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`.
 - `user_errors`: clean.
 
-## Current Stage: Level 4 Hardening
-Текущий этап — не web-клиент, а укрепление демонстрации уровня “хорошо”.
+### 8. Offspring preview hardening
+- Добавлен stateless backend API `preview_offspring_options`.
+- По умолчанию API возвращает 3 preview-варианта потомства.
+- Preview не создаёт creatures, genotypes, experiments и не меняет wallet/rating.
+- Добавлен smoke-test `11_offspring_preview_smoke_test.sql`.
+- Runner расширен до `01..11`.
+
+## Current Stage: Level 4 Hardening Verification
+Текущий этап — проверить полный Oracle runner `01..11`, убедиться в `PACKAGE VALID` / `PACKAGE BODY VALID`, затем переходить к web-client planning.
 
 Scope:
-- явно описать задания как “заказы клиента”;
-- описать “эволюционную линию” как путь через скрещивания/мутации к нужному фенотипу;
-- подготовить defense demo script;
-- подготовить requirements cheatsheet;
-- проверить демонстрацию 3 вариантов потомства;
-- не менять стабильный backend без отдельной причины.
+- подтвердить preview трёх вариантов потомства;
+- сохранить формулировки “заказы клиента” и “эволюционная линия” для защиты;
+- не начинать web до отдельного плана.
 
 ## Next Stage: Web Client Planning
 После hardening:

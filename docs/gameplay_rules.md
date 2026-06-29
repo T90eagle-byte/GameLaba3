@@ -1,4 +1,4 @@
-﻿# Gameplay Rules: GameLR3 / BioAssembly
+# Gameplay Rules: GameLR3 / BioAssembly
 
 ## Core Principle
 Gameplay logic is executed in Oracle PL/SQL through `pkg_genetics_game`.
@@ -20,9 +20,10 @@ Python GUI and future web clients only call backend API and display returned dat
 
 ## Crossbreeding
 - Player selects two parent creatures.
-- Probability preview for the selected gene is calculated by backend.
+- Stateless offspring preview is calculated by backend through `preview_offspring_options` and returns 3 options by default without creating creatures or experiments.
+- Probability preview for the selected gene is calculated by backend through `calculate_punnett_probabilities`.
 - Selected gene is only for probability preview.
-- Child inherits traits through backend operation over the full genotype.
+- Real child creation remains a separate backend operation through `crossbreed` over the full genotype.
 - For defense wording, an “evolutionary line” means a sequence of crossbreeding/mutation steps used to obtain a required phenotype.
 
 ## Mutations

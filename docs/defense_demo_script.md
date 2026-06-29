@@ -1,4 +1,4 @@
-﻿# Сценарий демонстрации проекта на защите
+# Сценарий демонстрации проекта на защите
 
 ## 1. Подготовка перед показом
 
@@ -14,7 +14,7 @@ docker compose up -d
 
 Ожидаемый результат:
 
-- runner показывает package spec/body и tests `01..10`;
+- runner показывает package spec/body и tests `01..11`;
 - все smoke-tests завершаются с `Failed: 0`;
 - `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`;
 - `user_errors`: clean.
@@ -36,7 +36,7 @@ docker compose up -d
 | 5. Признаки | Цвет, размер, крылья, питание в phenotype. | `genes`, `alleles`, `get_phenotype` | `02`, `03`, `07` |
 | 6. Генотип/фенотип | Открыть карточку существа и генотип. | `get_genotype_cursor`, `get_phenotype` | `03` |
 | 7. Заказ клиента | Открыть “Задания” и показать требуемые признаки. | `get_tasks_cursor`, `task_markers` | `06`, `07` |
-| 8. Скрещивание | Выбрать двух родителей, показать вероятности и создать потомка. | `calculate_punnett_probabilities`, `crossbreed` | `04` |
+| 8. Скрещивание | Выбрать двух родителей, показать 3 preview-варианта, вероятности и создать потомка. | `preview_offspring_options`, `calculate_punnett_probabilities`, `crossbreed` | `04`, `11` |
 
 Фраза для перехода: “На уровне 3 важно, что есть существа с признаками, генетическая модель и подбор организмов под задания. Это закрыто и проверяется backend-tests.”
 
@@ -65,9 +65,9 @@ docker compose up -d
 
 Спокойный fallback-сценарий:
 
-- backend можно доказать через runner `01..10`;
+- backend можно доказать через runner `01..11`;
 - package compile и `user_errors` показывают состояние PL/SQL;
-- smoke-tests проверяют auth/labs, generation, crossbreed, mutations, tasks, sessions, LR2 API и `rating_events`;
+- smoke-tests проверяют auth/labs, generation, crossbreed, offspring preview, mutations, tasks, sessions, LR2 API и `rating_events`;
 - PySide6 остается desktop-версией;
 - следующий этап — легкий web-клиент для старого стенда.
 
@@ -85,4 +85,4 @@ docker compose up -d
 
 ## 7. Финальная фраза
 
-“Основной упор сделан на корректную backend-логику: данные нормализованы, правила реализованы в PL/SQL package, доступы разделены по сессиям, а ключевые сценарии покрыты smoke-tests `01..10`.”
+“Основной упор сделан на корректную backend-логику: данные нормализованы, правила реализованы в PL/SQL package, доступы разделены по сессиям, а ключевые сценарии покрыты smoke-tests `01..11`.”
