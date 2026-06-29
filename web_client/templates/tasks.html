@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Заказы клиента — БиоСборка{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Заказы клиента</h1>
+    <p>Каждый заказ описывает организм с заданными признаками. Пользователь подбирает существ через скрещивания и мутации, а проверку выполняет backend package.</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('dashboard') }}">К dashboard</a>
+</section>
+
+<section class="panel">
+  <h2>Активные заказы</h2>
+  {% if active_tasks %}
+    <div class="task-list">
+      {% for task in active_tasks %}
+        <article class="task-card">
+          <div class="entity-card-header">
+            <h3>{{ task.task_display_name or task.task_name }}</h3>
+            <span class="badge status-active">{{ task.task_status_display_name or task.task_status }}</span>
+          </div>
+          <p>{{ task.description }}</p>
+          <div class="badge-row">
+            <span class="badge">Сложность: {{ task.difficulty_display_name or task.difficulty_code }}</span>
+            <span class="badge">Кошелёк +{{ task.reward_money }}</span>
+            <span class="badge">Рейтинг +{{ task.reward_rating }}</span>
+          </div>
+          <form class="task-actions" method="post" action="{{ url_for('tasks') }}">
+            <input type="hidden" name="task_id" value="{{ task.task_id }}">
+            <label>
+              <span>Существо для проверки</span>
+              <select name="creature_id" required>
+                <option value="">Выберите существо</option>
+                {% for creature in creatures %}
+                  <option value="{{ creature.creature_id }}">
+                    #{{ creature.creature_id }} — {{ creature.creature_name or creature.species_display_name or creature.species_type }}
+                  </option>
+                {% endfor %}
+              </select>
+            </label>
+            <div class="button-row">
+              <button type="submit" name="action" value="check">Проверить</button>
+              <button class="secondary" type="submit" name="action" value="complete">Выполнить заказ</button>
+            </div>
+          </form>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">Активных заказов сейчас нет.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Выполненные заказы</h2>
+  {% if completed_tasks %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Заказ</th>
+            <th>Сложность</th>
+            <th>Награда</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in completed_tasks %}
+            <tr>
+              <td>{{ task.task_display_name or task.task_name }}</td>
+              <td>{{ task.difficulty_display_name or task.difficulty_code }}</td>
+              <td>+{{ task.reward_money }} / +{{ task.reward_rating }}</td>
+              <td><span class="badge status-completed">{{ task.task_status_display_name or task.task_status }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty">Выполненных заказов пока нет.</p>
+  {% endif %}
+</section>
+
+{% if other_tasks %}
+<section class="panel">
+  <h2>Другие статусы</h2>
+  <div class="badge-row">
+    {% for task in other_tasks %}
+      <span class="badge">{{ task.task_display_name or task.task_name }}: {{ task.task_status_display_name or task.task_status }}</span>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

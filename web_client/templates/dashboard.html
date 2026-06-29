@@ -10,7 +10,7 @@
 </section>
 
 <section class="stat-grid">
-  <article class="stat-card"><span>Кошелек</span><strong>{{ stats.wallet }}</strong></article>
+  <article class="stat-card"><span>Кошелёк</span><strong>{{ stats.wallet }}</strong></article>
   <article class="stat-card"><span>Рейтинг</span><strong>{{ stats.rating }}</strong></article>
   <article class="stat-card"><span>Существа</span><strong>{{ stats.creature_count }}</strong></article>
   <article class="stat-card"><span>Активные заказы</span><strong>{{ stats.active_task_count }}</strong></article>
@@ -18,15 +18,28 @@
   <article class="stat-card"><span>Эксперименты</span><strong>{{ stats.experiment_count }}</strong></article>
 </section>
 
-<section class="panel">
-  <h2>Следующие разделы</h2>
-  <div class="badge-row">
-    <span class="badge">Существа</span>
-    <span class="badge">Заказы клиента</span>
-    <span class="badge">Скрещивание</span>
-    <span class="badge">Мутации</span>
-    <span class="badge">История рейтинга</span>
-  </div>
-  <p class="muted">Эти страницы будут добавлены следующими web-этапами поверх уже готового backend API.</p>
+<section class="two-column">
+  <article class="panel">
+    <h2>Быстрые действия</h2>
+    <div class="action-grid">
+      <a class="button" href="{{ url_for('creatures') }}">Существа</a>
+      <a class="button" href="{{ url_for('tasks') }}">Заказы клиента</a>
+      <span class="button disabled">Скрещивание — скоро</span>
+      <span class="button disabled">Мутации — скоро</span>
+      <span class="button disabled">История рейтинга — скоро</span>
+    </div>
+  </article>
+
+  <article class="panel">
+    <h2>Что показать на защите</h2>
+    <div class="badge-row">
+      <span class="badge">5+ видов</span>
+      <span class="badge">Генотип и фенотип</span>
+      <span class="badge">Заказы клиента</span>
+      <span class="badge">Oracle PL/SQL backend</span>
+      <span class="badge">Smoke-tests 01..11</span>
+    </div>
+    <p class="muted">Эта web-страница только показывает результаты package API. Правила игры остаются в `pkg_genetics_game`.</p>
+  </article>
 </section>
 {% endblock %}

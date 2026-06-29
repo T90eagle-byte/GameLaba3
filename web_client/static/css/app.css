@@ -222,3 +222,143 @@ th {
 
   table { display: block; overflow-x: auto; }
 }
+
+select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.two-column {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.action-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.button.disabled {
+  border-color: var(--line);
+  background: #eef2f7;
+  color: var(--muted);
+  cursor: default;
+}
+
+.button.disabled:hover {
+  background: #eef2f7;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.entity-card,
+.task-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.entity-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.entity-card-header h2,
+.entity-card-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.summary {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.compact-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.compact-facts div {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.compact-facts dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.compact-facts dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+.detail-panel {
+  margin-bottom: 18px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.task-list {
+  display: grid;
+  gap: 14px;
+}
+
+.task-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.empty-state {
+  text-align: center;
+}
+
+.status-active {
+  border-color: #a7d8c4;
+  color: var(--success);
+}
+
+.status-completed {
+  border-color: #b7c5e8;
+  color: #3156a3;
+}
+
+@media (max-width: 680px) {
+  .entity-card-header,
+  .button-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .compact-facts { grid-template-columns: 1fr; }
+}

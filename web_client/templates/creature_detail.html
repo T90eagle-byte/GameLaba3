@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Карточка существа — БиоСборка{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>{{ creature.creature_name or ('Существо #' ~ creature.creature_id) }}</h1>
+    <p><span class="badge">{{ creature.species_display_name or creature.species_type }}</span></p>
+  </div>
+  <a class="button secondary" href="{{ url_for('creatures') }}">Назад к существам</a>
+</section>
+
+<section class="panel detail-panel">
+  <h2>Фенотип</h2>
+  <p class="summary">{{ creature.phenotype_summary or 'Фенотип рассчитан backend package.' }}</p>
+  <div class="badge-row">
+    <span class="badge">Цвет: {{ creature.phenotype_color or '—' }}</span>
+    <span class="badge">Размер: {{ creature.phenotype_size or '—' }}</span>
+    <span class="badge">Крылья: {{ creature.phenotype_has_wings or '—' }}</span>
+    <span class="badge">Питание: {{ creature.phenotype_nutrition_type or '—' }}</span>
+  </div>
+  <p class="muted">Фенотип и генотип рассчитываются backend-логикой Oracle PL/SQL.</p>
+</section>
+
+<section class="panel">
+  <h2>Генотип</h2>
+  {% if genotype %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ген</th>
+            <th>Тип</th>
+            <th>Доминирование</th>
+            <th>Аллель 1</th>
+            <th>Аллель 2</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in genotype %}
+            <tr>
+              <td>{{ row.gene_display_name or row.gene_name }}</td>
+              <td>{{ row.gene_type_display_name or row.gene_type }}</td>
+              <td>{{ row.dominance_display_name or row.dominance_type }}</td>
+              <td>{{ row.allele1_display_name or row.allele1_trait_value }}</td>
+              <td>{{ row.allele2_display_name or row.allele2_trait_value }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty">Генотип не найден.</p>
+  {% endif %}
+</section>
+{% endblock %}

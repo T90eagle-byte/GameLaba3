@@ -46,3 +46,13 @@ Web не считает генетику, задания, рейтинг или 
 - Не добавлять экосистему, смертность, совет по этике или закрытие лаборатории.
 - Не переносить бизнес-логику в Python/web/frontend.
 - Не менять DDL/package/seed/tests/PySide6 GUI без отдельной задачи.
+
+## Context checkpoint: web-client-creatures-orders
+
+Ветка `web-client-creatures-orders` добавляет второй практический слой web-клиента без изменения backend:
+- сервисы `creature_service` и `task_service` являются тонкими wrappers над package API;
+- routes `/creatures`, `/creatures/<id>`, `/tasks` работают поверх текущей лаборатории из Flask session;
+- “Заказы клиента” проверяются и завершаются только в Oracle PL/SQL package;
+- Flask не считает генетику, рейтинг, кошелёк и не проверяет task markers.
+
+Следующий web-этап должен быть `crossbreed + preview_offspring_options`; mutation/history/rating pages идут после него.

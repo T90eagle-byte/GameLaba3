@@ -84,3 +84,13 @@ Scope:
 - Строгие provenance tasks для BREED/MUTATE.
 - Новая волна content expansion.
 - Большие DDL-треки без отдельного плана и тестов.
+
+## Checkpoint: web creatures/orders
+
+Web-клиент перешёл от skeleton к первому демонстрационному игровому слою: список существ, карточка существа, генотип/фенотип и “Заказы клиента”. Backend при этом не менялся: Flask остаётся display-layer и вызывает только `pkg_genetics_game`.
+
+Ближайшие шаги:
+1. Web crossbreed: выбор родителей, preview 3 вариантов потомства, затем создание потомка.
+2. Web mutations: магазин, покупка, применение, мутагены RADIATION/CHEMICAL.
+3. Web history: experiments и `rating_events`.
+4. Polish: страница защиты, аккуратные тексты, README для стенда.
