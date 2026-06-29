@@ -9,7 +9,7 @@ This map reflects the current backend state:
 - `database/ddl/01_create_tables.sql`;
 - `database/packages/spec/pkg_genetics_game.pks`;
 - `database/packages/body/pkg_genetics_game.pkb`;
-- smoke-tests `database/tests/01..10_*.sql`.
+- smoke-tests `database/tests/01..11_*.sql`.
 
 If documents and implementation differ, the current DDL and public `pkg_genetics_game` API are the operational source of truth.
 

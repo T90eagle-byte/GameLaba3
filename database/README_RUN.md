@@ -230,7 +230,7 @@ This smoke-test validates the tasks block end-to-end:
 - completion and rewards (`complete_task`) with lab stats update;
 - repeat completion protection (`-20064`) and negative checks for invalid IDs/lab ownership.
 
-After successful `01..06` smoke-tests, the baseline PL/SQL backend MVP is covered by smoke checks. Continue with `07..10` for strict compliance, sessions, LR2 API compatibility, and rating event history.
+After successful `01..06` smoke-tests, the baseline PL/SQL backend MVP is covered by smoke checks. Continue with `07..11` for strict compliance, sessions, LR2 API compatibility, rating event history, and offspring preview.
 
 ## 11) Run strict compliance smoke-test
 
@@ -262,7 +262,6 @@ This smoke-test validates strict multiuser/session behavior:
 
 ```sql
 @database/tests/09_lr2_package_api_compat_smoke_test.sql
-@database/tests/10_rating_events_smoke_test.sql
 ```
 
 This smoke-test validates LR2-compatible public package methods that are kept as wrappers over the current implementation:
@@ -291,7 +290,20 @@ This smoke-test validates the explainable wallet/rating event log:
 - repeat task completion does not duplicate rewards;
 - foreign lab access is blocked.
 
-## 15) Inspect compile errors via USER_ERRORS
+## 15) Run offspring preview smoke-test
+
+```sql
+@database/tests/11_offspring_preview_smoke_test.sql
+```
+
+This smoke-test validates the stateless offspring preview added for level-4 hardening:
+- `preview_offspring_options` returns 3 options by default;
+- option rows include species, probability, phenotype summary and genotype summary;
+- preview does not create creatures, genotypes, experiments, or change wallet/rating;
+- custom option counts are bounded safely;
+- normal `crossbreed` still works after preview;
+- foreign lab access and invalid parent choices are blocked.
+## 16) Inspect compile errors via USER_ERRORS
 
 ```sql
 select
@@ -373,7 +385,7 @@ order by object_type;
 ```
 
 
-## 15) DEV-only: unlock stale ACTIVE sessions (after old GUI crash)
+## DEV-only: unlock stale ACTIVE sessions (after old GUI crash)
 
 If you still have a stale lab lock (`ORA-20072`) from an old GUI version that was closed without logout, you can close stale sessions for a specific user in dev environment:
 
@@ -402,6 +414,7 @@ After DDL, seed, package spec, and package body are applied, run smoke-tests in 
 @database/tests/08_multiuser_sessions_smoke_test.sql
 @database/tests/09_lr2_package_api_compat_smoke_test.sql
 @database/tests/10_rating_events_smoke_test.sql
+@database/tests/11_offspring_preview_smoke_test.sql
 ```
 
 When deploying into a fresh schema, run the seed before smoke-tests.

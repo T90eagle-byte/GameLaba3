@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
@@ -224,6 +224,24 @@ class PkgApi:
             finally:
                 ref_cursor.close()
 
+    def preview_offspring_options(
+        self,
+        session_token: str,
+        lab_id: int,
+        entity_a_id: int,
+        entity_b_id: int,
+        options_count: int = 3,
+    ) -> list[dict[str, Any]]:
+        with self._connection.cursor() as cursor:
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.preview_offspring_options",
+                oracledb.DB_TYPE_CURSOR,
+                [session_token, lab_id, entity_a_id, entity_b_id, options_count],
+            )
+            try:
+                return self._rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()
     def crossbreed(
         self,
         lab_id: int,
@@ -325,6 +343,3 @@ class PkgApi:
                 return self._rows_from_refcursor(ref_cursor)
             finally:
                 ref_cursor.close()
-
-
-
