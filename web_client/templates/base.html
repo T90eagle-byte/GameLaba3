@@ -13,6 +13,8 @@
       {% if is_authenticated %}
         <a href="{{ url_for('dashboard') }}">Dashboard</a>
         <a href="{{ url_for('labs') }}">Лаборатории</a>
+        <a href="{{ url_for('creatures') }}">Существа</a>
+        <a href="{{ url_for('tasks') }}">Заказы клиента</a>
         <a href="{{ url_for('health') }}">Health</a>
         <a href="{{ url_for('logout') }}">Выйти</a>
       {% else %}

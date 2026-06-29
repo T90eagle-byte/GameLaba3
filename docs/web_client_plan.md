@@ -247,3 +247,15 @@ http://127.0.0.1:8000
 - README с запуском.
 
 Следующие этапы остаются без изменений: creatures/tasks, crossbreed preview, mutations, experiments/rating events и polish.
+
+## 15. Реализация Web-этапа 3: Creatures / Client Orders
+
+Сделан слой “creatures/tasks”:
+- `web_client/services/creature_service.py` вызывает `load_lab`, `get_creatures_cursor`, `get_genotype_cursor`;
+- `web_client/services/task_service.py` вызывает `load_lab`, `get_tasks_cursor`, `check_task`, `complete_task`;
+- `/creatures` показывает список существ текущей лаборатории;
+- `/creatures/<id>` показывает фенотип и таблицу генотипа;
+- `/tasks` оформляет задания как “Заказы клиента” и отправляет проверку/выполнение в package API;
+- dashboard получил быстрые переходы и защитный блок.
+
+Осталось по плану: crossbreed UI с preview 3 вариантов, затем mutations/experiments/rating events.

@@ -15,7 +15,7 @@ from flask import (
 )
 
 from config import load_config
-from services import auth_service, lab_service
+from services import auth_service, creature_service, lab_service, task_service
 from services.oracle import ServiceError, check_connection
 
 
@@ -43,6 +43,14 @@ def create_app() -> Flask:
             "is_authenticated": bool(session.get("session_token")),
             "current_lab_id": session.get("current_lab_id"),
         }
+
+    def selected_lab_id() -> int | None:
+        try:
+            lab_id = int(session.get("current_lab_id") or 0)
+        except (TypeError, ValueError):
+            session.pop("current_lab_id", None)
+            return None
+        return lab_id or None
 
     @app.route("/")
     def index() -> Any:
@@ -153,23 +161,136 @@ def create_app() -> Flask:
     @login_required
     def dashboard() -> Any:
         token = str(session["session_token"])
-        lab_id = session.get("current_lab_id")
+        lab_id = selected_lab_id()
         if not lab_id:
             flash("Сначала откройте лабораторию.", "warning")
             return redirect(url_for("labs"))
 
         try:
-            stats = lab_service.get_lab_stats(token, int(lab_id))
-        except (TypeError, ValueError):
-            session.pop("current_lab_id", None)
-            flash("Некорректная лаборатория в текущей сессии.", "error")
-            return redirect(url_for("labs"))
+            stats = lab_service.get_lab_stats(token, lab_id)
         except ServiceError as exc:
             session.pop("current_lab_id", None)
             flash(str(exc), "error")
             return redirect(url_for("labs"))
 
         return render_template("dashboard.html", stats=stats, lab_id=lab_id)
+
+    @app.route("/creatures")
+    @login_required
+    def creatures() -> Any:
+        token = str(session["session_token"])
+        lab_id = selected_lab_id()
+        if not lab_id:
+            flash("Сначала выберите лабораторию.", "warning")
+            return redirect(url_for("labs"))
+
+        try:
+            creatures_rows = creature_service.get_creatures(token, lab_id)
+        except ServiceError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("labs"))
+
+        return render_template("creatures.html", creatures=creatures_rows, lab_id=lab_id)
+
+    @app.route("/creatures/<int:creature_id>")
+    @login_required
+    def creature_detail(creature_id: int) -> Any:
+        token = str(session["session_token"])
+        lab_id = selected_lab_id()
+        if not lab_id:
+            flash("Сначала выберите лабораторию.", "warning")
+            return redirect(url_for("labs"))
+
+        try:
+            creature = creature_service.get_creature_detail(token, lab_id, creature_id)
+            if not creature:
+                flash("Существо не найдено в текущей лаборатории.", "warning")
+                return redirect(url_for("creatures"))
+            genotype = creature_service.get_genotype(token, creature_id, lab_id)
+        except ServiceError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("creatures"))
+
+        return render_template(
+            "creature_detail.html",
+            creature=creature,
+            genotype=genotype,
+            lab_id=lab_id,
+        )
+
+    @app.route("/tasks", methods=["GET", "POST"])
+    @login_required
+    def tasks() -> Any:
+        token = str(session["session_token"])
+        lab_id = selected_lab_id()
+        if not lab_id:
+            flash("Сначала выберите лабораторию.", "warning")
+            return redirect(url_for("labs"))
+
+        if request.method == "POST":
+            action = request.form.get("action", "")
+            try:
+                task_id = int(request.form.get("task_id", "0"))
+                creature_id = int(request.form.get("creature_id", "0"))
+                if task_id <= 0 or creature_id <= 0:
+                    raise ValueError
+
+                if action == "check":
+                    result = task_service.check_task(token, lab_id, task_id, creature_id)
+                    if result:
+                        flash("Существо подходит под заказ клиента.", "success")
+                    else:
+                        flash("Пока не подходит: backend не подтвердил выполнение заказа.", "warning")
+                    return redirect(url_for("tasks"))
+
+                if action == "complete":
+                    result = task_service.complete_task(token, lab_id, task_id, creature_id)
+                    if result["is_completed"]:
+                        flash(
+                            "Заказ выполнен. Кошелёк: "
+                            f"{result['wallet_after']}, рейтинг: {result['rating_after']}.",
+                            "success",
+                        )
+                    else:
+                        flash("Заказ не выполнен: backend не подтвердил выбранное существо.", "warning")
+                    return redirect(url_for("tasks"))
+
+                flash("Неизвестное действие с заказом.", "error")
+            except (TypeError, ValueError):
+                flash("Выберите заказ и существо перед действием.", "error")
+            except ServiceError as exc:
+                flash(str(exc), "error")
+
+            return redirect(url_for("tasks"))
+
+        try:
+            tasks_rows = task_service.get_tasks(token, lab_id)
+            creatures_rows = creature_service.get_creatures(token, lab_id)
+        except ServiceError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("dashboard"))
+
+        active_tasks = [
+            task for task in tasks_rows
+            if str(task.get("task_status", "")).upper() == "ACTIVE"
+        ]
+        completed_tasks = [
+            task for task in tasks_rows
+            if str(task.get("task_status", "")).upper() == "COMPLETED"
+        ]
+        other_tasks = [
+            task for task in tasks_rows
+            if task not in active_tasks and task not in completed_tasks
+        ]
+
+        return render_template(
+            "tasks.html",
+            active_tasks=active_tasks,
+            completed_tasks=completed_tasks,
+            other_tasks=other_tasks,
+            creatures=creatures_rows,
+            lab_id=lab_id,
+        )
 
     @app.route("/health")
     def health() -> Any:

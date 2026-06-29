@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Существа — БиоСборка{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Существа лаборатории</h1>
+    <p>Коллекция берётся из `pkg_genetics_game.get_creatures_cursor`.</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('dashboard') }}">К dashboard</a>
+</section>
+
+{% if creatures %}
+<section class="card-grid">
+  {% for creature in creatures %}
+    <article class="entity-card">
+      <div class="entity-card-header">
+        <h2>{{ creature.creature_name or ('Существо #' ~ creature.creature_id) }}</h2>
+        <span class="badge">{{ creature.species_display_name or creature.species_type }}</span>
+      </div>
+      <p class="summary">{{ creature.phenotype_summary or 'Фенотип будет рассчитан backend-логикой.' }}</p>
+      <dl class="compact-facts">
+        <div><dt>ID</dt><dd>{{ creature.creature_id }}</dd></div>
+        <div><dt>Цвет</dt><dd>{{ creature.phenotype_color or '—' }}</dd></div>
+        <div><dt>Размер</dt><dd>{{ creature.phenotype_size or '—' }}</dd></div>
+        <div><dt>Питание</dt><dd>{{ creature.phenotype_nutrition_type or '—' }}</dd></div>
+      </dl>
+      <a class="button secondary" href="{{ url_for('creature_detail', creature_id=creature.creature_id) }}">Подробнее</a>
+    </article>
+  {% endfor %}
+</section>
+{% else %}
+  <section class="panel empty-state">
+    <h2>Существ пока нет</h2>
+    <p>Создайте или откройте лабораторию, чтобы backend сгенерировал стартовую популяцию.</p>
+  </section>
+{% endif %}
+{% endblock %}
