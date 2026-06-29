@@ -49,35 +49,33 @@
 - Preview не создает creatures, genotypes, experiments и не меняет wallet/rating.
 - Добавлен smoke-test `11_offspring_preview_smoke_test.sql`.
 - Runner расширен до `01..11`.
-- Ветка `backend-offspring-preview` влита в `main` merge-коммитом `81d8293`.
-- Полный Oracle runner `01..11` прошел с `Failed: 0`.
-- `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`.
-- `user_errors`: clean.
 
-## Current Stage: Web Client Planning
-Текущий этап — планирование легкого web-клиента без реализации кода.
+### 9. Web Client Skeleton
+- Создан `web_client/` на Flask/Jinja.
+- Добавлены config, Oracle connection layer и thin services.
+- Реализованы routes `/health`, `/register`, `/login`, `/logout`, `/labs`, `/dashboard`.
+- Web использует package API и не содержит gameplay logic.
 
-Цель этапа:
-- создать и поддерживать `docs/web_client_plan.md`;
-- зафиксировать Flask/Jinja как простой server-side web поверх `pkg_genetics_game`;
-- описать страницы, маршруты, service-layer и демонстрационный flow;
-- сохранить бизнес-логику в Oracle PL/SQL.
+## Current Stage: Web Creatures / Tasks
+Следующий этап — расширить web-клиент страницами существ и заказов клиента.
 
-## Next Stage: Minimal Flask/Jinja Skeleton
-После утверждения плана:
-1. Создать `web_client/` skeleton.
-2. Реализовать config и Oracle connection helper через `.env`.
-3. Добавить login/register/logout.
-4. Добавить labs/dashboard.
-5. Постепенно подключить creatures, tasks, crossbreed preview, mutations, experiments и rating events.
+Scope:
+- creatures list;
+- creature detail genotype/phenotype;
+- tasks page как “Заказы клиента”;
+- без изменения backend.
+
+## Next Stage: Crossbreed Preview UI
+После creatures/tasks подключить страницу скрещивания:
+- выбрать родителей;
+- показать 3 варианта через `preview_offspring_options`;
+- создать потомка через `crossbreed`.
 
 ## Web Strategy
 - Flask/Jinja предпочтительнее React/Vue для слабого учебного стенда.
 - Интерфейс должен быть простым, быстрым и переносимым.
 - Web server вызывает только package API.
 - Frontend отображает данные и не считает генетику, экономику, рейтинг или задания.
-- `rating_events` используется для объяснимой истории рейтинга/кошелька.
-- `preview_offspring_options` используется для показа 3 вариантов потомства перед реальным `crossbreed`.
 - PySide6 GUI остается в проекте как desktop-версия.
 
 ## Postponed

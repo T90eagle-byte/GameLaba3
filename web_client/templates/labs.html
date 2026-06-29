@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Лаборатории — БиоСборка{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Лаборатории</h1>
+    <p>Создание и открытие лабораторий выполняется через package `pkg_genetics_game`.</p>
+  </div>
+  <form method="post">
+    <input type="hidden" name="action" value="create">
+    <button type="submit">Создать лабораторию</button>
+  </form>
+</section>
+
+<section class="panel">
+  {% if labs %}
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Кошелек</th>
+          <th>Рейтинг</th>
+          <th>Существа</th>
+          <th>Активные заказы</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lab in labs %}
+          <tr>
+            <td>#{{ lab.lab_id }}</td>
+            <td>{{ lab.wallet }}</td>
+            <td>{{ lab.rating }}</td>
+            <td>{{ lab.creature_count }}</td>
+            <td>{{ lab.active_task_count }}</td>
+            <td>
+              <form method="post" class="inline-form">
+                <input type="hidden" name="action" value="open">
+                <input type="hidden" name="lab_id" value="{{ lab.lab_id }}">
+                <button type="submit">Открыть</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">Лабораторий пока нет. Создайте первую лабораторию.</p>
+  {% endif %}
+</section>
+{% endblock %}

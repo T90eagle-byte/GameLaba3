@@ -237,3 +237,13 @@ http://127.0.0.1:8000
 - Не добавлять требования уровня 5.
 - Не делать realtime ecosystem.
 - Не подключать браузер напрямую к Oracle.
+## 14. Реализация Web-этапа 1–2
+
+Создан минимальный skeleton `web_client/`:
+- config и Oracle connection layer;
+- thin wrappers `auth_service` и `lab_service`;
+- routes `/health`, `/register`, `/login`, `/logout`, `/labs`, `/dashboard`;
+- Jinja templates и простой CSS без внешних CDN;
+- README с запуском.
+
+Следующие этапы остаются без изменений: creatures/tasks, crossbreed preview, mutations, experiments/rating events и polish.

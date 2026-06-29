@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — БиоСборка{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Dashboard лаборатории #{{ lab_id }}</h1>
+    <p>Статистика получена из Oracle package. Web-клиент ничего не пересчитывает сам.</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('labs') }}">Сменить лабораторию</a>
+</section>
+
+<section class="stat-grid">
+  <article class="stat-card"><span>Кошелек</span><strong>{{ stats.wallet }}</strong></article>
+  <article class="stat-card"><span>Рейтинг</span><strong>{{ stats.rating }}</strong></article>
+  <article class="stat-card"><span>Существа</span><strong>{{ stats.creature_count }}</strong></article>
+  <article class="stat-card"><span>Активные заказы</span><strong>{{ stats.active_task_count }}</strong></article>
+  <article class="stat-card"><span>Выполнено заказов</span><strong>{{ stats.completed_task_count }}</strong></article>
+  <article class="stat-card"><span>Эксперименты</span><strong>{{ stats.experiment_count }}</strong></article>
+</section>
+
+<section class="panel">
+  <h2>Следующие разделы</h2>
+  <div class="badge-row">
+    <span class="badge">Существа</span>
+    <span class="badge">Заказы клиента</span>
+    <span class="badge">Скрещивание</span>
+    <span class="badge">Мутации</span>
+    <span class="badge">История рейтинга</span>
+  </div>
+  <p class="muted">Эти страницы будут добавлены следующими web-этапами поверх уже готового backend API.</p>
+</section>
+{% endblock %}
