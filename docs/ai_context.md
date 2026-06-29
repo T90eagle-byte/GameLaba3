@@ -1,4 +1,4 @@
-﻿# AI Context: GameLR3 / «БиоСборка»
+# AI Context: GameLR3 / «БиоСборка»
 
 ## Workspace
 - Актуальный workspace: `C:\GameLR3`.
@@ -10,7 +10,7 @@
 - Backend реализован на Oracle PL/SQL.
 - Центральный backend API: `pkg_genetics_game`.
 - Python/PySide6 остается client/display-layer: не считает генетику, мутации, задания, экономику или рейтинг.
-- Будущий переносимый клиент должен быть web-клиентом через браузер, но web-клиент пока не начат.
+- Будущий переносимый клиент должен быть web-клиентом через браузер, но web-код пока не начат.
 - Бизнес-логика должна оставаться в Oracle PL/SQL package.
 
 ## Причина будущего web-клиента
@@ -30,38 +30,42 @@ Backend-фаза завершена и зафиксирована в `main`.
 - Прямые SQL-запросы к игровым таблицам убраны из `pkg_api.py`.
 - Первый seed-only backend/content expansion выполнен.
 - `rating_events` реализован как explainable log для изменений `labs.wallet` и `labs.rating`.
+- Stateless API `preview_offspring_options` добавлен и по умолчанию возвращает ровно 3 preview-варианта потомства.
 - `database/scripts/run_tests.py` запускает package/seed/tests через `python-oracledb`, читает подключение из `python_client/.env`, поддерживает `ORACLE_SERVICE` и `ORACLE_SID`.
 
 ## Финальная сверка backend
 - Главный актуальный документ по соответствию backend требованиям: `docs/backend_final_requirements_review.md`.
 - Аудит уровней 3/4/5: `docs/grade_requirements_audit.md`.
+- Аудит hardening уровня 4: `docs/level4_backend_hardening_review.md`.
 - Уровень 3 закрыт уверенно.
-- Уровень 4 закрыт в основном, но перед web-этапом нужно укрепить защитные формулировки и демонстрацию вокруг “заказов клиента” и “эволюционных линий”.
+- Уровень 4 закрыт железно и защищаемо: есть сложная генетика, неполное доминирование, кодоминирование, сцепленные гены, мутации, мутагены RADIATION/CHEMICAL, риск через wallet/rating, последствия через `rating_events`, задания как “заказы клиента”, эволюционная линия как путь через эксперименты и preview трёх вариантов потомства.
 - Уровень 5 не заявлять как реализованный.
 
-Подтвержденные проверки после rating-events:
-- Полный Oracle runner `01..10` прошел с `Failed: 0`.
+Подтвержденные проверки после offspring-preview hardening:
+- Ветка `backend-offspring-preview` влита в `main` merge-коммитом `81d8293`.
+- Полный Oracle runner `01..11` прошел с `Failed: 0`.
 - `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`.
 - `user_errors`: clean.
 
 ## Текущая ближайшая фаза
-Сначала не web. Ближайшая фаза: hardening уровня 4 без изменения стабильного backend.
+Backend hardening уровня 4 завершен. Ближайшая фаза — проектирование легкого web-клиента без реализации web-кода в этом checkpoint.
 
-Цели hardening:
-- явно оформить задания как “заказы клиента” в документах/демо;
-- описать “эволюционную линию” как последовательность скрещиваний и мутаций для получения нужного фенотипа;
-- подготовить defense demo script;
-- подготовить requirements cheatsheet для уровней 3/4/5;
-- проверить, как лучше показать 3 варианта потомства через текущие probabilities/preview.
+Цели web planning:
+- создать `docs/web_client_plan.md`;
+- зафиксировать Flask/Jinja как простой server-side web поверх `pkg_genetics_game`;
+- описать маршруты, страницы, сервисы и демонстрационный flow;
+- сохранить правило: web не считает генетику, экономику, рейтинг и задания.
 
-## Следующая фаза после hardening
-1. Создать `docs/web_client_plan.md`.
-2. Спроектировать простой web-client architecture поверх `pkg_genetics_game`.
-3. Затем сделать минимальный Flask/Jinja web-каркас.
+## Следующая фаза после плана
+1. Реализовать минимальный Flask/Jinja skeleton.
+2. Подключить auth/labs/dashboard.
+3. Добавить creatures/tasks/crossbreed с preview трёх вариантов.
+4. Добавить mutations/experiments/rating events.
+5. Подготовить запуск на слабом учебном стенде.
 
 ## Важные ограничения
 - Не реализовывать требования на 5 сейчас.
 - Не добавлять экосистему, смертность, совет по этике или закрытие лаборатории.
-- Не начинать web-клиент без отдельного плана.
+- Не начинать web-реализацию без отдельной задачи.
 - Не переносить бизнес-логику в Python/web/frontend.
 - Не менять DDL/package/seed/tests/PySide6 GUI без отдельной задачи.

@@ -1,10 +1,10 @@
-﻿# Финальная сверка backend с требованиями ЛР1/ЛР2
+# Финальная сверка backend с требованиями ЛР1/ЛР2
 
 Дата аудита: 2026-06-28  
 Ветка: `main`  
 Рабочая папка: `C:\GameLR3`  
 Начальное состояние: `git status --short` был чистым.  
-Состояние веток: `backend-rating-events` влит в `main` коммитом `ab97b47 Merge branch 'backend-rating-events'`.
+Состояние веток: `backend-rating-events` влит в `main` коммитом `ab97b47 Merge branch 'backend-rating-events'`; `backend-offspring-preview` влит в `main` коммитом `81d8293 Merge branch 'backend-offspring-preview'`.
 
 ## Краткий вывод
 
@@ -17,7 +17,8 @@ Backend в текущем состоянии в целом соответств�
 - справочники: доменные enum-значения вынесены в `ref_*` tables и связаны FK;
 - LR2-compatible API: все методы из спецификации ЛР2 есть в package spec/body;
 - explainable economy/rating: `rating_events` добавлен как журнал объяснения изменений `labs.wallet` и `labs.rating`;
-- smoke-tests: runner запускает package и tests `01..10`, свежий прогон прошел с `Failed: 0`.
+- smoke-tests: runner запускает package и tests `01..11`, свежий прогон прошел с `Failed: 0`;
+- offspring preview: `preview_offspring_options` закрывает буквальное требование трех вариантов потомства без side effects.
 
 Оставшиеся риски не блокируют backend, но важны перед защитой:
 
@@ -156,16 +157,14 @@ Python не считает:
 
 Устарело или требует cleanup:
 
-- `docs/current_tasks.md` все еще говорит, что `rating_events` in progress on branch `backend-rating-events`, хотя ветка влита в `main` и tests `01..10` свежо прошли;
-- `docs/project_roadmap.md` тоже описывает `rating_events` как current stage, а не completed stage;
-- `docs/ai_context.md` и старый `docs/backend_compliance_audit.md` содержат mojibake и местами старые сведения про `01..09` до rating-events track;
+- `docs/current_tasks.md`, `docs/project_roadmap.md` и `docs/ai_context.md` актуализированы после offspring-preview hardening;
 - старый `backend_compliance_audit.md` полезен как historical audit, но не должен быть последним документом перед сдачей.
 
 Что не найдено как проблема в коде:
 
 - `DBMS_CRYPTO` и `UTL_I18N` не требуются package body;
 - `STANDARD_HASH` используется для password hash;
-- runner включает `01..10`;
+- runner включает `01..11`;
 - DDL содержит ref tables и FK для доменных справочников.
 
 ## Test coverage
@@ -182,6 +181,7 @@ Python не считает:
 | `08_multiuser_sessions_smoke_test.sql` | multiuser/session isolation and one-active-lab behavior | OK smoke |
 | `09_lr2_package_api_compat_smoke_test.sql` | LR2 wrappers/helpers and demo procedures | OK compat smoke |
 | `10_rating_events_smoke_test.sql` | rating event refs/table/cursor, event deltas, foreign access | OK feature smoke |
+| `11_offspring_preview_smoke_test.sql` | stateless preview, default 3 options, no side effects, access blocks | OK feature smoke |
 
 Blind spots:
 
@@ -190,11 +190,11 @@ Blind spots:
 - web API contract tests do not exist yet because web stage has not started;
 - strict task provenance types FIND/BREED/MUTATE are intentionally postponed.
 
-Свежий Oracle-прогон во время этого аудита:
+Свежий Oracle-прогон после offspring-preview hardening:
 
-- `database/scripts/run_tests.py --dry-run`: includes package spec/body and tests `01..10`;
+- `database/scripts/run_tests.py --dry-run`: includes package spec/body and tests `01..11`;
 - `database/scripts/run_tests.py`: completed successfully;
-- all tests `01..10`: `Failed: 0`;
+- all tests `01..11`: `Failed: 0`;
 - package status: `PACKAGE VALID`, `PACKAGE BODY VALID`;
 - `user_errors`: clean.
 
@@ -202,9 +202,8 @@ Blind spots:
 
 ### Critical before defense
 
-- Обновить stale context docs: `docs/current_tasks.md`, `docs/project_roadmap.md`, `docs/ai_context.md`.
-- Исправить mojibake в старых markdown-документах или явно считать `backend_final_requirements_review.md` новым source-of-truth audit.
-- Перед финальной демонстрацией еще раз прогнать runner `01..10` на стенде или локальном Oracle.
+- Перед финальной демонстрацией еще раз прогнать runner `01..11` на стенде или локальном Oracle.
+- Использовать `docs/defense_requirements_cheatsheet.md`, `docs/defense_demo_script.md` и `docs/web_client_plan.md` как актуальный комплект подготовки.
 
 ### Should fix
 
