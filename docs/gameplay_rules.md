@@ -1,12 +1,12 @@
-# Gameplay Rules: GameLR3 / BioAssembly
+﻿# Gameplay Rules: GameLR3 / BioAssembly
 
 ## Core Principle
 Gameplay logic is executed in Oracle PL/SQL through `pkg_genetics_game`.
-Python GUI only calls backend API and displays returned data.
+Python GUI and future web clients only call backend API and display returned data.
 
 ## Labs and Sessions
 - User logs in and opens a lab.
-- Lab stores creatures, mutations, tasks, and experiment history.
+- Lab stores creatures, mutations, tasks, rating/economy events, and experiment history.
 - One lab cannot be opened in another ACTIVE session.
 - Closing GUI with X should perform safe logout.
 - If an old GUI version left a stale session, dev environment can use `database/scripts/dev_unlock_stale_sessions.sql`.
@@ -23,6 +23,7 @@ Python GUI only calls backend API and displays returned data.
 - Probability preview for the selected gene is calculated by backend.
 - Selected gene is only for probability preview.
 - Child inherits traits through backend operation over the full genotype.
+- For defense wording, an “evolutionary line” means a sequence of crossbreeding/mutation steps used to obtain a required phenotype.
 
 ## Mutations
 - Mutation is a purchased directed trait change.
@@ -37,7 +38,8 @@ Python GUI only calls backend API and displays returned data.
 - CHEMICAL: cost 100, rating_delta -2.
 - Backend may auto-complete matching tasks after mutagen impact and add rewards.
 
-## Tasks
+## Tasks and Client Orders
+- Tasks are backend “client orders”: the lab must present a creature with required traits.
 - Tasks are checked by `task_markers` against selected creature traits.
 - Creature origin is not checked in the current model.
 - Simple tasks are find/tutorial goals: find, select, or present a matching creature.
@@ -53,9 +55,14 @@ Python GUI only calls backend API and displays returned data.
 ## Rating and Economy Events
 - `labs.wallet` and `labs.rating` remain the current aggregate state.
 - `rating_events` explains why those aggregates changed.
-- Backend package records events for task rewards, mutation purchases, and mutagen penalties.
+- Backend package records events for task rewards, mutation purchases, mutagen penalties, and rating adjustments.
 - Future web/GUI clients may display `get_rating_events_cursor`; they must not calculate deltas themselves.
 - `RARE_TRAIT_BONUS` is reserved for a later backend rule and is not awarded automatically yet.
+
+## Scope Boundaries
+- Requirements for grade 5 are not implemented in the current version.
+- There is no enclosure ecosystem, creature mortality, ethics council, or automatic lab closure for ethics violations.
+- Nutrition type, wallet/rating penalties, and `rating_events` are backend foundations that could support a later grade-5 track.
 
 ## First Safe Content Expansion
 - This pass extends only existing genes through seed data.

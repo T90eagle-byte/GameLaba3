@@ -1,4 +1,4 @@
-# AI Context: GameLR3 / «БиоСборка»
+﻿# AI Context: GameLR3 / «БиоСборка»
 
 ## Workspace
 - Актуальный workspace: `C:\GameLR3`.
@@ -16,7 +16,8 @@
 ## Причина будущего web-клиента
 - На учебном стенде Windows Server 2012 R2 PySide6/Qt6 ненадежен из-за ошибок загрузки `QtGui/QtWidgets`.
 - Desktop GUI не удалять: он остается локальной desktop-версией.
-- Для пересдачи и переносимости следующий клиентский трек должен идти через браузер.
+- Для пересдачи и переносимости будущий клиент должен работать через браузер.
+- Для слабого стенда предпочтителен простой Flask/Jinja интерфейс без тяжелого frontend-фреймворка.
 
 ## Закрытая backend-фаза
 Backend-фаза завершена и зафиксирована в `main`.
@@ -30,33 +31,37 @@ Backend-фаза завершена и зафиксирована в `main`.
 - Первый seed-only backend/content expansion выполнен.
 - `rating_events` реализован как explainable log для изменений `labs.wallet` и `labs.rating`.
 - `database/scripts/run_tests.py` запускает package/seed/tests через `python-oracledb`, читает подключение из `python_client/.env`, поддерживает `ORACLE_SERVICE` и `ORACLE_SID`.
-- Runner корректно обрабатывает UTF-8 BOM, SQL*Plus-директивы и одиночный `/`.
 
 ## Финальная сверка backend
 - Главный актуальный документ по соответствию backend требованиям: `docs/backend_final_requirements_review.md`.
-- Старый `docs/backend_compliance_audit.md` оставлен как предварительный исторический аудит.
-- Финальная сверка зафиксировала: backend соответствует ЛР1/ЛР2 с честными адаптациями под текущую session-token модель.
+- Аудит уровней 3/4/5: `docs/grade_requirements_audit.md`.
+- Уровень 3 закрыт уверенно.
+- Уровень 4 закрыт в основном, но перед web-этапом нужно укрепить защитные формулировки и демонстрацию вокруг “заказов клиента” и “эволюционных линий”.
+- Уровень 5 не заявлять как реализованный.
 
 Подтвержденные проверки после rating-events:
 - Полный Oracle runner `01..10` прошел с `Failed: 0`.
 - `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`.
 - `user_errors`: clean.
 
-## Важные ограничения для следующего этапа
-- Не переносить бизнес-логику в Python/web/frontend.
-- Web-клиент должен вызывать server-side слой, который обращается к `pkg_genetics_game`.
-- Браузер не должен напрямую подключаться к Oracle.
-- `rating_events` — журнал объяснения изменений, не замена `labs.wallet` и `labs.rating`.
-- `display_names.py` остается fallback/display layer, не source of truth для gameplay.
+## Текущая ближайшая фаза
+Сначала не web. Ближайшая фаза: hardening уровня 4 без изменения стабильного backend.
 
-## Следующая фаза
-Следующий этап после паузы:
+Цели hardening:
+- явно оформить задания как “заказы клиента” в документах/демо;
+- описать “эволюционную линию” как последовательность скрещиваний и мутаций для получения нужного фенотипа;
+- подготовить defense demo script;
+- подготовить requirements cheatsheet для уровней 3/4/5;
+- проверить, как лучше показать 3 варианта потомства через текущие probabilities/preview.
+
+## Следующая фаза после hardening
 1. Создать `docs/web_client_plan.md`.
-2. Спроектировать минимальный web-client architecture поверх `pkg_genetics_game`.
-3. Затем делать минимальный Flask/Jinja web-каркас.
+2. Спроектировать простой web-client architecture поверх `pkg_genetics_game`.
+3. Затем сделать минимальный Flask/Jinja web-каркас.
 
-Пока не делать:
-- не начинать web-клиент без плана;
-- не добавлять новые genes/alleles/mutations/tasks;
-- не менять DDL/package/seed/tests/PySide6 GUI без отдельной задачи;
-- не переносить бизнес-логику в Python.
+## Важные ограничения
+- Не реализовывать требования на 5 сейчас.
+- Не добавлять экосистему, смертность, совет по этике или закрытие лаборатории.
+- Не начинать web-клиент без отдельного плана.
+- Не переносить бизнес-логику в Python/web/frontend.
+- Не менять DDL/package/seed/tests/PySide6 GUI без отдельной задачи.

@@ -1,4 +1,4 @@
-# Project Roadmap: GameLR3 / «БиоСборка»
+﻿# Project Roadmap: GameLR3 / «БиоСборка»
 
 ## Completed Stages
 
@@ -24,7 +24,7 @@
 - На Windows Server 2012 R2 Qt6 ненадежен, поэтому переносимый клиент планируется как browser web-client.
 - Desktop GUI не удалять.
 
-### 5. Backend audit, runner, and content expansion
+### 5. Backend audit, runner, content expansion
 - Создан предварительный `docs/backend_compliance_audit.md`.
 - Создан `docs/backend_expansion_plan.md`.
 - Добавлен `database/scripts/run_tests.py` для воспроизводимого запуска package/tests.
@@ -37,30 +37,44 @@
 - Добавлен smoke-test `10_rating_events_smoke_test.sql`.
 - Runner расширен до `01..10`.
 
-### 7. Final backend requirements review
+### 7. Final backend and grade reviews
 - Создан `docs/backend_final_requirements_review.md`.
-- Это главный актуальный документ по соответствию backend требованиям ЛР1/ЛР2.
+- Создан `docs/grade_requirements_audit.md`.
+- Уровень 3 закрыт уверенно.
+- Уровень 4 закрыт в основном, с адаптацией “эволюционных линий” под задания/многовидовую “БиоСборку”.
+- Уровень 5 не заявляется как реализованный.
 - Полный Oracle runner `01..10` прошел с `Failed: 0`.
 - `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`.
 - `user_errors`: clean.
 
-## Current Stage: Web Client Planning
-Следующая фаза — планирование web-клиента. Реализацию web-клиента начинать только после отдельного плана.
+## Current Stage: Level 4 Hardening
+Текущий этап — не web-клиент, а укрепление демонстрации уровня “хорошо”.
 
-Планируемый порядок:
+Scope:
+- явно описать задания как “заказы клиента”;
+- описать “эволюционную линию” как путь через скрещивания/мутации к нужному фенотипу;
+- подготовить defense demo script;
+- подготовить requirements cheatsheet;
+- проверить демонстрацию 3 вариантов потомства;
+- не менять стабильный backend без отдельной причины.
+
+## Next Stage: Web Client Planning
+После hardening:
 1. Создать `docs/web_client_plan.md`.
-2. Описать server-side слой поверх `pkg_genetics_game`.
+2. Спроектировать server-side слой поверх `pkg_genetics_game`.
 3. Зафиксировать, что frontend/browser не подключается к Oracle напрямую.
 4. Затем сделать минимальный Flask/Jinja web-каркас.
 
-## Architecture Rules For Web Stage
-- Бизнес-логика остается в Oracle PL/SQL.
+## Web Strategy
+- Flask/Jinja предпочтительнее React/Vue для слабого учебного стенда.
+- Интерфейс должен быть простой, быстрый и переносимый.
 - Web server вызывает только package API.
 - Frontend отображает данные и не считает генетику, экономику, рейтинг или задания.
 - `rating_events` используется для объяснимой истории рейтинга/кошелька.
 - PySide6 GUI остается в проекте как desktop-версия.
 
 ## Postponed
+- Требования на 5: экосистема, смертность, совет по этике, закрытие лаборатории.
 - Автоматические rare trait bonuses поверх зарезервированного `RARE_TRAIT_BONUS`.
 - Строгие provenance tasks для BREED/MUTATE.
 - Новая волна content expansion.
