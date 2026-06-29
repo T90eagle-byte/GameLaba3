@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Регистрация — БиоСборка{% endblock %}
+{% block content %}
+<section class="panel narrow">
+  <h1>Регистрация</h1>
+  <form method="post" class="form">
+    <label>
+      <span>Имя пользователя</span>
+      <input type="text" name="username" value="{{ username or '' }}" autocomplete="name" required>
+    </label>
+    <label>
+      <span>Логин</span>
+      <input type="text" name="login" value="{{ login or '' }}" autocomplete="username" required>
+    </label>
+    <label>
+      <span>Пароль</span>
+      <input type="password" name="password" autocomplete="new-password" required>
+    </label>
+    <button type="submit">Создать аккаунт</button>
+  </form>
+  <p class="muted">Уже есть аккаунт? <a href="{{ url_for('login') }}">Войти</a></p>
+</section>
+{% endblock %}

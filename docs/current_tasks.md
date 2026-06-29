@@ -1,45 +1,46 @@
 # Current Tasks
 
 ## Current Stage
-Backend hardening уровня “хорошо” завершен. Ветка `backend-offspring-preview` влита в `main`, P0-риск по буквальному требованию “показывает 3 случайных варианта потомства” закрыт через `preview_offspring_options`.
+Web-этап 1–2 начат: создан минимальный Flask/Jinja skeleton поверх `pkg_genetics_game`.
 
-Текущая ближайшая задача — не писать web-код, а сохранить архитектурный план легкого Flask/Jinja web-клиента в `docs/web_client_plan.md`.
+Готово в текущем web skeleton:
+- `web_client/` структура;
+- config и Oracle connection layer;
+- auth/register/login/logout;
+- labs page;
+- dashboard page;
+- `/health`;
+- простой CSS без внешних CDN и frontend build.
 
 ## Backend Checkpoint
-- `backend-rating-events` влит в `main`.
-- `backend-offspring-preview` влит в `main` merge-коммитом `81d8293`.
-- `rating_events` реализован как backend-журнал объяснения изменений экономики и рейтинга.
-- `labs.wallet` и `labs.rating` остаются aggregate state.
+- Backend не менялся на web-этапе.
+- `backend-rating-events` и `backend-offspring-preview` влиты в `main`.
 - `preview_offspring_options` возвращает 3 preview-варианта потомства по умолчанию.
-- Preview stateless: не создает creature/genotype/experiment, не меняет wallet/rating и состояние лаборатории.
-- Полный Oracle runner `01..11` прошел с `Failed: 0`.
+- Полный Oracle runner `01..11` ранее прошел с `Failed: 0`.
 - `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`.
 - `user_errors`: clean.
 
-## Что теперь закрыто для уровня 4
-- Задания можно защищаемо показывать как “заказы клиента”: backend хранит описание, rewards, difficulty и `task_markers`.
-- Эволюционная линия показывается как путь лаборатории через `experiments`, `get_experiment_history`, мутации, мутагены и завершение заказа.
-- Три варианта потомства закрыты буквально: `preview_offspring_options(... default 3)`.
-- Риски экспериментов закрыты через RADIATION/CHEMICAL, штрафы wallet/rating и `rating_events`.
+## Web Architecture Rule
+- Web-клиент является только client/display-layer.
+- Flask не считает генетику, рейтинг, кошелек или задания.
+- Игровые операции идут через `pkg_genetics_game`.
+- Единственный прямой SQL в web skeleton — технический health-check `select 1 from dual`.
 
 ## Актуальные документы
+- План web-клиента: `docs/web_client_plan.md`.
 - Главный документ по соответствию backend требованиям: `docs/backend_final_requirements_review.md`.
 - Аудит уровней оценки: `docs/grade_requirements_audit.md`.
-- Технический аудит hardening уровня 4: `docs/level4_backend_hardening_review.md`.
 - Материалы защиты: `docs/defense_requirements_cheatsheet.md`, `docs/defense_demo_script.md`.
-- План web-клиента: `docs/web_client_plan.md`.
-- `docs/backend_compliance_audit.md` является предварительным/историческим аудитом.
 
-## Следующая фаза
-1. Использовать `docs/web_client_plan.md` как контракт перед реализацией.
-2. Отдельной задачей создать минимальный Flask/Jinja skeleton.
-3. Сначала реализовать auth/labs/dashboard.
-4. Затем creatures/tasks/crossbreed с backend preview трёх вариантов.
-5. После этого добавить mutations/experiments/rating events.
+## Следующие web-этапы
+1. Creatures list и creature detail.
+2. Tasks page как “Заказы клиента”.
+3. Crossbreed page с `preview_offspring_options`.
+4. Mutations, experiments, rating events.
+5. Polish и стендовый README.
 
 ## Не делать сейчас
 - Не менять DDL/seed/package/tests/runner без отдельной причины.
 - Не добавлять требования на 5: экосистему, смертность, совет по этике, закрытие лаборатории.
-- Не начинать Flask/Jinja реализацию в docs-checkpoint.
 - Не переносить генетику, экономику, рейтинг или задания в Python/web/frontend.
 - Не удалять PySide6 GUI: он остается desktop-версией.
