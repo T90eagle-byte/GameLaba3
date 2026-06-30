@@ -66,3 +66,13 @@ Web не считает генетику, задания, рейтинг или 
 - Flask не проверяет совместимость родителей как источник истины и не считает генетику.
 
 Следующий web-трек: mutations/experiments/rating events.
+
+## Context checkpoint: web-client-mutations
+
+Ветка `web-client-mutations` добавляет route `/mutations` и service `mutation_service`:
+- магазин мутаций вызывает `show_mutation_shop`;
+- покупка вызывает `buy_mutation`;
+- directed mutation вызывает `apply_mutation`;
+- RADIATION/CHEMICAL вызывают `apply_mutagen` и могут открыть карточку созданного существа.
+
+Flask не считает стоимость, штраф, применимость или генетический эффект. Следующий web-трек: experiments/rating events.

@@ -15,7 +15,7 @@ from flask import (
 )
 
 from config import load_config
-from services import auth_service, creature_service, crossbreed_service, lab_service, task_service
+from services import auth_service, creature_service, crossbreed_service, lab_service, mutation_service, task_service
 from services.oracle import ServiceError, check_connection
 
 
@@ -362,6 +362,72 @@ def create_app() -> Flask:
             selected_parent1=selected_parent1,
             selected_parent2=selected_parent2,
             offspring_name=offspring_name,
+            lab_id=lab_id,
+        )
+    @app.route("/mutations", methods=["GET", "POST"])
+    @login_required
+    def mutations() -> Any:
+        token = str(session["session_token"])
+        lab_id = selected_lab_id()
+        if not lab_id:
+            flash("Сначала выберите лабораторию.", "warning")
+            return redirect(url_for("labs"))
+
+        if request.method == "POST":
+            action = request.form.get("action", "")
+            try:
+                if action == "buy_mutation":
+                    mutation_id = int(request.form.get("mutation_id", "0"))
+                    if mutation_id <= 0:
+                        raise ValueError
+                    result = mutation_service.buy_mutation(token, lab_id, mutation_id)
+                    if result:
+                        flash("Мутация куплена через backend package. Кошелёк обновлён backend-логикой.", "success")
+                    else:
+                        flash("Мутация не куплена: backend вернул отказ, чаще всего из-за нехватки средств.", "warning")
+                    return redirect(url_for("mutations"))
+
+                if action == "apply_mutation":
+                    creature_id = int(request.form.get("creature_id", "0"))
+                    mutation_id = int(request.form.get("mutation_id", "0"))
+                    if creature_id <= 0 or mutation_id <= 0:
+                        raise ValueError
+                    mutation_service.apply_mutation(token, lab_id, creature_id, mutation_id)
+                    flash("Мутация применена. Генотип, фенотип и рейтинг обновлены backend-логикой.", "success")
+                    return redirect(url_for("creature_detail", creature_id=creature_id))
+
+                if action == "apply_mutagen":
+                    creature_id = int(request.form.get("creature_id", "0"))
+                    mutagen_type = request.form.get("mutagen_type", "").strip().upper()
+                    if creature_id <= 0 or mutagen_type not in {"RADIATION", "CHEMICAL"}:
+                        raise ValueError
+                    new_creature_id = mutation_service.apply_mutagen(token, lab_id, creature_id, mutagen_type)
+                    flash("Мутагент применён. Проверьте изменения рейтинга, кошелька и список существ.", "success")
+                    if new_creature_id:
+                        return redirect(url_for("creature_detail", creature_id=new_creature_id))
+                    return redirect(url_for("mutations"))
+
+                flash("Неизвестное действие с мутациями.", "error")
+            except (TypeError, ValueError):
+                flash("Выберите существо и мутацию перед действием.", "error")
+            except ServiceError as exc:
+                flash(str(exc), "error")
+
+            return redirect(url_for("mutations"))
+
+        try:
+            stats = lab_service.get_lab_stats(token, lab_id)
+            creatures_rows = creature_service.get_creatures(token, lab_id)
+            shop_rows = mutation_service.get_mutation_shop(token, lab_id)
+        except ServiceError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("dashboard"))
+
+        return render_template(
+            "mutations.html",
+            stats=stats,
+            creatures=creatures_rows,
+            mutations=shop_rows,
             lab_id=lab_id,
         )
     @app.route("/health")

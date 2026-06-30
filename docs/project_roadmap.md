@@ -100,3 +100,9 @@ Web-клиент перешёл от skeleton к первому демонстр
 Web-клиент теперь закрывает ключевой демонстрационный сценарий уровня 3/4 в браузере: пользователь выбирает двух родителей, получает 3 preview-варианта потомства через backend API и отдельно создаёт реального потомка через `crossbreed`. Python не генерирует потомков и не считает генетику.
 
 Дальше по web: mutations UI, mutagens RADIATION/CHEMICAL, experiments history, rating events page, затем polish для защиты.
+
+## Checkpoint: web mutations
+
+Web-клиент теперь показывает требования уровня 4 через UI: мутации, RADIATION, CHEMICAL и риск изменения wallet/rating. Все действия идут через `pkg_genetics_game`; backend не менялся.
+
+Следующие шаги: `/experiments`, `/rating-events`, затем polish и страница защиты.

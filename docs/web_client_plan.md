@@ -270,3 +270,13 @@ http://127.0.0.1:8000
 - после создания web переходит на карточку потомка.
 
 Этот этап закрывает браузерную демонстрацию требования “показывает 3 случайных варианта потомства”.
+
+## 17. Реализация Web-этапа 5: Mutations / Mutagens
+
+Сделан слой мутаций:
+- `web_client/services/mutation_service.py` вызывает `show_mutation_shop`, `buy_mutation`, `apply_mutation`, `apply_mutagen`;
+- `/mutations` показывает wallet/rating, магазин, форму применения купленной мутации и блок мутагенов;
+- RADIATION/CHEMICAL отображаются как рискованные backend-операции;
+- после действий пользователь видит обновлённые stats или карточку изменённого/нового существа.
+
+Осталось: experiments history и `rating_events` page.

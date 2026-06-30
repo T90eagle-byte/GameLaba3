@@ -66,3 +66,16 @@ Web-этап 1–2 начат: создан минимальный Flask/Jinja s
 - preview не меняет состояние лаборатории.
 
 Следующий web-этап: мутации, мутагены RADIATION/CHEMICAL, история экспериментов и `rating_events`.
+
+## Web-этап 5: мутации и мутагены
+
+Реализован web-интерфейс `/mutations`:
+- магазин мутаций через `show_mutation_shop`;
+- покупка через `buy_mutation`;
+- применение directed mutation через `apply_mutation`;
+- мутагены `RADIATION` и `CHEMICAL` через `apply_mutagen`;
+- риск показывается через обновлённые wallet/rating из backend stats.
+
+Backend не менялся. Flask остаётся display-layer и не рассчитывает эффекты мутаций.
+
+Следующий web-этап: история экспериментов и `rating_events`, затем polish.
