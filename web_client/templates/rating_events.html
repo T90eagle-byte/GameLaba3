@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}История рейтинга — БиоСборка{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>История рейтинга и кошелька</h1>
+    <p>Здесь видно, почему изменились рейтинг и кошелёк: выполнение заказов, покупки мутаций, мутагены и штрафы. Web только показывает события, записанные backend package.</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('dashboard') }}">К dashboard</a>
+</section>
+
+{% if events %}
+<section class="panel">
+  <div class="table-wrap">
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>Событие</th>
+          <th>Рейтинг</th>
+          <th>Кошелёк</th>
+          <th>Описание</th>
+          <th>Связи</th>
+          <th>Время</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in events %}
+          <tr>
+            <td><span class="badge event-badge">{{ event.event_type_display_name or event.event_type }}</span></td>
+            <td class="delta {% if event.rating_delta > 0 %}delta-positive{% elif event.rating_delta < 0 %}delta-negative{% endif %}">{{ event.rating_delta }}</td>
+            <td class="delta {% if event.wallet_delta > 0 %}delta-positive{% elif event.wallet_delta < 0 %}delta-negative{% endif %}">{{ event.wallet_delta }}</td>
+            <td>{{ event.description or '—' }}</td>
+            <td class="muted">
+              {% if event.creature_id %}<a href="{{ url_for('creature_detail', creature_id=event.creature_id) }}">Существо #{{ event.creature_id }}</a>{% endif %}
+              {% if event.task_id %}<br>Задание #{{ event.task_id }} {{ event.task_name or '' }}{% endif %}
+              {% if event.experiment_id %}<br>Эксперимент #{{ event.experiment_id }}{% endif %}
+              {% if not event.creature_id and not event.task_id and not event.experiment_id %}—{% endif %}
+            </td>
+            <td>{{ event.created_at or '—' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% else %}
+<section class="panel empty-state">
+  <h2>Событий пока нет</h2>
+  <p>Покупки мутаций, мутагены и награды за заказы появятся здесь после действий в лаборатории.</p>
+</section>
+{% endif %}
+{% endblock %}

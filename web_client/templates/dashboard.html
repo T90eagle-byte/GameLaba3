@@ -26,7 +26,8 @@
       <a class="button" href="{{ url_for('tasks') }}">Заказы клиента</a>
       <a class="button" href="{{ url_for('crossbreed') }}">Скрещивание</a>
       <a class="button" href="{{ url_for('mutations') }}">Мутации</a>
-      <span class="button disabled">История рейтинга — скоро</span>
+      <a class="button" href="{{ url_for('experiments') }}">Эволюционная линия</a>
+      <a class="button" href="{{ url_for('rating_events') }}">История рейтинга</a>
     </div>
   </article>
 
@@ -39,6 +40,8 @@
       <span class="badge">Oracle PL/SQL backend</span>
       <span class="badge">Smoke-tests 01..11</span>
       <span class="badge">Мутации / RADIATION / CHEMICAL</span>
+      <span class="badge">Последствия через rating events</span>
+      <span class="badge">Эволюционная линия</span>
     </div>
     <p class="muted">Эта web-страница только показывает результаты package API. Правила игры остаются в `pkg_genetics_game`.</p>
   </article>

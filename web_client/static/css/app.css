@@ -469,3 +469,57 @@ select {
   flex-wrap: wrap;
   gap: 10px;
 }
+
+.timeline {
+  display: grid;
+  gap: 14px;
+}
+
+.timeline-card {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--primary);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.history-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 12px 0 0;
+}
+
+.history-facts dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.history-facts dd {
+  margin: 3px 0 0;
+  font-weight: 600;
+}
+
+.history-table td {
+  vertical-align: top;
+}
+
+.event-badge {
+  border-color: #b7c5e8;
+  color: #3156a3;
+  font-weight: 700;
+}
+
+.delta {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.delta-positive {
+  color: var(--success);
+}
+
+.delta-negative {
+  color: var(--danger);
+}
