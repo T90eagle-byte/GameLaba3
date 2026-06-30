@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Скрещивание — БиоСборка{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Скрещивание</h1>
+    <p>Сначала можно посмотреть 3 возможных варианта потомства без изменения лаборатории. Реальный потомок создаётся только после отдельного действия.</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('creatures') }}">К существам</a>
+</section>
+
+<section class="panel">
+  <form class="form" method="post" action="{{ url_for('crossbreed') }}">
+    <div class="parent-grid">
+      <label>
+        <span>Родитель 1</span>
+        <select name="parent1_id" required>
+          <option value="">Выберите родителя</option>
+          {% for creature in creatures %}
+            <option value="{{ creature.creature_id }}" {% if selected_parent1|string == creature.creature_id|string %}selected{% endif %}>
+              #{{ creature.creature_id }} — {{ creature.creature_name or creature.species_display_name or creature.species_type }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>
+        <span>Родитель 2</span>
+        <select name="parent2_id" required>
+          <option value="">Выберите родителя</option>
+          {% for creature in creatures %}
+            <option value="{{ creature.creature_id }}" {% if selected_parent2|string == creature.creature_id|string %}selected{% endif %}>
+              #{{ creature.creature_id }} — {{ creature.creature_name or creature.species_display_name or creature.species_type }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <label>
+      <span>Имя потомка</span>
+      <input name="offspring_name" value="{{ offspring_name }}" placeholder="Например: Потомок 1">
+    </label>
+
+    <input type="hidden" name="options_count" value="3">
+
+    <div class="button-row">
+      <button type="submit" name="action" value="preview">Показать 3 варианта</button>
+      <button class="secondary" type="submit" name="action" value="create">Создать потомка</button>
+    </div>
+  </form>
+  <p class="muted">Preview не создаёт существо, не создаёт эксперимент и не меняет кошелёк или рейтинг.</p>
+</section>
+
+{% if preview_options %}
+<section class="preview-section">
+  <div class="section-title">
+    <h2>Preview-варианты потомства</h2>
+    <span class="badge probability-badge">{{ preview_options|length }} варианта</span>
+  </div>
+  <div class="preview-grid">
+    {% for option in preview_options %}
+      <article class="preview-card">
+        <div class="entity-card-header">
+          <h3>Вариант {{ option.option_no }}</h3>
+          <span class="badge">{{ option.species_label or option.species_type }}</span>
+        </div>
+        <p class="summary">{{ option.phenotype_summary or 'Фенотип preview получен из backend.' }}</p>
+        {% if option.genotype_summary %}
+          <p class="genotype-preview">{{ option.genotype_summary }}</p>
+        {% endif %}
+        <div class="badge-row">
+          <span class="badge probability-badge">Вероятность: {{ option.probability }}</span>
+          <span class="badge source-note">{{ option.source_note or 'PREVIEW_ONLY' }}</span>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

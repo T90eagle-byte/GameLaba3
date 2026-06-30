@@ -362,3 +362,56 @@ select {
 
   .compact-facts { grid-template-columns: 1fr; }
 }
+
+.parent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.preview-section {
+  margin-top: 18px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.preview-card {
+  background: var(--panel);
+  border: 1px solid #b9d7cc;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.genotype-preview {
+  max-height: 96px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  background: #f8fafc;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.probability-badge {
+  border-color: #9fd8b9;
+  color: var(--success);
+}
+
+.source-note {
+  border-color: #b7c5e8;
+  color: #3156a3;
+  font-weight: 700;
+}

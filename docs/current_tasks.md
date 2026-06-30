@@ -55,3 +55,14 @@ Web-этап 1–2 начат: создан минимальный Flask/Jinja s
 - dashboard получил быстрые действия и блок защиты.
 
 Следующий web-этап: скрещивание, `preview_offspring_options`, затем реальное `crossbreed`.
+
+## Web-этап 4: скрещивание и preview потомства
+
+Реализован web-интерфейс `/crossbreed`:
+- выбор двух родителей из текущей лаборатории;
+- preview ровно 3 вариантов потомства через `preview_offspring_options`;
+- отображение phenotype/genotype preview, probability и `PREVIEW_ONLY`;
+- реальное создание потомка через `crossbreed` отдельной кнопкой;
+- preview не меняет состояние лаборатории.
+
+Следующий web-этап: мутации, мутагены RADIATION/CHEMICAL, история экспериментов и `rating_events`.

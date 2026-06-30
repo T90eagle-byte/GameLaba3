@@ -259,3 +259,14 @@ http://127.0.0.1:8000
 - dashboard получил быстрые переходы и защитный блок.
 
 Осталось по плану: crossbreed UI с preview 3 вариантов, затем mutations/experiments/rating events.
+
+## 16. Реализация Web-этапа 4: Crossbreed Preview
+
+Сделан слой скрещивания:
+- `web_client/services/crossbreed_service.py` вызывает `preview_offspring_options` и `crossbreed`;
+- `/crossbreed` показывает форму выбора родителей и имени потомка;
+- preview выводит 3 карточки с phenotype/genotype summary, probability и source note;
+- реальное создание потомка выполняется отдельной POST-кнопкой через backend package;
+- после создания web переходит на карточку потомка.
+
+Этот этап закрывает браузерную демонстрацию требования “показывает 3 случайных варианта потомства”.
