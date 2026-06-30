@@ -15,7 +15,7 @@ from flask import (
 )
 
 from config import load_config
-from services import auth_service, creature_service, crossbreed_service, lab_service, mutation_service, task_service
+from services import auth_service, creature_service, crossbreed_service, history_service, lab_service, mutation_service, rating_service, task_service
 from services.oracle import ServiceError, check_connection
 
 
@@ -430,6 +430,39 @@ def create_app() -> Flask:
             mutations=shop_rows,
             lab_id=lab_id,
         )
+    @app.route("/experiments")
+    @login_required
+    def experiments() -> Any:
+        token = str(session["session_token"])
+        lab_id = selected_lab_id()
+        if not lab_id:
+            flash("Сначала выберите лабораторию.", "warning")
+            return redirect(url_for("labs"))
+
+        try:
+            rows = history_service.get_experiment_history(token, lab_id)
+        except ServiceError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("dashboard"))
+
+        return render_template("experiments.html", experiments=rows, lab_id=lab_id)
+
+    @app.route("/rating-events")
+    @login_required
+    def rating_events() -> Any:
+        token = str(session["session_token"])
+        lab_id = selected_lab_id()
+        if not lab_id:
+            flash("Сначала выберите лабораторию.", "warning")
+            return redirect(url_for("labs"))
+
+        try:
+            rows = rating_service.get_rating_events(token, lab_id)
+        except ServiceError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("dashboard"))
+
+        return render_template("rating_events.html", events=rows, lab_id=lab_id)
     @app.route("/health")
     def health() -> Any:
         database = check_connection()

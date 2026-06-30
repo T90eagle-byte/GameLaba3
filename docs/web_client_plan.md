@@ -280,3 +280,12 @@ http://127.0.0.1:8000
 - после действий пользователь видит обновлённые stats или карточку изменённого/нового существа.
 
 Осталось: experiments history и `rating_events` page.
+
+## 18. Реализация Web-этапа 6: Experiments / Rating Events
+
+Сделан слой истории:
+- `/experiments` показывает историю экспериментов как эволюционную линию лаборатории;
+- `/rating-events` показывает журнал причин изменения wallet/rating;
+- dashboard и navigation получили ссылки на эти страницы.
+
+Осталось: polish, `/about-requirements`, финальный smoke script/checklist.

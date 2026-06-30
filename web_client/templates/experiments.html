@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Эволюционная линия — БиоСборка{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Эволюционная линия лаборатории</h1>
+    <p>Эволюционная линия в БиоСборке — это последовательность скрещиваний, мутаций и мутагенных воздействий, через которую лаборатория приходит к нужным признакам.</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('dashboard') }}">К dashboard</a>
+</section>
+
+{% if experiments %}
+<section class="timeline">
+  {% for item in experiments %}
+    <article class="timeline-card">
+      <div class="entity-card-header">
+        <h2>Эксперимент #{{ item.experiment_id }}</h2>
+        <span class="badge event-badge">{{ item.experiment_type_display_name or item.experiment_type }}</span>
+      </div>
+      <dl class="history-facts">
+        <div><dt>Родитель 1</dt><dd>{% if item.parent1_id %}<a href="{{ url_for('creature_detail', creature_id=item.parent1_id) }}">#{{ item.parent1_id }} {{ item.parent1_name or '' }}</a>{% else %}—{% endif %}</dd></div>
+        <div><dt>Родитель 2</dt><dd>{% if item.parent2_id %}<a href="{{ url_for('creature_detail', creature_id=item.parent2_id) }}">#{{ item.parent2_id }} {{ item.parent2_name or '' }}</a>{% else %}—{% endif %}</dd></div>
+        <div><dt>Результат</dt><dd>{% if item.offspring_id %}<a href="{{ url_for('creature_detail', creature_id=item.offspring_id) }}">#{{ item.offspring_id }} {{ item.offspring_name or '' }}</a>{% else %}—{% endif %}</dd></div>
+        <div><dt>Мутация</dt><dd>{{ item.mutation_name or '—' }}</dd></div>
+        <div><dt>Создано</dt><dd>{{ item.created_at or '—' }}</dd></div>
+      </dl>
+    </article>
+  {% endfor %}
+</section>
+{% else %}
+<section class="panel empty-state">
+  <h2>История пока пустая</h2>
+  <p>Проведите скрещивание, примените мутацию или мутаген — backend создаст записи экспериментов.</p>
+</section>
+{% endif %}
+{% endblock %}

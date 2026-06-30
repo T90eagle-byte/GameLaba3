@@ -76,3 +76,13 @@ Web не считает генетику, задания, рейтинг или 
 - RADIATION/CHEMICAL вызывают `apply_mutagen` и могут открыть карточку созданного существа.
 
 Flask не считает стоимость, штраф, применимость или генетический эффект. Следующий web-трек: experiments/rating events.
+
+## Context checkpoint: web-client-history
+
+Ветка `web-client-history` добавляет:
+- `history_service.get_experiment_history` поверх `pkg_genetics_game.get_experiment_history`;
+- `rating_service.get_rating_events` поверх `pkg_genetics_game.get_rating_events_cursor`;
+- routes `/experiments` и `/rating-events`;
+- templates для эволюционной линии и истории рейтинга.
+
+Flask не строит последствия и не считает deltas; он показывает cursor rows из backend.
