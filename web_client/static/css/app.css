@@ -415,3 +415,57 @@ select {
   color: #3156a3;
   font-weight: 700;
 }
+
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.mutation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.mutation-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.risk-panel {
+  border-color: #f0c36a;
+}
+
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.risk-card {
+  border: 1px solid #f0c36a;
+  border-radius: 8px;
+  background: #fffaf0;
+  padding: 14px;
+}
+
+.risk-card h3 {
+  margin: 0 0 8px;
+}
+
+.warning-badge {
+  border-color: #f0c36a;
+  color: var(--warning);
+  font-weight: 700;
+}
+
+.mutagen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Мутации и мутагены — БиоСборка{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Мутации и мутагены</h1>
+    <p>Мутации и мутагены управляются backend-логикой Oracle PL/SQL. Web-интерфейс только вызывает package и показывает результат.</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('dashboard') }}">К dashboard</a>
+</section>
+
+<section class="stats-strip">
+  <article class="stat-card"><span>Кошелёк</span><strong>{{ stats.wallet }}</strong></article>
+  <article class="stat-card"><span>Рейтинг</span><strong>{{ stats.rating }}</strong></article>
+  <article class="stat-card"><span>Существа</span><strong>{{ stats.creature_count }}</strong></article>
+  <article class="stat-card"><span>Эксперименты</span><strong>{{ stats.experiment_count }}</strong></article>
+</section>
+
+<section class="panel">
+  <h2>Магазин мутаций</h2>
+  {% if mutations %}
+    <div class="mutation-grid">
+      {% for mutation in mutations %}
+        <article class="mutation-card">
+          <div class="entity-card-header">
+            <h3>{{ mutation.mutation_name or ('Мутация #' ~ mutation.mutation_id) }}</h3>
+            <span class="badge">{{ mutation.mutation_type_display_name or mutation.mutation_type }}</span>
+          </div>
+          <p>{{ mutation.description or 'Описание берётся из backend seed.' }}</p>
+          <div class="badge-row">
+            <span class="badge">ID: {{ mutation.mutation_id }}</span>
+            <span class="badge">Цена: {{ mutation.price }}</span>
+            <span class="badge">Рейтинг: {{ mutation.rating_effect }}</span>
+          </div>
+          <form method="post" action="{{ url_for('mutations') }}" class="inline-form">
+            <input type="hidden" name="action" value="buy_mutation">
+            <input type="hidden" name="mutation_id" value="{{ mutation.mutation_id }}">
+            <button type="submit">Купить</button>
+          </form>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">Магазин мутаций пуст.</p>
+  {% endif %}
+</section>
+
+<section class="two-column">
+  <article class="panel">
+    <h2>Применить купленную мутацию</h2>
+    <p class="muted">Если мутация не куплена или несовместима с существом, package вернёт отказ.</p>
+    {% if creatures and mutations %}
+      <form class="form" method="post" action="{{ url_for('mutations') }}">
+        <input type="hidden" name="action" value="apply_mutation">
+        <label>
+          <span>Существо</span>
+          <select name="creature_id" required>
+            <option value="">Выберите существо</option>
+            {% for creature in creatures %}
+              <option value="{{ creature.creature_id }}">#{{ creature.creature_id }} — {{ creature.creature_name or creature.species_display_name or creature.species_type }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>Мутация</span>
+          <select name="mutation_id" required>
+            <option value="">Выберите мутацию</option>
+            {% for mutation in mutations %}
+              <option value="{{ mutation.mutation_id }}">#{{ mutation.mutation_id }} — {{ mutation.mutation_name }} ({{ mutation.price }})</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="submit">Применить мутацию</button>
+      </form>
+    {% else %}
+      <p class="empty">Нужны существа и доступные мутации.</p>
+    {% endif %}
+  </article>
+
+  <article class="panel risk-panel">
+    <h2>Мутагены с риском</h2>
+    <p>Риск выражается изменением wallet/rating по backend-правилам. Web не рассчитывает стоимость или штраф.</p>
+    {% if creatures %}
+      <form class="form" method="post" action="{{ url_for('mutations') }}">
+        <input type="hidden" name="action" value="apply_mutagen">
+        <label>
+          <span>Существо-источник</span>
+          <select name="creature_id" required>
+            <option value="">Выберите существо</option>
+            {% for creature in creatures %}
+              <option value="{{ creature.creature_id }}">#{{ creature.creature_id }} — {{ creature.creature_name or creature.species_display_name or creature.species_type }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <div class="mutagen-actions">
+          <button type="submit" name="mutagen_type" value="RADIATION">Применить RADIATION</button>
+          <button class="secondary" type="submit" name="mutagen_type" value="CHEMICAL">Применить CHEMICAL</button>
+        </div>
+      </form>
+    {% else %}
+      <p class="empty">В лаборатории пока нет существ для мутагена.</p>
+    {% endif %}
+
+    <div class="risk-grid">
+      <div class="risk-card">
+        <h3>RADIATION</h3>
+        <p>Более резкое случайное воздействие. Может быть дешевле, но несёт больший штраф рейтинга.</p>
+        <span class="badge warning-badge">Риск wallet/rating</span>
+      </div>
+      <div class="risk-card">
+        <h3>CHEMICAL</h3>
+        <p>Более контролируемое воздействие. Итог всё равно определяется backend-правилами.</p>
+        <span class="badge warning-badge">Риск wallet/rating</span>
+      </div>
+    </div>
+  </article>
+</section>
+{% endblock %}
