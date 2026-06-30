@@ -74,3 +74,11 @@ Backend считает вероятности потомства через `cal
 
 **Чем проект сильнее минимального уровня 4?**  
 Есть `ref_*` справочники, строгие FK, session isolation, runner `01..11`, LR2-compatible package API, stateless offspring preview, `rating_events` и отсутствие gameplay SQL в Python-клиенте.
+
+## Web-показ требования “3 варианта потомства”
+
+Теперь требование можно показать не только backend-тестом `11_offspring_preview_smoke_test.sql`, но и через web route `/crossbreed`:
+- выбрать двух родителей;
+- нажать “Показать 3 варианта”;
+- web вызывает `preview_offspring_options` и показывает 3 stateless preview-карточки;
+- реальное создание потомка выполняется отдельно через `crossbreed`.

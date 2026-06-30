@@ -56,3 +56,13 @@ Web не считает генетику, задания, рейтинг или 
 - Flask не считает генетику, рейтинг, кошелёк и не проверяет task markers.
 
 Следующий web-этап должен быть `crossbreed + preview_offspring_options`; mutation/history/rating pages идут после него.
+
+## Context checkpoint: web-client-crossbreed-preview
+
+Ветка `web-client-crossbreed-preview` добавляет route `/crossbreed` и service `crossbreed_service`:
+- `preview_offspring_options` вызывается напрямую из package и возвращает 3 preview-варианта;
+- preview показывается в браузере как stateless результат `PREVIEW_ONLY`;
+- `crossbreed` создаёт реального потомка через package и возвращает `offspring_id`;
+- Flask не проверяет совместимость родителей как источник истины и не считает генетику.
+
+Следующий web-трек: mutations/experiments/rating events.

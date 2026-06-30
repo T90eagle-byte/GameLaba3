@@ -15,7 +15,7 @@ from flask import (
 )
 
 from config import load_config
-from services import auth_service, creature_service, lab_service, task_service
+from services import auth_service, creature_service, crossbreed_service, lab_service, task_service
 from services.oracle import ServiceError, check_connection
 
 
@@ -292,6 +292,78 @@ def create_app() -> Flask:
             lab_id=lab_id,
         )
 
+    @app.route("/crossbreed", methods=["GET", "POST"])
+    @login_required
+    def crossbreed() -> Any:
+        token = str(session["session_token"])
+        lab_id = selected_lab_id()
+        if not lab_id:
+            flash("Сначала выберите лабораторию.", "warning")
+            return redirect(url_for("labs"))
+
+        selected_parent1 = request.form.get("parent1_id", "")
+        selected_parent2 = request.form.get("parent2_id", "")
+        offspring_name = request.form.get("offspring_name", "").strip()
+        preview_options: list[dict[str, Any]] = []
+
+        try:
+            creatures_rows = creature_service.get_creatures(token, lab_id)
+        except ServiceError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("dashboard"))
+
+        if request.method == "POST":
+            action = request.form.get("action", "")
+            try:
+                parent1_id = int(selected_parent1 or "0")
+                parent2_id = int(selected_parent2 or "0")
+                if parent1_id <= 0 or parent2_id <= 0:
+                    raise ValueError
+
+                if action == "preview":
+                    preview_options = crossbreed_service.preview_offspring_options(
+                        token,
+                        lab_id,
+                        parent1_id,
+                        parent2_id,
+                        options_count=3,
+                    )
+                    if len(preview_options) == 3:
+                        flash("Backend вернул 3 preview-варианта потомства без изменения лаборатории.", "success")
+                    else:
+                        flash(f"Backend вернул {len(preview_options)} preview-вариантов.", "warning")
+
+                elif action == "create":
+                    if not offspring_name:
+                        flash("Введите имя потомка перед созданием.", "error")
+                    else:
+                        offspring_id = crossbreed_service.crossbreed(
+                            token,
+                            lab_id,
+                            parent1_id,
+                            parent2_id,
+                            offspring_name,
+                        )
+                        flash(f"Потомок создан через backend package: #{offspring_id}.", "success")
+                        if offspring_id:
+                            return redirect(url_for("creature_detail", creature_id=offspring_id))
+                        return redirect(url_for("creatures"))
+                else:
+                    flash("Неизвестное действие скрещивания.", "error")
+            except (TypeError, ValueError):
+                flash("Выберите двух разных родителей перед действием.", "error")
+            except ServiceError as exc:
+                flash(str(exc), "error")
+
+        return render_template(
+            "crossbreed.html",
+            creatures=creatures_rows,
+            preview_options=preview_options,
+            selected_parent1=selected_parent1,
+            selected_parent2=selected_parent2,
+            offspring_name=offspring_name,
+            lab_id=lab_id,
+        )
     @app.route("/health")
     def health() -> Any:
         database = check_connection()

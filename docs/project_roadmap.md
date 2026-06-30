@@ -94,3 +94,9 @@ Web-клиент перешёл от skeleton к первому демонстр
 2. Web mutations: магазин, покупка, применение, мутагены RADIATION/CHEMICAL.
 3. Web history: experiments и `rating_events`.
 4. Polish: страница защиты, аккуратные тексты, README для стенда.
+
+## Checkpoint: web crossbreed preview
+
+Web-клиент теперь закрывает ключевой демонстрационный сценарий уровня 3/4 в браузере: пользователь выбирает двух родителей, получает 3 preview-варианта потомства через backend API и отдельно создаёт реального потомка через `crossbreed`. Python не генерирует потомков и не считает генетику.
+
+Дальше по web: mutations UI, mutagens RADIATION/CHEMICAL, experiments history, rating events page, затем polish для защиты.
