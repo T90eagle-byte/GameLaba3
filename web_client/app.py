@@ -463,6 +463,9 @@ def create_app() -> Flask:
             return redirect(url_for("dashboard"))
 
         return render_template("rating_events.html", events=rows, lab_id=lab_id)
+    @app.route("/about-requirements")
+    def about_requirements() -> Any:
+        return render_template("about_requirements.html")
     @app.route("/health")
     def health() -> Any:
         database = check_connection()

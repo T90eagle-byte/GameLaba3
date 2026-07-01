@@ -98,3 +98,15 @@ Backend считает вероятности потомства через `cal
 `/experiments` показывает адаптированную эволюционную линию “БиоСборки”: путь лаборатории через скрещивания, мутации и мутагены.
 
 `/rating-events` показывает последствия действий: покупки мутаций, штрафы мутагенов, награды за заказы. Это объяснимая история wallet/rating, записанная backend package.
+
+## Web checkpoint for defense
+
+Requirements can now be shown both by backend tests and in the browser:
+
+- Grade 3: `/creatures`, `/creatures/<id>`, `/tasks`, `/crossbreed`.
+- Grade 4: `/mutations`, `/experiments`, `/rating-events`, `/crossbreed`.
+- Summary page: `/about-requirements`.
+
+Short wording:
+
+> The web client does not replace backend logic. It displays what Oracle PL/SQL already does: genetics, client orders, crossbreed, mutations, mutagens, risk and consequence history.

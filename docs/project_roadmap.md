@@ -112,3 +112,18 @@ Web-клиент теперь показывает требования уров
 Web-клиент теперь показывает цельную цепочку уровня 4: заказы клиента, подбор существ, preview 3 вариантов, скрещивание, мутации, мутагены, риск и историю последствий. Эволюционная линия доступна через `/experiments`, а изменения wallet/rating — через `/rating-events`.
 
 Следующий шаг: polish, страница `/about-requirements`, финальная демонстрационная инструкция и smoke checklist.
+
+## Roadmap checkpoint: web client ready for grade 3/4 defense
+
+- Backend phase is complete and covered by smoke-tests `01..11`.
+- Web demo route is complete for grade 3/4:
+  - auth/labs/dashboard;
+  - creatures/detail/genotype;
+  - client orders;
+  - crossbreed + 3-option preview;
+  - mutations/mutagens;
+  - experiments history;
+  - rating events;
+  - `/about-requirements`.
+- Grade 5 remains roadmap and is not claimed as implemented.
+- Practical next step: final clean launch and defense preparation.
