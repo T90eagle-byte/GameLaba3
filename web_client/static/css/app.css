@@ -523,3 +523,116 @@ select {
 .delta-negative {
   color: var(--danger);
 }
+
+/* Defense polish */
+.hero-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 22px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.section-block {
+  margin: 22px 0;
+}
+
+.defense-panel {
+  border-color: #b9d7cc;
+  background: #fbfefd;
+}
+
+.cycle-grid,
+.requirements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.cycle-card,
+.requirement-card {
+  display: block;
+  min-height: 142px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 16px;
+  color: var(--text);
+}
+
+.cycle-card:hover,
+.requirement-card:hover {
+  border-color: #b9d7cc;
+  background: #fbfefd;
+  text-decoration: none;
+}
+
+.cycle-card span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: #e5f3ee;
+  color: var(--primary-strong);
+  font-weight: 700;
+}
+
+.cycle-card strong,
+.cycle-card small {
+  display: block;
+}
+
+.cycle-card small {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.requirement-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.requirement-card p {
+  color: var(--muted);
+}
+
+.requirement-card a {
+  font-weight: 700;
+}
+
+.nav a {
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.nav a:hover {
+  background: #edf7f4;
+  color: var(--primary-strong);
+  text-decoration: none;
+}
+
+.flash-info {
+  border-color: #b7c5e8;
+  color: #3156a3;
+}
+
+@media (max-width: 680px) {
+  .hero-panel {
+    padding: 18px;
+  }
+
+  .cycle-card,
+  .requirement-card {
+    min-height: auto;
+  }
+}

@@ -1,141 +1,87 @@
-# Web-клиент “БиоСборка”
+# BioSbor?? web client
 
-Минимальный Flask/Jinja клиент поверх Oracle PL/SQL package `pkg_genetics_game`.
+Lightweight Flask/Jinja interface over Oracle PL/SQL package `pkg_genetics_game`.
 
-## Назначение
+## Purpose
 
-Web-клиент нужен как переносимый интерфейс для учебного стенда. PySide6 GUI остаётся desktop-версией, но web проще запустить на старой Windows-машине через браузер.
+The web client is a portable browser UI for the defense stand. It avoids PySide6/Qt6 runtime risk on old Windows machines and does not require React, Vue, Node.js or a frontend build step.
 
-## Архитектурное правило
+## Architecture rule
 
-Бизнес-логика остаётся в Oracle PL/SQL:
+Business logic stays in Oracle PL/SQL:
 
-- генетика считается в `pkg_genetics_game`;
-- заказы клиента проверяются в `pkg_genetics_game`;
-- рейтинг и кошелёк меняются в `pkg_genetics_game`;
-- Flask только вызывает package API и отображает результат.
+- genetics is calculated by `pkg_genetics_game`;
+- client orders are checked by `pkg_genetics_game`;
+- crossbreed and offspring preview are handled by `pkg_genetics_game`;
+- mutations, mutagens, wallet, rating and rating events are handled by `pkg_genetics_game`;
+- Flask only calls package API and renders returned data.
 
-Прямой SQL разрешён только для технического health-check `select 1 from dual`.
+The only direct SQL in web code is the technical health-check `select 1 from dual`.
 
-## Зависимости
+## Install dependencies
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r web_client\requirements.txt
 ```
 
-## Перед запуском
-
-- Oracle должен быть доступен.
-- `python_client/.env` должен содержать `ORACLE_HOST`, `ORACLE_PORT`, `ORACLE_USER`, `ORACLE_PASSWORD` и один из параметров `ORACLE_SERVICE` / `ORACLE_SID`.
-- Желательно проверить backend:
-
-```powershell
-.\.venv\Scripts\python.exe database\scripts\run_tests.py --dry-run
-```
-
-## Запуск
+## Run
 
 ```powershell
 .\.venv\Scripts\python.exe web_client\app.py
 ```
 
-Адрес:
+Open:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-## Реализовано
+## Routes
 
-- `/health`;
-- регистрация;
-- вход;
-- выход;
-- список лабораторий;
-- создание лаборатории через package API;
-- открытие лаборатории;
-- dashboard со статистикой лаборатории;
-- `/creatures` — список существ лаборатории;
-- `/creatures/<id>` — карточка существа, фенотип и генотип;
-- `/tasks` — заказы клиента, проверка и выполнение заказа через backend package.
+- `/health` ? app and Oracle connection health.
+- `/register`, `/login`, `/logout` ? authentication.
+- `/labs` ? create/open lab.
+- `/dashboard` ? defense dashboard and lab stats.
+- `/creatures`, `/creatures/<id>` ? creatures, phenotype and genotype.
+- `/tasks` ? client orders, check and complete.
+- `/crossbreed` ? parent selection, 3-option preview and real offspring creation.
+- `/mutations` ? mutation shop, mutation application, RADIATION/CHEMICAL mutagens.
+- `/experiments` ? evolution line through experiment history.
+- `/rating-events` ? wallet/rating consequences from backend event log.
+- `/about-requirements` ? compact requirements coverage page for defense.
 
-## Smoke checklist
+## Manual smoke checklist
 
-1. Открыть `/health`.
-2. Зарегистрировать пользователя.
-3. Войти.
-4. Создать лабораторию.
-5. Открыть dashboard.
-6. Открыть список существ.
-7. Открыть карточку существа.
-8. Открыть “Заказы клиента”.
-9. Проверить заказ на выбранном существе.
-10. Выполнить подходящий заказ.
-11. Выйти.
+1. Open `/health`.
+2. Register and login.
+3. Create/open a lab.
+4. Open dashboard.
+5. Open creatures and a creature detail page.
+6. Open client orders, check an order, complete a matching order if available.
+7. Open crossbreed, preview 3 options, create real offspring.
+8. Open mutations, buy/apply mutation if backend allows it, apply RADIATION or CHEMICAL.
+9. Open experiments and rating events.
+10. Open `/about-requirements`.
+11. Logout.
 
-## Ещё не реализовано в web
+## Automated smoke
 
-- скрещивание и preview 3 вариантов потомства;
-- мутации и мутагены;
-- история экспериментов;
-- история рейтинга `rating_events`;
-- страница требований для защиты.
-## Скрещивание в web
+```powershell
+.\.venv\Scripts\python.exe web_client\smoke_test.py
+```
 
-Route `/crossbreed` добавляет web-интерфейс поверх backend API:
+The script uses Flask test client and package-backed service wrappers. It does not use gameplay SQL. It creates a test user/lab in the configured Oracle database. Data-dependent steps may print `[SKIP]` when the backend does not provide a suitable immediate scenario.
 
-- выбор двух родителей из текущей лаборатории;
-- кнопка “Показать 3 варианта” вызывает `pkg_genetics_game.preview_offspring_options`;
-- preview возвращает ровно 3 варианта по умолчанию;
-- preview stateless: не создаёт существо, эксперимент и не меняет кошелёк/рейтинг;
-- кнопка “Создать потомка” вызывает `pkg_genetics_game.crossbreed`;
-- после создания web открывает карточку нового потомка.
+## Troubleshooting
 
-Smoke checklist для скрещивания:
+- Oracle unavailable: check Docker/service, host/port, service name or SID.
+- `.env` missing values: check `python_client/.env`.
+- No current lab: open `/labs` and create/open a lab.
+- Backend package invalid: run `database\scripts\run_tests.py` and inspect `user_errors`.
+- Not enough wallet, incompatible parents or unavailable mutation: this is a backend rule response; web should show a flash message without traceback.
 
-1. Открыть `/crossbreed`.
-2. Выбрать двух совместимых родителей одного вида.
-3. Нажать “Показать 3 варианта”.
-4. Убедиться, что показаны 3 preview-карточки.
-5. Нажать “Создать потомка”.
-6. Убедиться, что потомок появился в `/creatures` и открывается его карточка.
+## Not in scope
 
-## Мутации и мутагены в web
-
-Route `/mutations` показывает web-интерфейс поверх backend API:
-
-- магазин мутаций через `show_mutation_shop`;
-- покупка мутации через `buy_mutation`;
-- применение купленной мутации через `apply_mutation`;
-- применение мутагенов `RADIATION` и `CHEMICAL` через `apply_mutagen`;
-- текущие wallet/rating/creature count берутся из `get_lab_stats`.
-
-Web не рассчитывает стоимость, штрафы, результат мутации и применимость. Все решения принимает `pkg_genetics_game`.
-
-Smoke checklist для мутаций:
-
-1. Открыть `/mutations`.
-2. Проверить, что магазин мутаций виден.
-3. Купить мутацию.
-4. Применить купленную мутацию к существу.
-5. Применить `RADIATION`.
-6. Применить `CHEMICAL`.
-7. Проверить, что dashboard и список существ открываются после действий.
-
-## История экспериментов и рейтинга в web
-
-Добавлены страницы:
-
-- `/experiments` — эволюционная линия лаборатории через историю `CROSS`, `MUTATION`, `MUTAGEN` экспериментов;
-- `/rating-events` — история изменений рейтинга и кошелька через backend journal `rating_events`.
-
-Обе страницы только отображают данные package API. Web не пересчитывает рейтинг, кошелёк и последствия действий.
-
-Smoke checklist для истории:
-
-1. Создать лабораторию.
-2. Провести скрещивание.
-3. Купить и применить мутацию.
-4. Применить `RADIATION` или `CHEMICAL`.
-5. Открыть `/experiments` и проверить, что действия появились в линии.
-6. Открыть `/rating-events` и проверить события wallet/rating.
+- React/Vue/Node build.
+- Moving PL/SQL logic into Python.
+- Grade 5 mechanics: ecosystem enclosure, creature death, ethics board or lab shutdown.

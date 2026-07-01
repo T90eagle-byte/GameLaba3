@@ -87,3 +87,19 @@ Backend не менялся. Flask остаётся display-layer и не рас
 - `/rating-events` — последствия действий через журнал `rating_events`.
 
 Web только вызывает package API и показывает backend-события. Следующий этап: polish, `/about-requirements`, финальный smoke checklist.
+
+## Current status after web polish
+
+- Web history stage has been merged into `main`.
+- Web polish/defense stage is complete on `web-client-polish-defense`.
+- Added `/about-requirements`.
+- Dashboard is now the main defense hub: lab state, gameplay cycle, quick demo links and backend proof.
+- Added `web_client/smoke_test.py` for a Flask test-client smoke run.
+- Backend files were not changed: DDL, seed, package spec/body and backend tests `01..11` remain stable.
+
+### Next actions
+
+1. Run backend suite `01..11`.
+2. Run `web_client/smoke_test.py` and manual browser smoke.
+3. Check startup on the defense stand.
+4. Apply only small UX fixes if the stand exposes a real issue.

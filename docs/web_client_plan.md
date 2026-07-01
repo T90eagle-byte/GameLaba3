@@ -289,3 +289,24 @@ http://127.0.0.1:8000
 - dashboard и navigation получили ссылки на эти страницы.
 
 Осталось: polish, `/about-requirements`, финальный smoke script/checklist.
+
+## Implementation status on 2026-07-01
+
+Implemented stages: skeleton, labs/dashboard, creatures/tasks, crossbreed preview, mutations/mutagens, experiments/rating events and polish for defense.
+
+Actual pages:
+
+- `/health`;
+- `/register`, `/login`, `/logout`;
+- `/labs`, `/dashboard`;
+- `/creatures`, `/creatures/<id>`;
+- `/tasks` as client orders;
+- `/crossbreed` with 3-option preview and real offspring creation;
+- `/mutations` with mutation shop, mutation application and mutagens;
+- `/experiments` as evolution line;
+- `/rating-events` as wallet/rating consequences;
+- `/about-requirements` as requirements coverage for defense.
+
+Architecture rule is preserved: web does not calculate genetics, tasks, rating, wallet or consequences. Gameplay actions go through `pkg_genetics_game`; direct SQL remains health-check only.
+
+Remaining work before defense: clean launch on the stand, manual smoke checklist, small visual fixes only if needed.

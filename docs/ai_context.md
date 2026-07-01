@@ -86,3 +86,12 @@ Flask не считает стоимость, штраф, применимост
 - templates для эволюционной линии и истории рейтинга.
 
 Flask не строит последствия и не считает deltas; он показывает cursor rows из backend.
+
+## Checkpoint 2026-07-01: web polish for defense
+
+- `web-client-history` was merged into `main` as `c4642f5`.
+- `web-client-polish-defense` adds the final defense UI layer without backend changes.
+- Web now covers the complete grade 3/4 demo route: labs, dashboard, creatures, genotype/phenotype, client orders, crossbreed, 3-option preview, real offspring, mutations, mutagens, experiments history and rating events.
+- Added `/about-requirements` as a compact requirements coverage page.
+- Backend remains the source of truth: Flask only calls `pkg_genetics_game` and renders returned data. Direct SQL remains limited to health-check `select 1 from dual`.
+- Next step: final clean run, browser smoke on the defense machine, and only small UX fixes if needed.
