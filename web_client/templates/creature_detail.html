@@ -1,55 +1,61 @@
 {% extends "base.html" %}
-{% block title %}Карточка существа — БиоСборка{% endblock %}
+{% block title %}Creature card - BioSborKA{% endblock %}
 {% block content %}
-<section class="page-header">
+<section class="creature-detail-hero {{ creature.visual.tone_class }}">
+  <div class="creature-portrait large {{ creature.visual.species_class }} {{ creature.visual.tone_class }} {{ creature.visual.wings_class }}">
+    <span class="wing left"></span><span class="wing right"></span><span class="body"></span><span class="crest"></span><span class="tail"></span>
+  </div>
   <div>
-    <h1>{{ creature.creature_name or ('Существо #' ~ creature.creature_id) }}</h1>
-    <p><span class="badge">{{ creature.species_display_name or creature.species_type }}</span></p>
-  </div>
-  <a class="button secondary" href="{{ url_for('creatures') }}">Назад к существам</a>
-</section>
-
-<section class="panel detail-panel">
-  <h2>Фенотип</h2>
-  <p class="summary">{{ creature.phenotype_summary or 'Фенотип рассчитан backend package.' }}</p>
-  <div class="badge-row">
-    <span class="badge">Цвет: {{ creature.phenotype_color or '—' }}</span>
-    <span class="badge">Размер: {{ creature.phenotype_size or '—' }}</span>
-    <span class="badge">Крылья: {{ creature.phenotype_has_wings or '—' }}</span>
-    <span class="badge">Питание: {{ creature.phenotype_nutrition_type or '—' }}</span>
-  </div>
-  <p class="muted">Фенотип и генотип рассчитываются backend-логикой Oracle PL/SQL.</p>
-</section>
-
-<section class="panel">
-  <h2>Генотип</h2>
-  {% if genotype %}
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Ген</th>
-            <th>Тип</th>
-            <th>Доминирование</th>
-            <th>Аллель 1</th>
-            <th>Аллель 2</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in genotype %}
-            <tr>
-              <td>{{ row.gene_display_name or row.gene_name }}</td>
-              <td>{{ row.gene_type_display_name or row.gene_type }}</td>
-              <td>{{ row.dominance_display_name or row.dominance_type }}</td>
-              <td>{{ row.allele1_display_name or row.allele1_trait_value }}</td>
-              <td>{{ row.allele2_display_name or row.allele2_trait_value }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <p class="eyebrow">Creature #{{ creature.creature_id }}</p>
+    <h1>{{ creature.display_name }}</h1>
+    <p><span class="badge species-badge">{{ creature.species_label }}</span></p>
+    <p class="lead">{{ creature.phenotype_text }}</p>
+    <div class="button-row">
+      <a class="button" href="{{ url_for('crossbreed') }}">Use in crossbreed</a>
+      <a class="button secondary" href="{{ url_for('mutations') }}">Open mutations</a>
+      <a class="button ghost" href="{{ url_for('creatures') }}">Back to collection</a>
     </div>
-  {% else %}
-    <p class="empty">Генотип не найден.</p>
-  {% endif %}
+  </div>
+</section>
+
+<section class="two-column detail-layout">
+  <article class="panel">
+    <p class="eyebrow">Visible traits</p>
+    <h2>Phenotype</h2>
+    <div class="trait-list">
+      {% for item in creature.phenotype_items %}
+        <div class="trait-card {{ item.class }}"><span>{{ item.label }}</span><strong>{{ item.value }}</strong></div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel">
+    <p class="eyebrow">Inheritance</p>
+    <h2>Genes and allele pairs</h2>
+    {% if genotype %}
+      <div class="gene-grid">
+        {% for row in genotype %}
+          <article class="gene-card">
+            <span class="badge">{{ row.dominance_label }}</span>
+            <h3>{{ row.gene_label }}</h3>
+            <p class="allele-pair">{{ row.pair_label }}</p>
+            <p class="muted">{{ row.gene_code }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty">Genotype rows were not found for this creature.</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="panel action-panel">
+  <h2>What to do next</h2>
+  <p>This creature can be selected for client order checks, crossbreeding, mutations, and mutagen experiments.</p>
+  <div class="action-grid">
+    <a class="button" href="{{ url_for('tasks') }}">Client orders</a>
+    <a class="button" href="{{ url_for('crossbreed') }}">Crossbreed</a>
+    <a class="button" href="{{ url_for('mutations') }}">Mutations</a>
+  </div>
 </section>
 {% endblock %}

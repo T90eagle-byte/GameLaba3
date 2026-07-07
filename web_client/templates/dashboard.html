@@ -1,50 +1,49 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — БиоСборка{% endblock %}
+{% block title %}Dashboard - BioSborKA{% endblock %}
 {% block content %}
-<section class="page-header">
+<section class="hero-panel dashboard-hero">
   <div>
-    <h1>Dashboard лаборатории #{{ lab_id }}</h1>
-    <p>Статистика получена из Oracle package. Web-клиент ничего не пересчитывает сам.</p>
+    <p class="eyebrow">Lab #{{ lab_id }}</p>
+    <h1>Genetic atelier dashboard</h1>
+    <p class="lead">Track the lab state, choose the next experiment, and keep the defense flow one click away.</p>
   </div>
-  <a class="button secondary" href="{{ url_for('labs') }}">Сменить лабораторию</a>
+  <a class="button secondary" href="{{ url_for('labs') }}">Switch lab</a>
 </section>
 
 <section class="stat-grid">
-  <article class="stat-card"><span>Кошелёк</span><strong>{{ stats.wallet }}</strong></article>
-  <article class="stat-card"><span>Рейтинг</span><strong>{{ stats.rating }}</strong></article>
-  <article class="stat-card"><span>Существа</span><strong>{{ stats.creature_count }}</strong></article>
-  <article class="stat-card"><span>Активные заказы</span><strong>{{ stats.active_task_count }}</strong></article>
-  <article class="stat-card"><span>Выполнено заказов</span><strong>{{ stats.completed_task_count }}</strong></article>
-  <article class="stat-card"><span>Эксперименты</span><strong>{{ stats.experiment_count }}</strong></article>
+  <article class="stat-card wallet"><span>Wallet</span><strong>{{ stats.wallet }}</strong></article>
+  <article class="stat-card rating"><span>Rating</span><strong>{{ stats.rating }}</strong></article>
+  <article class="stat-card"><span>Creatures</span><strong>{{ stats.creature_count }}</strong></article>
+  <article class="stat-card"><span>Active orders</span><strong>{{ stats.active_task_count }}</strong></article>
+  <article class="stat-card"><span>Completed</span><strong>{{ stats.completed_task_count }}</strong></article>
+  <article class="stat-card"><span>Experiments</span><strong>{{ stats.experiment_count }}</strong></article>
 </section>
 
-<section class="two-column">
-  <article class="panel">
-    <h2>Быстрые действия</h2>
-    <div class="action-grid">
-      <a class="button" href="{{ url_for('creatures') }}">Существа</a>
-      <a class="button" href="{{ url_for('tasks') }}">Заказы клиента</a>
-      <a class="button" href="{{ url_for('crossbreed') }}">Скрещивание</a>
-      <a class="button" href="{{ url_for('mutations') }}">Мутации</a>
-      <a class="button" href="{{ url_for('experiments') }}">Эволюционная линия</a>
-      <a class="button secondary" href="{{ url_for('about_requirements') }}">Requirements</a>
-      <a class="button" href="{{ url_for('rating_events') }}">История рейтинга</a>
-    </div>
+<section class="workflow-grid">
+  <article class="panel feature-panel">
+    <p class="eyebrow">Game loop</p>
+    <h2>From client order to evolved organism</h2>
+    <ol class="cycle-list">
+      <li><a href="{{ url_for('tasks') }}">Client orders</a><span>pick a target phenotype</span></li>
+      <li><a href="{{ url_for('creatures') }}">Creatures</a><span>inspect phenotype and genotype</span></li>
+      <li><a href="{{ url_for('crossbreed') }}">3-option preview</a><span>compare possible offspring</span></li>
+      <li><a href="{{ url_for('mutations') }}">Mutations</a><span>apply controlled or risky changes</span></li>
+      <li><a href="{{ url_for('experiments') }}">Evolution line</a><span>show the path of the lab</span></li>
+      <li><a href="{{ url_for('rating_events') }}">Consequences</a><span>explain wallet and rating changes</span></li>
+    </ol>
   </article>
 
-  <article class="panel">
-    <h2>Что показать на защите</h2>
-    <div class="badge-row">
-      <span class="badge">5+ видов</span>
-      <span class="badge">Генотип и фенотип</span>
-      <span class="badge">Заказы клиента</span>
-      <span class="badge">Oracle PL/SQL backend</span>
-      <span class="badge">Smoke-tests 01..11</span>
-      <span class="badge">Мутации / RADIATION / CHEMICAL</span>
-      <span class="badge">Последствия через rating events</span>
-      <span class="badge">Эволюционная линия</span>
+  <article class="panel defense-panel">
+    <p class="eyebrow">Defense flow</p>
+    <h2>Ready-to-show sections</h2>
+    <div class="action-grid">
+      <a class="button" href="{{ url_for('creatures') }}">Creature collection</a>
+      <a class="button" href="{{ url_for('tasks') }}">Client orders</a>
+      <a class="button" href="{{ url_for('crossbreed') }}">Crossbreed preview</a>
+      <a class="button" href="{{ url_for('mutations') }}">Mutations and mutagens</a>
+      <a class="button" href="{{ url_for('experiments') }}">Evolution line</a>
+      <a class="button secondary" href="{{ url_for('about_requirements') }}">Requirements map</a>
     </div>
-    <p class="muted">Эта web-страница только показывает результаты package API. Правила игры остаются в `pkg_genetics_game`.</p>
   </article>
 </section>
 {% endblock %}

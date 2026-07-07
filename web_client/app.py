@@ -15,7 +15,7 @@ from flask import (
 )
 
 from config import load_config
-from services import auth_service, creature_service, crossbreed_service, history_service, lab_service, mutation_service, rating_service, task_service
+from services import auth_service, creature_service, crossbreed_service, display_service, history_service, lab_service, mutation_service, rating_service, task_service
 from services.oracle import ServiceError, check_connection
 
 
@@ -133,7 +133,7 @@ def create_app() -> Flask:
                 if action == "create":
                     lab_id = lab_service.start_new_lab(token)
                     session["current_lab_id"] = lab_id
-                    flash(f"Лаборатория #{lab_id} создана через package API.", "success")
+                    flash(f"Lab #{lab_id} created.", "success")
                     return redirect(url_for("dashboard"))
 
                 if action == "open":
@@ -190,7 +190,7 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("labs"))
 
-        return render_template("creatures.html", creatures=creatures_rows, lab_id=lab_id)
+        return render_template("creatures.html", creatures=display_service.creature_views(creatures_rows), lab_id=lab_id)
 
     @app.route("/creatures/<int:creature_id>")
     @login_required
@@ -213,8 +213,8 @@ def create_app() -> Flask:
 
         return render_template(
             "creature_detail.html",
-            creature=creature,
-            genotype=genotype,
+            creature=display_service.creature_view(creature),
+            genotype=display_service.genotype_view(genotype),
             lab_id=lab_id,
         )
 
@@ -240,7 +240,7 @@ def create_app() -> Flask:
                     if result:
                         flash("Существо подходит под заказ клиента.", "success")
                     else:
-                        flash("Пока не подходит: backend не подтвердил выполнение заказа.", "warning")
+                        flash("This creature does not match the client order yet.", "warning")
                     return redirect(url_for("tasks"))
 
                 if action == "complete":
@@ -252,7 +252,7 @@ def create_app() -> Flask:
                             "success",
                         )
                     else:
-                        flash("Заказ не выполнен: backend не подтвердил выбранное существо.", "warning")
+                        flash("The selected creature does not complete this order.", "warning")
                     return redirect(url_for("tasks"))
 
                 flash("Неизвестное действие с заказом.", "error")
@@ -270,8 +270,9 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("dashboard"))
 
+        task_views = display_service.task_views(tasks_rows)
         active_tasks = [
-            task for task in tasks_rows
+            task for task in task_views
             if str(task.get("task_status", "")).upper() == "ACTIVE"
         ]
         completed_tasks = [
@@ -288,7 +289,7 @@ def create_app() -> Flask:
             active_tasks=active_tasks,
             completed_tasks=completed_tasks,
             other_tasks=other_tasks,
-            creatures=creatures_rows,
+            creatures=display_service.creature_views(creatures_rows),
             lab_id=lab_id,
         )
 
@@ -321,17 +322,18 @@ def create_app() -> Flask:
                     raise ValueError
 
                 if action == "preview":
-                    preview_options = crossbreed_service.preview_offspring_options(
+                    preview_rows = crossbreed_service.preview_offspring_options(
                         token,
                         lab_id,
                         parent1_id,
                         parent2_id,
                         options_count=3,
                     )
+                    preview_options = display_service.preview_views(preview_rows)
                     if len(preview_options) == 3:
-                        flash("Backend вернул 3 preview-варианта потомства без изменения лаборатории.", "success")
+                        flash("Shown: 3 offspring preview options. Lab state is unchanged.", "success")
                     else:
-                        flash(f"Backend вернул {len(preview_options)} preview-вариантов.", "warning")
+                        flash(f"Shown options: {len(preview_options)}.", "warning")
 
                 elif action == "create":
                     if not offspring_name:
@@ -344,7 +346,7 @@ def create_app() -> Flask:
                             parent2_id,
                             offspring_name,
                         )
-                        flash(f"Потомок создан через backend package: #{offspring_id}.", "success")
+                        flash(f"Offspring created: #{offspring_id}.", "success")
                         if offspring_id:
                             return redirect(url_for("creature_detail", creature_id=offspring_id))
                         return redirect(url_for("creatures"))
@@ -357,7 +359,7 @@ def create_app() -> Flask:
 
         return render_template(
             "crossbreed.html",
-            creatures=creatures_rows,
+            creatures=display_service.creature_views(creatures_rows),
             preview_options=preview_options,
             selected_parent1=selected_parent1,
             selected_parent2=selected_parent2,
@@ -382,9 +384,9 @@ def create_app() -> Flask:
                         raise ValueError
                     result = mutation_service.buy_mutation(token, lab_id, mutation_id)
                     if result:
-                        flash("Мутация куплена через backend package. Кошелёк обновлён backend-логикой.", "success")
+                        flash("Mutation purchased. Wallet has been updated.", "success")
                     else:
-                        flash("Мутация не куплена: backend вернул отказ, чаще всего из-за нехватки средств.", "warning")
+                        flash("Mutation purchased. Wallet has been updated.", "success")
                     return redirect(url_for("mutations"))
 
                 if action == "apply_mutation":
@@ -393,7 +395,7 @@ def create_app() -> Flask:
                     if creature_id <= 0 or mutation_id <= 0:
                         raise ValueError
                     mutation_service.apply_mutation(token, lab_id, creature_id, mutation_id)
-                    flash("Мутация применена. Генотип, фенотип и рейтинг обновлены backend-логикой.", "success")
+                    flash("Mutation was not purchased. Check wallet and purchase conditions.", "warning")
                     return redirect(url_for("creature_detail", creature_id=creature_id))
 
                 if action == "apply_mutagen":
@@ -426,8 +428,8 @@ def create_app() -> Flask:
         return render_template(
             "mutations.html",
             stats=stats,
-            creatures=creatures_rows,
-            mutations=shop_rows,
+            creatures=display_service.creature_views(creatures_rows),
+            mutations=display_service.mutation_views(shop_rows),
             lab_id=lab_id,
         )
     @app.route("/experiments")
@@ -445,7 +447,7 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("dashboard"))
 
-        return render_template("experiments.html", experiments=rows, lab_id=lab_id)
+        return render_template("experiments.html", experiments=display_service.experiment_views(rows), lab_id=lab_id)
 
     @app.route("/rating-events")
     @login_required
@@ -462,7 +464,7 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("dashboard"))
 
-        return render_template("rating_events.html", events=rows, lab_id=lab_id)
+        return render_template("rating_events.html", events=display_service.rating_event_views(rows), lab_id=lab_id)
     @app.route("/about-requirements")
     def about_requirements() -> Any:
         return render_template("about_requirements.html")

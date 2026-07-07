@@ -1,37 +1,46 @@
 {% extends "base.html" %}
-{% block title %}Существа — БиоСборка{% endblock %}
+{% block title %}Creatures - BioSborKA{% endblock %}
 {% block content %}
-<section class="page-header">
+<section class="hero-panel compact-hero">
   <div>
-    <h1>Существа лаборатории</h1>
-    <p>Коллекция берётся из `pkg_genetics_game.get_creatures_cursor`.</p>
+    <p class="eyebrow">Living collection</p>
+    <h1>Creatures of the laboratory</h1>
+    <p class="lead">Each card shows the visible phenotype, species identity, and quick access to genotype details.</p>
   </div>
-  <a class="button secondary" href="{{ url_for('dashboard') }}">К dashboard</a>
+  <a class="button secondary" href="{{ url_for('dashboard') }}">Back to dashboard</a>
 </section>
 
 {% if creatures %}
-<section class="card-grid">
+<section class="creature-grid">
   {% for creature in creatures %}
-    <article class="entity-card">
-      <div class="entity-card-header">
-        <h2>{{ creature.creature_name or ('Существо #' ~ creature.creature_id) }}</h2>
-        <span class="badge">{{ creature.species_display_name or creature.species_type }}</span>
+    <article class="creature-card {{ creature.visual.tone_class }}">
+      <div class="creature-portrait {{ creature.visual.species_class }} {{ creature.visual.tone_class }} {{ creature.visual.wings_class }}">
+        <span class="wing left"></span><span class="wing right"></span><span class="body"></span><span class="crest"></span><span class="tail"></span>
       </div>
-      <p class="summary">{{ creature.phenotype_summary or 'Фенотип будет рассчитан backend-логикой.' }}</p>
-      <dl class="compact-facts">
-        <div><dt>ID</dt><dd>{{ creature.creature_id }}</dd></div>
-        <div><dt>Цвет</dt><dd>{{ creature.phenotype_color or '—' }}</dd></div>
-        <div><dt>Размер</dt><dd>{{ creature.phenotype_size or '—' }}</dd></div>
-        <div><dt>Питание</dt><dd>{{ creature.phenotype_nutrition_type or '—' }}</dd></div>
-      </dl>
-      <a class="button secondary" href="{{ url_for('creature_detail', creature_id=creature.creature_id) }}">Подробнее</a>
+      <div class="creature-card-body">
+        <div class="entity-card-header">
+          <div>
+            <p class="eyebrow">#{{ creature.creature_id }}</p>
+            <h2>{{ creature.display_name }}</h2>
+          </div>
+          <span class="badge species-badge">{{ creature.species_label }}</span>
+        </div>
+        <p class="summary">{{ creature.phenotype_text }}</p>
+        <div class="trait-row">
+          {% for item in creature.phenotype_items[:4] %}
+            <span class="trait-pill {{ item.class }}"><small>{{ item.label }}</small>{{ item.value }}</span>
+          {% endfor %}
+        </div>
+        <a class="button secondary" href="{{ url_for('creature_detail', creature_id=creature.creature_id) }}">Details</a>
+      </div>
     </article>
   {% endfor %}
 </section>
 {% else %}
   <section class="panel empty-state">
-    <h2>Существ пока нет</h2>
-    <p>Создайте или откройте лабораторию, чтобы backend сгенерировал стартовую популяцию.</p>
+    <h2>No creatures yet</h2>
+    <p>Create or open a laboratory to start with a generated population.</p>
+    <a class="button" href="{{ url_for('labs') }}">Open labs</a>
   </section>
 {% endif %}
 {% endblock %}

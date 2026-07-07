@@ -1,52 +1,29 @@
 {% extends "base.html" %}
-{% block title %}Requirements ? BioSbor??{% endblock %}
+{% block title %}Requirements - BioSborKA{% endblock %}
 {% block content %}
-<section class="page-header hero-panel">
-  <div>
-    <p class="eyebrow">Defense page</p>
-    <h1>Requirements coverage</h1>
-    <p>This page is a compact defense map. The current version deliberately demonstrates grade 3 and grade 4. Grade 5 mechanics are roadmap items, not claimed as implemented.</p>
-  </div>
+<section class="hero-panel compact-hero requirements-hero">
+  <div><p class="eyebrow">Defense map</p><h1>Requirements coverage</h1><p class="lead">A concise guide for showing level 3 and level 4 requirements in the web interface.</p></div>
 </section>
 
-<section class="section-block">
-  <div class="section-title">
-    <h2>Grade 3 ? covered</h2>
-    <span class="badge status-completed">OK</span>
-  </div>
-  <div class="requirements-grid">
-    <article class="requirement-card"><h3>5+ species</h3><p>Show the generated laboratory creatures and species labels.</p><a href="{{ url_for('creatures') }}">/creatures</a></article>
-    <article class="requirement-card"><h3>Traits</h3><p>Color, size, wings and diet are visible in phenotype summaries.</p><a href="{{ url_for('creatures') }}">/creatures</a></article>
-    <article class="requirement-card"><h3>Genotype and phenotype</h3><p>Creature detail shows genotype rows returned by the backend.</p><a href="{{ url_for('creatures') }}">Creature detail</a></article>
-    <article class="requirement-card"><h3>Crossbreed</h3><p>Parents are selected in web; real offspring is created by `pkg_genetics_game`.</p><a href="{{ url_for('crossbreed') }}">/crossbreed</a></article>
-    <article class="requirement-card"><h3>3 offspring options</h3><p>The preview button calls stateless backend API and displays three options.</p><a href="{{ url_for('crossbreed') }}">/crossbreed</a></article>
-    <article class="requirement-card"><h3>Client orders</h3><p>Tasks are presented as client orders for organisms with requested traits.</p><a href="{{ url_for('tasks') }}">/tasks</a></article>
-  </div>
-</section>
+<section class="section-block"><div class="section-title"><h2>Level 3 - covered</h2></div><div class="requirement-grid">
+  <article class="requirement-card"><h3>5+ species</h3><p>Open the creature collection and show species cards.</p><a href="{{ url_for('creatures') }}">Creatures</a></article>
+  <article class="requirement-card"><h3>Traits</h3><p>Color, size, wings and nutrition are shown as phenotype chips.</p><a href="{{ url_for('creatures') }}">Traits</a></article>
+  <article class="requirement-card"><h3>Genotype / phenotype</h3><p>Creature detail separates visible traits and allele pairs.</p><a href="{{ url_for('creatures') }}">Creature cards</a></article>
+  <article class="requirement-card"><h3>Crossbreed</h3><p>The crossbreed page selects two parents and creates offspring.</p><a href="{{ url_for('crossbreed') }}">Crossbreed</a></article>
+  <article class="requirement-card"><h3>3 preview options</h3><p>The preview action displays three stateless offspring options.</p><a href="{{ url_for('crossbreed') }}">Preview</a></article>
+  <article class="requirement-card"><h3>Client orders</h3><p>Orders describe target organisms and can be checked/completed.</p><a href="{{ url_for('tasks') }}">Client orders</a></article>
+</div></section>
 
-<section class="section-block">
-  <div class="section-title">
-    <h2>Grade 4 ? covered</h2>
-    <span class="badge status-completed">OK</span>
-  </div>
-  <div class="requirements-grid">
-    <article class="requirement-card"><h3>Advanced genetics</h3><p>Incomplete dominance, codominance and linked genes are handled in PL/SQL.</p><a href="{{ url_for('creatures') }}">Genotypes</a></article>
-    <article class="requirement-card"><h3>Mutations</h3><p>Mutation shop, purchase and application call package API.</p><a href="{{ url_for('mutations') }}">/mutations</a></article>
-    <article class="requirement-card"><h3>Mutagens</h3><p>RADIATION and CHEMICAL are applied by backend rules.</p><a href="{{ url_for('mutations') }}">/mutations</a></article>
-    <article class="requirement-card"><h3>Risk</h3><p>Wallet/rating consequences are visible through rating events.</p><a href="{{ url_for('rating_events') }}">/rating-events</a></article>
-    <article class="requirement-card"><h3>Evolution line</h3><p>The path is shown through CROSS, MUTATION and MUTAGEN experiment history.</p><a href="{{ url_for('experiments') }}">/experiments</a></article>
-    <article class="requirement-card"><h3>Client order adaptation</h3><p>The literal wolf-dog line is adapted into a multi-species BioSbor?? order system.</p><a href="{{ url_for('tasks') }}">/tasks</a></article>
-  </div>
-</section>
+<section class="section-block"><div class="section-title"><h2>Level 4 - covered</h2></div><div class="requirement-grid">
+  <article class="requirement-card"><h3>Advanced genetics</h3><p>Dominance and inheritance are visible through genotype rows.</p><a href="{{ url_for('creatures') }}">Genotypes</a></article>
+  <article class="requirement-card"><h3>Linked line</h3><p>The evolution line shows crosses, mutations and mutagens as a path.</p><a href="{{ url_for('experiments') }}">Evolution line</a></article>
+  <article class="requirement-card"><h3>Mutations</h3><p>The mutation shop supports purchase and application.</p><a href="{{ url_for('mutations') }}">Mutations</a></article>
+  <article class="requirement-card"><h3>Radiation / chemicals</h3><p>Both mutagens are available from the web UI.</p><a href="{{ url_for('mutations') }}">Mutagens</a></article>
+  <article class="requirement-card"><h3>Risk</h3><p>Consequences are visible through wallet and rating events.</p><a href="{{ url_for('rating_events') }}">Consequences</a></article>
+  <article class="requirement-card"><h3>Client adaptation</h3><p>Client orders replace the literal wolf-dog wording with a broader BioSborKA model.</p><a href="{{ url_for('tasks') }}">Orders</a></article>
+</div></section>
 
-<section class="section-block">
-  <div class="section-title">
-    <h2>Grade 5 ? not claimed</h2>
-    <span class="badge warning-badge">Roadmap</span>
-  </div>
-  <article class="panel">
-    <p>Ecology enclosure, creature death, ethics board and laboratory shutdown are not implemented in this version.</p>
-    <p class="muted">The project intentionally keeps the defense focused on a stable grade 3/4 demonstration instead of mixing it with experimental grade 5 mechanics.</p>
-  </article>
-</section>
+<section class="panel level-five-note"><h2>Level 5 is not claimed</h2><p>The current version intentionally focuses on stable level 3/4 defense. Ecosystem enclosure, mortality and an ethics council remain roadmap items, not implemented mechanics.</p></section>
+
+<section class="panel architecture-note"><h2>Architecture note</h2><p>The web app is a display/client layer. Gameplay decisions remain in the database package; Flask renders data and submits user actions.</p></section>
 {% endblock %}

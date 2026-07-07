@@ -1,94 +1,57 @@
 {% extends "base.html" %}
-{% block title %}Заказы клиента — БиоСборка{% endblock %}
+{% block title %}Client orders - BioSborKA{% endblock %}
 {% block content %}
-<section class="page-header">
-  <div>
-    <h1>Заказы клиента</h1>
-    <p>Каждый заказ описывает организм с заданными признаками. Пользователь подбирает существ через скрещивания и мутации, а проверку выполняет backend package.</p>
+<section class="hero-panel compact-hero">
+  <div><p class="eyebrow">Client board</p><h1>Client orders</h1><p class="lead">Each order describes the organism a client wants. Pick a creature, check it, and complete the order when it matches.</p></div>
+</section>
+
+{% macro order_card(task, completed=False) %}
+<article class="order-card {{ task.status_class }}">
+  <div class="entity-card-header">
+    <div><p class="eyebrow">Order #{{ task.task_id }}</p><h2>{{ task.display_name }}</h2></div>
+    <span class="badge {{ task.status_class }}">{{ task.status_label }}</span>
   </div>
-  <a class="button secondary" href="{{ url_for('dashboard') }}">К dashboard</a>
-</section>
-
-<section class="panel">
-  <h2>Активные заказы</h2>
-  {% if active_tasks %}
-    <div class="task-list">
-      {% for task in active_tasks %}
-        <article class="task-card">
-          <div class="entity-card-header">
-            <h3>{{ task.task_display_name or task.task_name }}</h3>
-            <span class="badge status-active">{{ task.task_status_display_name or task.task_status }}</span>
-          </div>
-          <p>{{ task.description }}</p>
-          <div class="badge-row">
-            <span class="badge">Сложность: {{ task.difficulty_display_name or task.difficulty_code }}</span>
-            <span class="badge">Кошелёк +{{ task.reward_money }}</span>
-            <span class="badge">Рейтинг +{{ task.reward_rating }}</span>
-          </div>
-          <form class="task-actions" method="post" action="{{ url_for('tasks') }}">
-            <input type="hidden" name="task_id" value="{{ task.task_id }}">
-            <label>
-              <span>Существо для проверки</span>
-              <select name="creature_id" required>
-                <option value="">Выберите существо</option>
-                {% for creature in creatures %}
-                  <option value="{{ creature.creature_id }}">
-                    #{{ creature.creature_id }} — {{ creature.creature_name or creature.species_display_name or creature.species_type }}
-                  </option>
-                {% endfor %}
-              </select>
-            </label>
-            <div class="button-row">
-              <button type="submit" name="action" value="check">Проверить</button>
-              <button class="secondary" type="submit" name="action" value="complete">Выполнить заказ</button>
-            </div>
-          </form>
-        </article>
+  <p class="summary">{{ task.description_text or 'Target phenotype is described by the order markers.' }}</p>
+  <div class="badge-row">
+    <span class="badge">Difficulty: {{ task.difficulty_label }}</span>
+    <span class="badge reward">Wallet +{{ task.money_reward or task.reward_money or 0 }}</span>
+    <span class="badge reward">Rating +{{ task.rating_reward or task.reward_rating or 0 }}</span>
+  </div>
+  {% if not completed and creatures %}
+  <form class="inline-action-form" method="post">
+    <input type="hidden" name="task_id" value="{{ task.task_id }}">
+    <select name="creature_id" required>
+      <option value="">Choose creature</option>
+      {% for creature in creatures %}
+        <option value="{{ creature.creature_id }}">#{{ creature.creature_id }} - {{ creature.display_name }}</option>
       {% endfor %}
-    </div>
-  {% else %}
-    <p class="empty">Активных заказов сейчас нет.</p>
+    </select>
+    <button class="secondary" name="action" value="check" type="submit">Check</button>
+    <button name="action" value="complete" type="submit">Complete</button>
+  </form>
   {% endif %}
+</article>
+{% endmacro %}
+
+<section class="order-grid">
+  {% for task in active_tasks %}{{ order_card(task) }}{% endfor %}
 </section>
 
-<section class="panel">
-  <h2>Выполненные заказы</h2>
-  {% if completed_tasks %}
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Заказ</th>
-            <th>Сложность</th>
-            <th>Награда</th>
-            <th>Статус</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for task in completed_tasks %}
-            <tr>
-              <td>{{ task.task_display_name or task.task_name }}</td>
-              <td>{{ task.difficulty_display_name or task.difficulty_code }}</td>
-              <td>+{{ task.reward_money }} / +{{ task.reward_rating }}</td>
-              <td><span class="badge status-completed">{{ task.task_status_display_name or task.task_status }}</span></td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <p class="empty">Выполненных заказов пока нет.</p>
-  {% endif %}
+{% if completed_tasks %}
+<section class="section-block">
+  <div class="section-title"><h2>Completed orders</h2><span class="badge">{{ completed_tasks|length }}</span></div>
+  <div class="order-grid compact">{% for task in completed_tasks %}{{ order_card(task, True) }}{% endfor %}</div>
 </section>
+{% endif %}
 
 {% if other_tasks %}
-<section class="panel">
-  <h2>Другие статусы</h2>
-  <div class="badge-row">
-    {% for task in other_tasks %}
-      <span class="badge">{{ task.task_display_name or task.task_name }}: {{ task.task_status_display_name or task.task_status }}</span>
-    {% endfor %}
-  </div>
+<section class="section-block">
+  <div class="section-title"><h2>Other orders</h2></div>
+  <div class="order-grid compact">{% for task in other_tasks %}{{ order_card(task) }}{% endfor %}</div>
 </section>
+{% endif %}
+
+{% if not active_tasks and not completed_tasks and not other_tasks %}
+<section class="panel empty-state"><h2>No client orders yet</h2><p>Open or create a laboratory to receive orders.</p></section>
 {% endif %}
 {% endblock %}
