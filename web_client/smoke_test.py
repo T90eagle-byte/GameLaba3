@@ -75,9 +75,6 @@ def main() -> None:
     require(response.status_code == 200, "/login should open")
     ok("/login opens")
 
-    response = client.get("/about-requirements")
-    require(response.status_code == 200, "/about-requirements should open")
-    ok("/about-requirements opens")
 
     response = client.post(
         "/register",

@@ -1,6 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Последствия — БиоСборка{% endblock %}
+{% block title %}История рейтинга и денег — БиоСборка{% endblock %}
 {% block content %}
-<section class="hero-panel compact-hero"><div><p class="eyebrow">Причины и последствия</p><h1>История рейтинга и бюджета</h1><p class="lead">Награды, покупки и штрафы собраны в прозрачную ленту событий.</p></div></section>
-{% if events %}<section class="event-list">{% for event in events %}<article class="event-card {{ event.event_class }}"><div class="entity-card-header"><h2>{{ event.type_label }}</h2><span class="badge">{{ event.created_at or '' }}</span></div><p>{{ event.description_text }}</p><div class="delta-row"><span class="delta {{ event.rating_class }}">Рейтинг {{ event.rating_delta or 0 }}</span><span class="delta {{ event.wallet_class }}">Бюджет {{ event.wallet_delta or 0 }}</span></div><div class="badge-row">{% if event.task_id %}<span class="badge">Заказ #{{ event.task_id }}</span>{% endif %}{% if event.creature_id %}<a class="badge link-badge" href="{{ url_for('creature_detail', creature_id=event.creature_id) }}">Существо #{{ event.creature_id }}</a>{% endif %}{% if event.experiment_id %}<span class="badge">Эксперимент #{{ event.experiment_id }}</span>{% endif %}</div></article>{% endfor %}</section>{% else %}<section class="panel empty-state"><h2>Последствий пока нет</h2><p>Сдайте заказ, купите мутацию или примените мутаген, чтобы заполнить историю.</p></section>{% endif %}
+<section class="hero-panel compact-hero">
+  <div>
+    <p class="eyebrow">История решений</p>
+    <h1>История рейтинга и денег</h1>
+    <p class="lead">Награды, покупки и штрафы собраны в прозрачную ленту событий.</p>
+  </div>
+</section>
+{% if events %}
+  <section class="event-list">
+    {% for event in events %}
+      <article class="event-card {{ event.event_class }}">
+        <div class="entity-card-header">
+          <h2>{{ event.type_label }}</h2>
+          <span class="badge">{{ event.created_at_label }}</span>
+        </div>
+        <p>{{ event.description_text }}</p>
+        <div class="delta-row">
+          <span class="delta {{ event.rating_class }}">Рейтинг {{ event.rating_delta_label }}</span>
+          <span class="delta {{ event.wallet_class }}">Деньги {{ event.wallet_delta_label }}</span>
+        </div>
+        <div class="badge-row">
+          {% if event.task_id %}<span class="badge">Заказ #{{ event.task_id }}</span>{% endif %}
+          {% if event.creature_id %}<a class="badge link-badge" href="{{ url_for('creature_detail', creature_id=event.creature_id) }}">Существо #{{ event.creature_id }}</a>{% endif %}
+          {% if event.experiment_id %}<span class="badge">Эксперимент #{{ event.experiment_id }}</span>{% endif %}
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+{% else %}
+  <section class="panel empty-state">
+    <h2>История пока пуста</h2>
+    <p>Сдайте заказ, купите мутацию или примените мутаген, чтобы заполнить историю.</p>
+  </section>
+{% endif %}
 {% endblock %}

@@ -2,11 +2,55 @@
 {% block title %}Лаборатории — БиоСборка{% endblock %}
 {% block content %}
 <section class="hero-panel compact-hero">
-  <div><p class="eyebrow">Выбор лаборатории</p><h1>Лаборатории</h1><p class="lead">Создайте новую лабораторию или продолжите работу с уже существующей.</p></div>
-  {% if current_lab_id %}<a class="button secondary" href="{{ url_for('dashboard') }}">Перейти в обзор</a>{% endif %}
+  <div>
+    <p class="eyebrow">Выбор лаборатории</p>
+    <h1>Лаборатории</h1>
+    <p class="lead">Создайте новую лабораторию или продолжите работу с уже существующей.</p>
+  </div>
+  {% if current_lab_id %}
+    <a class="button secondary" href="{{ url_for('dashboard') }}">Перейти в обзор</a>
+  {% endif %}
 </section>
 <section class="two-column">
-  <article class="panel action-panel"><h2>Создать лабораторию</h2><p>Новая лаборатория получает стартовую популяцию существ и первые заказы клиентов.</p><form method="post" class="form"><input type="hidden" name="action" value="create"><button type="submit">Создать лабораторию</button></form></article>
-  <article class="panel"><h2>Ваши лаборатории</h2>{% if current_lab_id %}<p class="session-hint">Сейчас активна лаборатория #{{ current_lab_id }}. Можно перейти в обзор или выбрать другую лабораторию из списка.</p>{% endif %}{% if labs %}<div class="lab-list">{% for lab in labs %}<form class="lab-row" method="post"><input type="hidden" name="action" value="open"><input type="hidden" name="lab_id" value="{{ lab.lab_id }}"><div><strong>Лаборатория #{{ lab.lab_id }}</strong><span>{{ lab.lab_name or 'Био-мастерская' }}</span></div><button class="secondary" type="submit">Открыть</button></form>{% endfor %}</div>{% else %}<p class="empty">Лабораторий пока нет. Создайте первую, чтобы начать.</p>{% endif %}</article>
+  <article class="panel action-panel">
+    <h2>Создать лабораторию</h2>
+    <p>Новая лаборатория получает стартовую популяцию существ и первые заказы клиентов.</p>
+    <form method="post" class="form">
+      <input type="hidden" name="action" value="create">
+      <button type="submit">Создать лабораторию</button>
+    </form>
+  </article>
+  <article class="panel">
+    <h2>Ваши лаборатории</h2>
+    {% if current_lab_id %}
+      <p class="session-hint">Сейчас активна лаборатория #{{ current_lab_id }}. Можно перейти в обзор, открыть другую лабораторию или удалить ненужную.</p>
+    {% endif %}
+    {% if labs %}
+      <div class="lab-list">
+        {% for lab in labs %}
+          <div class="lab-row">
+            <div class="lab-info">
+              <strong>Лаборатория #{{ lab.lab_id }}</strong>
+              <span>{{ lab.lab_name or 'Био-мастерская' }}</span>
+            </div>
+            <div class="lab-actions">
+              <form method="post">
+                <input type="hidden" name="action" value="open">
+                <input type="hidden" name="lab_id" value="{{ lab.lab_id }}">
+                <button class="secondary" type="submit">Открыть</button>
+              </form>
+              <form method="post" onsubmit="return confirm('Удалить лабораторию #{{ lab.lab_id }}? Это действие выполнит backend package.');">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="lab_id" value="{{ lab.lab_id }}">
+                <button class="danger" type="submit">Удалить</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty">Лабораторий пока нет. Создайте первую, чтобы начать.</p>
+    {% endif %}
+  </article>
 </section>
 {% endblock %}

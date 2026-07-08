@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import date, datetime
 from typing import Any
 
 
@@ -123,6 +124,14 @@ MUTATION_LABELS = {
     "orange mutation": "Оранжевая окраска",
     "white mutation": "Белая окраска",
     "black mutation": "Чёрная окраска",
+    "medium mutation": "Средний размер",
+    "aquatic form mutation": "Водная форма",
+    "nutrition_shift_mutation": "Сдвиг типа питания",
+    "radiation_mutation": "Радиационная мутация",
+    "chemical_mutation": "Химическая мутация",
+    "medium_mutation": "Средний размер",
+    "red_mutation": "Красная окраска",
+    "aquatic_form_mutation": "Водная форма",
 }
 
 EVENT_LABELS = {
@@ -171,6 +180,74 @@ def _strip_mojibake(value: str) -> str:
 def _title_fallback(code: str) -> str:
     clean = code.replace("_color", "").replace("_size", "").replace("_", " ").strip()
     return clean[:1].upper() + clean[1:] if clean else "не указано"
+
+
+
+
+def number_label(value: Any) -> str:
+    if value is None or value == "":
+        return "0"
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return _text(value)
+    if number.is_integer():
+        return str(int(number))
+    return f"{number:.2f}".rstrip("0").rstrip(".")
+
+
+def signed_number_label(value: Any) -> str:
+    if value is None or value == "":
+        return "0"
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return _text(value)
+    sign = "+" if number > 0 else ""
+    return sign + number_label(number)
+
+
+def date_label(value: Any) -> str:
+    if not value:
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime("%d.%m.%Y %H:%M")
+    if isinstance(value, date):
+        return value.strftime("%d.%m.%Y")
+    text = _text(value)
+    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(text[:26], fmt).strftime("%d.%m.%Y %H:%M")
+        except ValueError:
+            continue
+    return re.sub(r"\.\d{3,6}", "", text)
+
+
+def translate_free_text(value: Any) -> str:
+    text = _text(value)
+    if not text:
+        return ""
+    replacements: dict[str, str] = {}
+    replacements.update(SPECIES_LABELS)
+    replacements.update(TRAIT_LABELS)
+    replacements.update(TASK_LABELS)
+    replacements.update(MUTATION_LABELS)
+    for raw, label in sorted(replacements.items(), key=lambda item: len(item[0]), reverse=True):
+        if raw:
+            text = re.sub(re.escape(raw), label, text, flags=re.IGNORECASE)
+    return text.replace("_", " ")
+
+
+def stats_view(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **row,
+        "wallet_label": number_label(row.get("wallet")),
+        "rating_label": number_label(row.get("rating")),
+    }
+
+
+def count_mutation_purchases(rows: list[dict[str, Any]]) -> int:
+    return sum(1 for row in rows if _text(row.get("event_type") or row.get("event_code")).upper() == "MUTATION_PURCHASE")
 
 
 def humanize_code(value: Any) -> str:
@@ -373,7 +450,19 @@ def _mutation_label(value: Any) -> str:
 def mutation_view(row: dict[str, Any]) -> dict[str, Any]:
     name = row.get("mutation_name") or row.get("display_name") or row.get("mutation_code") or f"mutation {row.get('mutation_id')}"
     target = row.get("target_trait") or row.get("trait_value") or row.get("gene_type") or row.get("gene_name")
-    return {**row, "display_name": _mutation_label(name), "target_label": trait_label(target), "description_text": _text(row.get("description")) or "Точечное изменение выбранного признака."}
+    rating_effect = None
+    for key in ("rating_effect", "rating_delta", "rating_change", "rating_reward"):
+        if row.get(key) is not None:
+            rating_effect = row.get(key)
+            break
+    return {
+        **row,
+        "display_name": _mutation_label(name),
+        "target_label": trait_label(target),
+        "description_text": translate_free_text(row.get("description")) or "Точечное изменение выбранного признака.",
+        "cost_label": number_label(row.get("cost") or row.get("price") or 0),
+        "rating_effect_label": signed_number_label(rating_effect) if rating_effect is not None else "не указано",
+    }
 
 
 def mutation_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -382,7 +471,14 @@ def mutation_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def experiment_view(row: dict[str, Any]) -> dict[str, Any]:
     kind = _text(row.get("experiment_type") or row.get("experiment_type_code")).upper()
-    return {**row, "type_label": EXPERIMENT_LABELS.get(kind, humanize_code(kind)), "type_class": f"event-{kind.lower()}" if kind else "event-neutral", "description_text": _text(row.get("description") or row.get("result_description")) or "Шаг лабораторной линии."}
+    description = translate_free_text(row.get("description") or row.get("result_description")) or "Шаг лабораторной линии."
+    return {
+        **row,
+        "type_label": EXPERIMENT_LABELS.get(kind, humanize_code(kind)),
+        "type_class": f"event-{kind.lower()}" if kind else "event-neutral",
+        "description_text": description,
+        "created_at_label": date_label(row.get("created_at") or row.get("experiment_date")),
+    }
 
 
 def experiment_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -393,7 +489,17 @@ def rating_event_view(row: dict[str, Any]) -> dict[str, Any]:
     kind = _text(row.get("event_type") or row.get("event_code")).upper()
     rating_delta = row.get("rating_delta")
     wallet_delta = row.get("wallet_delta")
-    return {**row, "type_label": EVENT_LABELS.get(kind, humanize_code(kind)), "event_class": f"event-{kind.lower()}" if kind else "event-neutral", "rating_class": _delta_class(rating_delta), "wallet_class": _delta_class(wallet_delta), "description_text": _text(row.get("description")) or "Записанное последствие действия."}
+    return {
+        **row,
+        "type_label": EVENT_LABELS.get(kind, humanize_code(kind)),
+        "event_class": f"event-{kind.lower()}" if kind else "event-neutral",
+        "rating_class": _delta_class(rating_delta),
+        "wallet_class": _delta_class(wallet_delta),
+        "rating_delta_label": signed_number_label(rating_delta),
+        "wallet_delta_label": signed_number_label(wallet_delta),
+        "created_at_label": date_label(row.get("created_at") or row.get("event_time")),
+        "description_text": translate_free_text(row.get("description")) or "Записанное событие лаборатории.",
+    }
 
 
 def rating_event_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

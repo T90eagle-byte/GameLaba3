@@ -18,14 +18,12 @@
         <a href="{{ url_for('crossbreed') }}">Скрещивание</a>
         <a href="{{ url_for('mutations') }}">Мутации</a>
         <a href="{{ url_for('experiments') }}">Эволюционная линия</a>
-        <a href="{{ url_for('rating_events') }}">Последствия</a>
-        <a href="{{ url_for('about_requirements') }}">Требования</a>
+        <a href="{{ url_for('rating_events') }}">История</a>
         <a href="{{ url_for('logout') }}">Выйти</a>
       {% else %}
         <a href="{{ url_for('login') }}">Вход</a>
         <a href="{{ url_for('register') }}">Регистрация</a>
-        <a href="{{ url_for('about_requirements') }}">Требования</a>
-        <a href="{{ url_for('health') }}">Health</a>
+        <a href="{{ url_for('health') }}">Проверка</a>
       {% endif %}
     </nav>
   </header>
@@ -33,7 +31,9 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <section class="flash-stack" aria-label="Сообщения">
-          {% for category, message in messages %}<div class="flash flash-{{ category }}">{{ message }}</div>{% endfor %}
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
         </section>
       {% endif %}
     {% endwith %}

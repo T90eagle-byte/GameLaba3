@@ -254,3 +254,71 @@ input, select { width: 100%; min-height: 42px; border: 1px solid var(--line); bo
 .creature-portrait.has-wings .wing.left { transform: translate(-70px,-20px) rotate(-28deg); }
 .creature-portrait.has-wings .wing.right { transform: translate(70px,-20px) rotate(28deg) scaleX(-1); }
 .session-hint { padding: .75rem .9rem; border-radius: 14px; background: rgba(90,138,160,.12); color: var(--muted); }
+
+/* UI stabilization pass: full-hit buttons, safer cards, cleaner Russian layout. */
+a.button,
+.action-grid .button,
+.creature-card .button,
+.preview-card .button,
+.order-card .button,
+.mutation-card .button,
+.lab-actions button,
+.inline-action-form button,
+.card-action-form button {
+  width: 100%;
+  text-align: center;
+}
+button.danger,
+.button.danger {
+  background: var(--danger);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(183,93,80,.22);
+}
+button.danger:hover,
+.button.danger:hover { background: #8e4037; }
+.cycle-list { display: grid; gap: .75rem; padding-left: 1.25rem; }
+.cycle-list li { padding-left: .15rem; line-height: 1.45; }
+.cycle-list a,
+.cycle-list span { display: block; }
+.cycle-list a { font-weight: 850; }
+.cycle-list span { color: var(--muted); margin-top: .12rem; }
+.creature-card { min-width: 0; }
+.creature-card-body { display: flex; flex-direction: column; min-width: 0; }
+.creature-card-body .button { margin-top: auto; }
+.summary,
+.entity-card-header,
+.entity-card-header h2,
+.entity-card-header h3,
+.trait-pill,
+.badge,
+.delta,
+.event-card p,
+.order-card p,
+.mutation-card p { overflow-wrap: anywhere; }
+.entity-card-header { min-width: 0; }
+.entity-card-header > div { min-width: 0; }
+.trait-row { min-width: 0; }
+.trait-pill { min-width: 0; flex: 1 1 118px; }
+.creature-portrait { isolation: isolate; }
+.creature-portrait > span { pointer-events: none; }
+.lab-row { align-items: stretch; }
+.lab-info { min-width: 0; }
+.lab-info strong,
+.lab-info span { overflow-wrap: anywhere; }
+.lab-actions { display: grid; grid-template-columns: repeat(2, minmax(104px, 1fr)); gap: .55rem; align-items: stretch; }
+.lab-actions form,
+.card-action-form { display: grid; }
+.inline-action-form select { min-width: 180px; }
+.section-title { flex-wrap: wrap; align-items: center; }
+.mutation-card,
+.order-card,
+.event-card,
+.preview-card { min-width: 0; display: flex; flex-direction: column; gap: .7rem; }
+.mutation-card .card-action-form { margin-top: auto; }
+
+@media (max-width: 640px) {
+  .lab-row { display: grid; }
+  .lab-actions { grid-template-columns: 1fr; }
+  .hero-panel > .button,
+  .hero-panel > a.button { width: 100%; }
+}
