@@ -1,15 +1,28 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 
 SPECIES_LABELS = {
-    "CANIS_LUPUS": "Волко-собака",
-    "FELIS_CATUS": "Кошачий вид",
-    "AVIS_AURORA": "Аврора-птица",
-    "REPTILIA_SOLARIS": "Солнечная рептилия",
-    "AMPHIBIA_LUMEN": "Световая амфибия",
-    "INSECTA_CHROMA": "Хрома-насекомое",
+    "1": "Хрящевая рыба",
+    "2": "Костная рыба",
+    "3": "Ракообразное",
+    "4": "Моллюск",
+    "5": "Черепаха",
+    "6": "Млекопитающее",
+    "cartilaginous_fish": "Хрящевая рыба",
+    "bony_fish": "Костная рыба",
+    "crustacean": "Ракообразное",
+    "mollusk": "Моллюск",
+    "turtle": "Черепаха",
+    "mammal": "Млекопитающее",
+    "canis_lupus": "Волко-собака",
+    "felis_catus": "Кошачий вид",
+    "avis_aurora": "Аврора-птица",
+    "reptilia_solaris": "Солнечная рептилия",
+    "amphibia_lumen": "Световая амфибия",
+    "insecta_chroma": "Хрома-насекомое",
 }
 
 GENE_LABELS = {
@@ -23,16 +36,17 @@ GENE_LABELS = {
     "beak_nose_shape": "Профиль",
     "speed_level": "Скорость",
     "fur_density": "Покров",
+    "trait": "Признак",
 }
 
 TRAIT_LABELS = {
-    "green_color": "зелёный",
-    "blue_color": "синий",
     "red_color": "красный",
+    "blue_color": "синий",
+    "green_color": "зелёный",
     "yellow_color": "жёлтый",
     "purple_color": "фиолетовый",
-    "orange_color": "оранжевый",
     "white_color": "белый",
+    "orange_color": "оранжевый",
     "black_color": "чёрный",
     "brown_color": "бурый",
     "silver_color": "серебристый",
@@ -41,6 +55,10 @@ TRAIT_LABELS = {
     "medium_size": "средний",
     "large_size": "крупный",
     "giant_size": "гигантский",
+    "compact": "компактный",
+    "medium": "средний",
+    "large": "крупный",
+    "small": "малый",
     "has_wings": "есть крылья",
     "wings": "есть крылья",
     "no_wings": "без крыльев",
@@ -48,21 +66,63 @@ TRAIT_LABELS = {
     "carnivore": "хищное",
     "omnivore": "всеядное",
     "filter_feeder": "фильтратор",
-    "predator": "хищник",
-    "rounded": "округлый",
-    "sharp": "острый",
-    "striped": "полосатый",
-    "dense": "густой",
-    "light": "лёгкий",
-    "fast": "быстрый",
-    "slow": "медленный",
+    "predator": "хищное",
+    "crescent_fin": "серповидный плавник",
+    "broad_fin": "широкий плавник",
+    "pointed_fin": "заострённый плавник",
+    "ribbon_fin": "ленточный плавник",
+    "forked_fin": "раздвоенный плавник",
+    "rounded_fin": "округлый плавник",
+    "long_claws": "длинные клешни",
+    "hooked_claws": "крючковатые клешни",
+    "short_claws": "короткие клешни",
+    "thick_armor": "толстый панцирь",
+    "ridged_armor": "ребристый панцирь",
+    "smooth_shell": "гладкий панцирь",
+    "plated_shell": "пластинчатый панцирь",
+    "rounded_nose": "округлый профиль",
+    "spiral_profile": "спиральный профиль",
+    "fast_speed": "быстрый",
+    "slow_speed": "медленный",
+    "short_fur": "короткая шерсть",
+    "soft_fur": "мягкая шерсть",
+    "dense_fur": "густая шерсть",
 }
 
 DOMINANCE_LABELS = {
-    "COMPLETE": "полное доминирование",
-    "INCOMPLETE": "неполное доминирование",
-    "CODOMINANCE": "кодоминирование",
-    "LINKED": "сцепленное наследование",
+    "complete": "полное доминирование",
+    "incomplete": "неполное доминирование",
+    "codominance": "кодоминирование",
+    "codominant": "кодоминирование",
+    "linked": "сцепленное наследование",
+}
+
+TASK_LABELS = {
+    "task_green_specimen": "Зелёное существо",
+    "task_winged_specimen": "Крылатое существо",
+    "task_fast_turtle": "Быстрая черепаха",
+}
+
+TASK_DESCRIPTIONS = {
+    "task_green_specimen": "Клиент просит вывести существо с зелёным окрасом.",
+    "task_winged_specimen": "Клиенту нужен организм с крыльями.",
+    "task_fast_turtle": "Нужно получить быструю черепаху для специального заказа.",
+}
+
+MUTATION_LABELS = {
+    "chemical mutation": "Химическая мутация",
+    "radiation mutation": "Радиационная мутация",
+    "nutrition shift mutation": "Сдвиг типа питания",
+    "wing activation mutation": "Активация крыльев",
+    "size shift mutation": "Изменение размера",
+    "red mutation": "Красная окраска",
+    "blue mutation": "Синяя окраска",
+    "green mutation": "Зелёная окраска",
+    "yellow mutation": "Жёлтая окраска",
+    "purple mutation": "Фиолетовая окраска",
+    "orange mutation": "Оранжевая окраска",
+    "white mutation": "Белая окраска",
+    "black mutation": "Чёрная окраска",
 }
 
 EVENT_LABELS = {
@@ -79,11 +139,6 @@ EXPERIMENT_LABELS = {
     "MUTAGEN": "Мутагент",
 }
 
-MUTAGEN_LABELS = {
-    "RADIATION": "Облучение",
-    "CHEMICAL": "Химикаты",
-}
-
 COLOR_CLASSES = {
     "green": "tone-green",
     "blue": "tone-blue",
@@ -97,6 +152,8 @@ COLOR_CLASSES = {
     "silver": "tone-silver",
 }
 
+TECH_SPECIES_PREFIXES = tuple(SPECIES_LABELS.keys())
+
 
 def _text(value: Any) -> str:
     return "" if value is None else str(value).strip()
@@ -106,28 +163,63 @@ def _clean_code(value: Any) -> str:
     return _text(value).strip().strip("`").lower()
 
 
+def _strip_mojibake(value: str) -> str:
+    markers = (chr(0x0420), chr(0x0421) + chr(0x0453), chr(0x00D0), chr(0x00D1))
+    return "" if any(marker in value for marker in markers) else value
+
+
+def _title_fallback(code: str) -> str:
+    clean = code.replace("_color", "").replace("_size", "").replace("_", " ").strip()
+    return clean[:1].upper() + clean[1:] if clean else "не указано"
+
+
 def humanize_code(value: Any) -> str:
-    code = _clean_code(value)
+    raw = _text(value)
+    code = _clean_code(raw)
     if not code:
         return "не указано"
+    if code.startswith("intermediate(") and code.endswith(")"):
+        inner = raw[raw.find("(") + 1 : raw.rfind(")")]
+        return "промежуточный: " + " / ".join(trait_label(part) for part in inner.split("/"))
+    if "/" in code:
+        parts = [trait_label(part) for part in raw.split("/") if part.strip()]
+        return "смешанное: " + " / ".join(parts)
     if code in TRAIT_LABELS:
         return TRAIT_LABELS[code]
     if code in GENE_LABELS:
         return GENE_LABELS[code]
-    if code.upper() in SPECIES_LABELS:
-        return SPECIES_LABELS[code.upper()]
-    if code.upper() in DOMINANCE_LABELS:
-        return DOMINANCE_LABELS[code.upper()]
-    label = code.replace("_color", "").replace("_size", "").replace("_", " ")
-    return label[:1].upper() + label[1:]
+    if code in SPECIES_LABELS:
+        return SPECIES_LABELS[code]
+    if code in DOMINANCE_LABELS:
+        return DOMINANCE_LABELS[code]
+    return _title_fallback(code)
 
 
 def species_label(row: dict[str, Any]) -> str:
-    display = _text(row.get("species_display_name") or row.get("species_label"))
-    if display and "Р" not in display:
+    code = _clean_code(row.get("species_type") or row.get("species_code"))
+    if code in SPECIES_LABELS:
+        return SPECIES_LABELS[code]
+    display = _strip_mojibake(_text(row.get("species_display_name") or row.get("species_label")))
+    if display:
         return display
-    code = _text(row.get("species_type")).upper()
-    return SPECIES_LABELS.get(code, humanize_code(code))
+    return humanize_code(code)
+
+
+def _creature_number(row: dict[str, Any]) -> str:
+    name = _text(row.get("creature_name"))
+    match = re.search(r"#\s*(\d+)", name)
+    if match:
+        return match.group(1)
+    creature_id = _text(row.get("creature_id"))
+    return creature_id or "?"
+
+
+def creature_name(row: dict[str, Any]) -> str:
+    name = _text(row.get("creature_name"))
+    lower = name.lower()
+    if name and not any(lower.startswith(prefix) for prefix in TECH_SPECIES_PREFIXES):
+        return name
+    return f"{species_label(row)} #{_creature_number(row)}"
 
 
 def trait_label(value: Any) -> str:
@@ -140,8 +232,7 @@ def gene_label(value: Any) -> str:
 
 
 def dominance_label(value: Any) -> str:
-    code = _text(value).upper()
-    return DOMINANCE_LABELS.get(code, humanize_code(code))
+    return DOMINANCE_LABELS.get(_clean_code(value), humanize_code(value))
 
 
 def _color_key(value: Any) -> str:
@@ -171,38 +262,19 @@ def parse_phenotype(summary: Any) -> list[dict[str, str]]:
             key, value = part.split(":", 1)
         else:
             key, value = "trait", part
-        items.append(
-            {
-                "key": key.strip(),
-                "label": gene_label(key),
-                "value": trait_label(value),
-                "raw": value.strip(),
-                "class": color_class(value) if "color" in key.lower() else "tone-neutral",
-            }
-        )
+        key = key.strip()
+        value = value.strip()
+        items.append({"key": key, "label": gene_label(key), "value": trait_label(value), "raw": value, "class": color_class(value) if "color" in key.lower() else "tone-neutral"})
     return items
 
 
 def phenotype_items(row: dict[str, Any]) -> list[dict[str, str]]:
     items = parse_phenotype(row.get("phenotype_summary"))
     seen = {_clean_code(item["key"]) for item in items}
-    explicit = [
-        ("color", row.get("phenotype_color")),
-        ("size", row.get("phenotype_size")),
-        ("has_wings", row.get("phenotype_has_wings")),
-        ("nutrition_type", row.get("phenotype_nutrition_type")),
-    ]
+    explicit = [("color", row.get("phenotype_color")), ("size", row.get("phenotype_size")), ("has_wings", row.get("phenotype_has_wings")), ("nutrition_type", row.get("phenotype_nutrition_type"))]
     for key, value in explicit:
         if value and key not in seen:
-            items.append(
-                {
-                    "key": key,
-                    "label": gene_label(key),
-                    "value": trait_label(value),
-                    "raw": _text(value),
-                    "class": color_class(value) if key == "color" else "tone-neutral",
-                }
-            )
+            items.append({"key": key, "label": gene_label(key), "value": trait_label(value), "raw": _text(value), "class": color_class(value) if key == "color" else "tone-neutral"})
     return items
 
 
@@ -210,8 +282,7 @@ def phenotype_sentence(row: dict[str, Any]) -> str:
     items = phenotype_items(row)
     if not items:
         return "Фенотип пока не описан."
-    pairs = [f"{item['label']}: {item['value']}" for item in items[:5]]
-    return "; ".join(pairs)
+    return " · ".join(f"{item['label']}: {item['value']}" for item in items[:5])
 
 
 def creature_visual(row: dict[str, Any]) -> dict[str, str]:
@@ -220,16 +291,12 @@ def creature_visual(row: dict[str, Any]) -> dict[str, str]:
     color = row.get("phenotype_color") or row.get("phenotype_summary")
     wings_raw = _clean_code(row.get("phenotype_has_wings") or row.get("phenotype_summary"))
     wings = "has-wings" if "wing" in wings_raw and "no_wings" not in wings_raw else "no-wings"
-    return {
-        "species_class": species_class,
-        "tone_class": color_class(color),
-        "wings_class": wings,
-    }
+    return {"species_class": species_class, "tone_class": color_class(color), "wings_class": wings}
 
 
 def creature_view(row: dict[str, Any]) -> dict[str, Any]:
     view = dict(row)
-    view["display_name"] = _text(row.get("creature_name")) or f"Существо #{row.get('creature_id')}"
+    view["display_name"] = creature_name(row)
     view["species_label"] = species_label(row)
     view["phenotype_items"] = phenotype_items(row)
     view["phenotype_text"] = phenotype_sentence(row)
@@ -244,30 +311,31 @@ def creature_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def genotype_view(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     formatted = []
     for row in rows:
-        allele1 = row.get("allele1_display_name") or row.get("allele1_trait_value")
-        allele2 = row.get("allele2_display_name") or row.get("allele2_trait_value")
-        gene = row.get("gene_display_name") or row.get("gene_name") or row.get("gene_type")
-        dominance = row.get("dominance_display_name") or row.get("dominance_type")
-        formatted.append(
-            {
-                **row,
-                "gene_label": gene_label(gene),
-                "gene_code": _text(row.get("gene_name") or row.get("gene_type")),
-                "dominance_label": dominance_label(dominance),
-                "allele1_label": trait_label(allele1),
-                "allele2_label": trait_label(allele2),
-                "pair_label": f"{trait_label(allele1)} / {trait_label(allele2)}",
-            }
-        )
+        allele1 = row.get("allele1_trait_value") or row.get("allele1_display_name")
+        allele2 = row.get("allele2_trait_value") or row.get("allele2_display_name")
+        gene = row.get("gene_name") or row.get("gene_type") or row.get("gene_display_name")
+        dominance = row.get("dominance_type") or row.get("dominance_display_name")
+        formatted.append({**row, "gene_label": gene_label(gene), "gene_code": _text(gene), "dominance_label": dominance_label(dominance), "allele1_label": trait_label(allele1), "allele2_label": trait_label(allele2), "pair_label": f"{trait_label(allele1)} / {trait_label(allele2)}"})
     return formatted
+
+
+def _probability_label(value: Any) -> str:
+    try:
+        number = float(value or 0)
+    except (TypeError, ValueError):
+        return "не указана"
+    if number <= 1:
+        number *= 100
+    return f"{number:.1f}%"
 
 
 def preview_view(row: dict[str, Any]) -> dict[str, Any]:
     view = creature_view(row)
     view["option_no"] = row.get("option_no")
     view["probability"] = row.get("probability")
+    view["probability_label"] = _probability_label(row.get("probability"))
     view["genotype_summary"] = _text(row.get("genotype_summary"))
-    view["source_note"] = _text(row.get("source_note")) or "PREVIEW_ONLY"
+    view["source_note"] = "Предпросмотр"
     view["display_name"] = f"Вариант {row.get('option_no')}"
     return view
 
@@ -278,32 +346,34 @@ def preview_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def task_view(row: dict[str, Any]) -> dict[str, Any]:
     status = _text(row.get("task_status")).upper()
+    code = _clean_code(row.get("task_name") or row.get("task_code") or row.get("title"))
     difficulty = row.get("difficulty_display_name") or row.get("difficulty_code") or row.get("difficulty")
-    name = row.get("task_name") or row.get("task_display_name") or row.get("title") or f"Заказ #{row.get('task_id')}"
-    description = row.get("description") or row.get("task_description") or row.get("goal_description") or ""
-    return {
-        **row,
-        "display_name": _text(name),
-        "description_text": _text(description),
-        "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status),
-        "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral",
-        "difficulty_label": humanize_code(difficulty),
-    }
+    name = TASK_LABELS.get(code) or _strip_mojibake(_text(row.get("task_display_name"))) or humanize_code(code.replace("task_", ""))
+    description = _text(row.get("description") or row.get("task_description") or row.get("goal_description"))
+    if not description or code in TASK_DESCRIPTIONS:
+        description = TASK_DESCRIPTIONS.get(code, f"Клиент просит организм: {name.lower()}.")
+    return {**row, "display_name": name, "description_text": description, "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status), "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral", "difficulty_label": humanize_code(difficulty)}
 
 
 def task_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [task_view(row) for row in rows]
 
 
+def _mutation_label(value: Any) -> str:
+    text = _text(value)
+    code = _clean_code(text)
+    if code in MUTATION_LABELS:
+        return MUTATION_LABELS[code]
+    spaced = code.replace("_", " ")
+    if spaced in MUTATION_LABELS:
+        return MUTATION_LABELS[spaced]
+    return humanize_code(code)
+
+
 def mutation_view(row: dict[str, Any]) -> dict[str, Any]:
-    name = row.get("mutation_name") or row.get("display_name") or row.get("mutation_code") or f"Мутация #{row.get('mutation_id')}"
+    name = row.get("mutation_name") or row.get("display_name") or row.get("mutation_code") or f"mutation {row.get('mutation_id')}"
     target = row.get("target_trait") or row.get("trait_value") or row.get("gene_type") or row.get("gene_name")
-    return {
-        **row,
-        "display_name": humanize_code(name) if "_" in _text(name) else _text(name),
-        "target_label": trait_label(target),
-        "description_text": _text(row.get("description")) or "Точечное изменение признака по правилам лаборатории.",
-    }
+    return {**row, "display_name": _mutation_label(name), "target_label": trait_label(target), "description_text": _text(row.get("description")) or "Точечное изменение выбранного признака."}
 
 
 def mutation_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -312,12 +382,7 @@ def mutation_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def experiment_view(row: dict[str, Any]) -> dict[str, Any]:
     kind = _text(row.get("experiment_type") or row.get("experiment_type_code")).upper()
-    return {
-        **row,
-        "type_label": EXPERIMENT_LABELS.get(kind, humanize_code(kind)),
-        "type_class": f"event-{kind.lower()}" if kind else "event-neutral",
-        "description_text": _text(row.get("description") or row.get("result_description")) or "Шаг лабораторной линии.",
-    }
+    return {**row, "type_label": EXPERIMENT_LABELS.get(kind, humanize_code(kind)), "type_class": f"event-{kind.lower()}" if kind else "event-neutral", "description_text": _text(row.get("description") or row.get("result_description")) or "Шаг лабораторной линии."}
 
 
 def experiment_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -328,14 +393,7 @@ def rating_event_view(row: dict[str, Any]) -> dict[str, Any]:
     kind = _text(row.get("event_type") or row.get("event_code")).upper()
     rating_delta = row.get("rating_delta")
     wallet_delta = row.get("wallet_delta")
-    return {
-        **row,
-        "type_label": EVENT_LABELS.get(kind, humanize_code(kind)),
-        "event_class": f"event-{kind.lower()}" if kind else "event-neutral",
-        "rating_class": _delta_class(rating_delta),
-        "wallet_class": _delta_class(wallet_delta),
-        "description_text": _text(row.get("description")) or "Записанное последствие действия.",
-    }
+    return {**row, "type_label": EVENT_LABELS.get(kind, humanize_code(kind)), "event_class": f"event-{kind.lower()}" if kind else "event-neutral", "rating_class": _delta_class(rating_delta), "wallet_class": _delta_class(wallet_delta), "description_text": _text(row.get("description")) or "Записанное последствие действия."}
 
 
 def rating_event_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

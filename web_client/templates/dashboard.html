@@ -1,49 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - BioSborKA{% endblock %}
+{% block title %}Обзор — БиоСборка{% endblock %}
 {% block content %}
-<section class="hero-panel dashboard-hero">
-  <div>
-    <p class="eyebrow">Lab #{{ lab_id }}</p>
-    <h1>Genetic atelier dashboard</h1>
-    <p class="lead">Track the lab state, choose the next experiment, and keep the defense flow one click away.</p>
-  </div>
-  <a class="button secondary" href="{{ url_for('labs') }}">Switch lab</a>
-</section>
-
-<section class="stat-grid">
-  <article class="stat-card wallet"><span>Wallet</span><strong>{{ stats.wallet }}</strong></article>
-  <article class="stat-card rating"><span>Rating</span><strong>{{ stats.rating }}</strong></article>
-  <article class="stat-card"><span>Creatures</span><strong>{{ stats.creature_count }}</strong></article>
-  <article class="stat-card"><span>Active orders</span><strong>{{ stats.active_task_count }}</strong></article>
-  <article class="stat-card"><span>Completed</span><strong>{{ stats.completed_task_count }}</strong></article>
-  <article class="stat-card"><span>Experiments</span><strong>{{ stats.experiment_count }}</strong></article>
-</section>
-
-<section class="workflow-grid">
-  <article class="panel feature-panel">
-    <p class="eyebrow">Game loop</p>
-    <h2>From client order to evolved organism</h2>
-    <ol class="cycle-list">
-      <li><a href="{{ url_for('tasks') }}">Client orders</a><span>pick a target phenotype</span></li>
-      <li><a href="{{ url_for('creatures') }}">Creatures</a><span>inspect phenotype and genotype</span></li>
-      <li><a href="{{ url_for('crossbreed') }}">3-option preview</a><span>compare possible offspring</span></li>
-      <li><a href="{{ url_for('mutations') }}">Mutations</a><span>apply controlled or risky changes</span></li>
-      <li><a href="{{ url_for('experiments') }}">Evolution line</a><span>show the path of the lab</span></li>
-      <li><a href="{{ url_for('rating_events') }}">Consequences</a><span>explain wallet and rating changes</span></li>
-    </ol>
-  </article>
-
-  <article class="panel defense-panel">
-    <p class="eyebrow">Defense flow</p>
-    <h2>Ready-to-show sections</h2>
-    <div class="action-grid">
-      <a class="button" href="{{ url_for('creatures') }}">Creature collection</a>
-      <a class="button" href="{{ url_for('tasks') }}">Client orders</a>
-      <a class="button" href="{{ url_for('crossbreed') }}">Crossbreed preview</a>
-      <a class="button" href="{{ url_for('mutations') }}">Mutations and mutagens</a>
-      <a class="button" href="{{ url_for('experiments') }}">Evolution line</a>
-      <a class="button secondary" href="{{ url_for('about_requirements') }}">Requirements map</a>
-    </div>
-  </article>
-</section>
+<section class="hero-panel dashboard-hero"><div><p class="eyebrow">Лаборатория #{{ lab_id }}</p><h1>Обзор лаборатории</h1><p class="lead">Центральная страница показа: состояние лаборатории, быстрые переходы и полный игровой цикл.</p></div><a class="button secondary" href="{{ url_for('labs') }}">Сменить лабораторию</a></section>
+<section class="stat-grid"><article class="stat-card wallet"><span>Бюджет</span><strong>{{ stats.wallet }}</strong></article><article class="stat-card rating"><span>Рейтинг</span><strong>{{ stats.rating }}</strong></article><article class="stat-card"><span>Существа</span><strong>{{ stats.creature_count }}</strong></article><article class="stat-card"><span>Активные заказы</span><strong>{{ stats.active_task_count }}</strong></article><article class="stat-card"><span>Выполнено</span><strong>{{ stats.completed_task_count }}</strong></article><article class="stat-card"><span>Эксперименты</span><strong>{{ stats.experiment_count }}</strong></article></section>
+<section class="workflow-grid"><article class="panel feature-panel"><p class="eyebrow">Игровой цикл</p><h2>От заказа клиента к нужному организму</h2><ol class="cycle-list"><li><a href="{{ url_for('tasks') }}">Заказы клиентов</a><span>выберите целевой фенотип</span></li><li><a href="{{ url_for('creatures') }}">Существа</a><span>изучите фенотип и генотип</span></li><li><a href="{{ url_for('crossbreed') }}">Предпросмотр потомства</a><span>сравните 3 варианта</span></li><li><a href="{{ url_for('mutations') }}">Мутации и мутагены</a><span>изменяйте признаки с риском</span></li><li><a href="{{ url_for('experiments') }}">Эволюционная линия</a><span>покажите путь лаборатории</span></li><li><a href="{{ url_for('rating_events') }}">Последствия</a><span>объясните бюджет и рейтинг</span></li></ol></article><article class="panel defense-panel"><p class="eyebrow">Быстрый показ</p><h2>Ключевые разделы</h2><div class="action-grid"><a class="button" href="{{ url_for('creatures') }}">Коллекция существ</a><a class="button" href="{{ url_for('tasks') }}">Заказы клиентов</a><a class="button" href="{{ url_for('crossbreed') }}">Скрещивание</a><a class="button" href="{{ url_for('mutations') }}">Мутации</a><a class="button" href="{{ url_for('experiments') }}">Эволюционная линия</a><a class="button secondary" href="{{ url_for('about_requirements') }}">Карта требований</a></div></article></section>
 {% endblock %}

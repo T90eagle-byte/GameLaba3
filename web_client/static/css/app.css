@@ -194,3 +194,63 @@ input, select { width: 100%; min-height: 42px; border: 1px solid var(--line); bo
   .button-row { flex-direction: column; align-items: stretch; }
   .button, button { width: 100%; }
 }
+
+/* Species silhouettes: display-only CSS portraits for the defense UI. */
+.creature-portrait .head,
+.creature-portrait .fin,
+.creature-portrait .claw,
+.creature-portrait .leg { position: absolute; display: none; background: var(--creature-accent, var(--leaf)); z-index: 3; }
+.creature-portrait .head { width: 42px; height: 38px; border-radius: 50%; transform: translate(70px, -20px); }
+.creature-portrait .fin { width: 52px; height: 30px; border-radius: 70% 30% 70% 30%; background: var(--creature-accent, var(--leaf)); }
+.creature-portrait .fin.top { transform: translate(-5px, -54px) rotate(-8deg); }
+.creature-portrait .fin.bottom { transform: translate(8px, 54px) rotate(8deg); }
+.creature-portrait .claw { width: 42px; height: 32px; border: 8px solid var(--creature-accent, var(--leaf)); background: transparent; border-radius: 50%; }
+.creature-portrait .claw.left { transform: translate(-96px, -18px) rotate(-28deg); }
+.creature-portrait .claw.right { transform: translate(96px, -18px) rotate(28deg); }
+.creature-portrait .leg { width: 42px; height: 14px; border-radius: 999px; }
+.creature-portrait .leg.one { transform: translate(-58px, 56px) rotate(28deg); }
+.creature-portrait .leg.two { transform: translate(-22px, 64px) rotate(12deg); }
+.creature-portrait .leg.three { transform: translate(22px, 64px) rotate(-12deg); }
+.creature-portrait .leg.four { transform: translate(58px, 56px) rotate(-28deg); }
+
+.species-cartilaginous-fish .body,
+.species-bony-fish .body { width: 138px; height: 72px; border-radius: 72% 28% 28% 72%; }
+.species-cartilaginous-fish .tail,
+.species-bony-fish .tail { display: block; width: 68px; height: 68px; clip-path: polygon(0 50%, 100% 0, 78% 50%, 100% 100%); border-radius: 0; transform: translate(-92px, 0); }
+.species-cartilaginous-fish .head,
+.species-bony-fish .head { display: block; width: 18px; height: 18px; transform: translate(62px, -13px); background: rgba(255,255,255,.72); }
+.species-cartilaginous-fish .fin,
+.species-bony-fish .fin { display: block; }
+.species-cartilaginous-fish .body { border-radius: 78% 22% 28% 72%; }
+.species-bony-fish .body { border-radius: 65% 35% 35% 65%; }
+
+.species-crustacean .body { width: 118px; height: 86px; border-radius: 44% 56% 54% 46%; }
+.species-crustacean .claw,
+.species-crustacean .leg { display: block; }
+.species-crustacean .head { display: block; width: 36px; height: 30px; transform: translate(0, -54px); }
+.species-crustacean .tail { transform: translate(0, 58px) rotate(90deg); width: 54px; height: 26px; }
+
+.species-turtle .body { width: 138px; height: 102px; border-radius: 50%; background: radial-gradient(circle at 50% 48%, var(--creature-tone, var(--moss)), var(--creature-accent, var(--leaf))); }
+.species-turtle .head,
+.species-turtle .leg { display: block; }
+.species-turtle .head { transform: translate(84px, -2px); }
+.species-turtle .leg.one { transform: translate(-54px, -48px) rotate(-34deg); }
+.species-turtle .leg.two { transform: translate(-54px, 48px) rotate(34deg); }
+.species-turtle .leg.three { transform: translate(44px, -48px) rotate(34deg); }
+.species-turtle .leg.four { transform: translate(44px, 48px) rotate(-34deg); }
+.species-turtle .tail { width: 36px; height: 22px; transform: translate(-84px, 0) rotate(180deg); }
+
+.species-mollusk .body { width: 122px; height: 98px; border-radius: 58% 42% 64% 36%; }
+.species-mollusk .body:after { content: ""; position: absolute; inset: 18px; border-radius: 50%; border: 4px solid rgba(255,255,255,.35); }
+.species-mollusk .head { display: block; width: 34px; height: 26px; transform: translate(76px, 16px); }
+.species-mammal .body { border-radius: 48% 52% 38% 62%; }
+.species-mammal .head { display: block; transform: translate(76px, -34px); }
+.species-mammal .leg { display: block; width: 28px; height: 28px; border-radius: 50%; }
+.species-mammal .leg.one { transform: translate(-44px, 55px); }
+.species-mammal .leg.two { transform: translate(40px, 55px); }
+.species-mammal .tail { width: 78px; height: 24px; transform: translate(-86px, -8px) rotate(-20deg); }
+
+.creature-portrait.has-wings .wing { display: block; opacity: .78; }
+.creature-portrait.has-wings .wing.left { transform: translate(-70px,-20px) rotate(-28deg); }
+.creature-portrait.has-wings .wing.right { transform: translate(70px,-20px) rotate(28deg) scaleX(-1); }
+.session-hint { padding: .75rem .9rem; border-radius: 14px; background: rgba(90,138,160,.12); color: var(--muted); }

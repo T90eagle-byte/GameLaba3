@@ -1,29 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Requirements - BioSborKA{% endblock %}
+{% block title %}Требования — БиоСборка{% endblock %}
 {% block content %}
-<section class="hero-panel compact-hero requirements-hero">
-  <div><p class="eyebrow">Defense map</p><h1>Requirements coverage</h1><p class="lead">A concise guide for showing level 3 and level 4 requirements in the web interface.</p></div>
-</section>
-
-<section class="section-block"><div class="section-title"><h2>Level 3 - covered</h2></div><div class="requirement-grid">
-  <article class="requirement-card"><h3>5+ species</h3><p>Open the creature collection and show species cards.</p><a href="{{ url_for('creatures') }}">Creatures</a></article>
-  <article class="requirement-card"><h3>Traits</h3><p>Color, size, wings and nutrition are shown as phenotype chips.</p><a href="{{ url_for('creatures') }}">Traits</a></article>
-  <article class="requirement-card"><h3>Genotype / phenotype</h3><p>Creature detail separates visible traits and allele pairs.</p><a href="{{ url_for('creatures') }}">Creature cards</a></article>
-  <article class="requirement-card"><h3>Crossbreed</h3><p>The crossbreed page selects two parents and creates offspring.</p><a href="{{ url_for('crossbreed') }}">Crossbreed</a></article>
-  <article class="requirement-card"><h3>3 preview options</h3><p>The preview action displays three stateless offspring options.</p><a href="{{ url_for('crossbreed') }}">Preview</a></article>
-  <article class="requirement-card"><h3>Client orders</h3><p>Orders describe target organisms and can be checked/completed.</p><a href="{{ url_for('tasks') }}">Client orders</a></article>
-</div></section>
-
-<section class="section-block"><div class="section-title"><h2>Level 4 - covered</h2></div><div class="requirement-grid">
-  <article class="requirement-card"><h3>Advanced genetics</h3><p>Dominance and inheritance are visible through genotype rows.</p><a href="{{ url_for('creatures') }}">Genotypes</a></article>
-  <article class="requirement-card"><h3>Linked line</h3><p>The evolution line shows crosses, mutations and mutagens as a path.</p><a href="{{ url_for('experiments') }}">Evolution line</a></article>
-  <article class="requirement-card"><h3>Mutations</h3><p>The mutation shop supports purchase and application.</p><a href="{{ url_for('mutations') }}">Mutations</a></article>
-  <article class="requirement-card"><h3>Radiation / chemicals</h3><p>Both mutagens are available from the web UI.</p><a href="{{ url_for('mutations') }}">Mutagens</a></article>
-  <article class="requirement-card"><h3>Risk</h3><p>Consequences are visible through wallet and rating events.</p><a href="{{ url_for('rating_events') }}">Consequences</a></article>
-  <article class="requirement-card"><h3>Client adaptation</h3><p>Client orders replace the literal wolf-dog wording with a broader BioSborKA model.</p><a href="{{ url_for('tasks') }}">Orders</a></article>
-</div></section>
-
-<section class="panel level-five-note"><h2>Level 5 is not claimed</h2><p>The current version intentionally focuses on stable level 3/4 defense. Ecosystem enclosure, mortality and an ethics council remain roadmap items, not implemented mechanics.</p></section>
-
-<section class="panel architecture-note"><h2>Architecture note</h2><p>The web app is a display/client layer. Gameplay decisions remain in the database package; Flask renders data and submits user actions.</p></section>
+<section class="hero-panel compact-hero requirements-hero"><div><p class="eyebrow">Карта защиты</p><h1>Соответствие требованиям</h1><p class="lead">Короткая карта, где в web-интерфейсе показать требования уровней 3 и 4.</p></div></section>
+<section class="section-block"><div class="section-title"><h2>Уровень 3 — закрыт</h2></div><div class="requirement-grid"><article class="requirement-card"><h3>5+ видов</h3><p>Откройте коллекцию существ и покажите карточки видов.</p><a href="{{ url_for('creatures') }}">Существа</a></article><article class="requirement-card"><h3>Признаки</h3><p>Окрас, размер, крылья и питание показаны бейджами фенотипа.</p><a href="{{ url_for('creatures') }}">Признаки</a></article><article class="requirement-card"><h3>Генотип / фенотип</h3><p>Карточка существа разделяет видимые признаки и пары аллелей.</p><a href="{{ url_for('creatures') }}">Карточки существ</a></article><article class="requirement-card"><h3>Скрещивание</h3><p>Страница скрещивания выбирает двух родителей и создаёт потомка.</p><a href="{{ url_for('crossbreed') }}">Скрещивание</a></article><article class="requirement-card"><h3>3 варианта потомства</h3><p>Предпросмотр показывает три варианта без изменения лаборатории.</p><a href="{{ url_for('crossbreed') }}">Предпросмотр</a></article><article class="requirement-card"><h3>Заказы клиентов</h3><p>Заказы описывают целевой организм и проверяются через игровой сценарий.</p><a href="{{ url_for('tasks') }}">Заказы</a></article></div></section>
+<section class="section-block"><div class="section-title"><h2>Уровень 4 — закрыт</h2></div><div class="requirement-grid"><article class="requirement-card"><h3>Сложная генетика</h3><p>Доминирование и наследование видны в генотипе существа.</p><a href="{{ url_for('creatures') }}">Генотипы</a></article><article class="requirement-card"><h3>Эволюционная линия</h3><p>История экспериментов показывает путь через скрещивания и мутации.</p><a href="{{ url_for('experiments') }}">Эволюционная линия</a></article><article class="requirement-card"><h3>Мутации</h3><p>Каталог поддерживает покупку и применение мутаций.</p><a href="{{ url_for('mutations') }}">Мутации</a></article><article class="requirement-card"><h3>Облучение / химикаты</h3><p>Оба мутагена доступны на странице мутаций.</p><a href="{{ url_for('mutations') }}">Мутагены</a></article><article class="requirement-card"><h3>Риск</h3><p>Последствия видны через бюджет, рейтинг и ленту событий.</p><a href="{{ url_for('rating_events') }}">Последствия</a></article><article class="requirement-card"><h3>Заказ клиента</h3><p>Формулировка адаптирована под многовидовую БиоСборку: лаборатория выполняет заказы на нужный фенотип.</p><a href="{{ url_for('tasks') }}">Заказы</a></article></div></section>
+<section class="panel level-five-note"><h2>Уровень 5 не заявляется</h2><p>Текущая версия целенаправленно закрывает уровни 3/4. Экосистема, смертность и совет по этике остаются дорожной картой, а не готовыми механиками.</p></section>
+<section class="panel architecture-note"><h2>Архитектура</h2><p>Web-интерфейс остаётся клиентским слоем. Игровые решения принимает Oracle package `pkg_genetics_game`, Flask отправляет действия пользователя и отображает результат.</p></section>
 {% endblock %}

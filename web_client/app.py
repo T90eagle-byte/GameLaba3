@@ -133,12 +133,12 @@ def create_app() -> Flask:
                 if action == "create":
                     lab_id = lab_service.start_new_lab(token)
                     session["current_lab_id"] = lab_id
-                    flash(f"Lab #{lab_id} created.", "success")
+                    flash(f"Лаборатория #{lab_id} создана.", "success")
                     return redirect(url_for("dashboard"))
 
                 if action == "open":
                     lab_id = int(request.form.get("lab_id", "0"))
-                    lab_service.load_lab(token, lab_id)
+                    lab_service.switch_lab(token, lab_id) if session.get("current_lab_id") else lab_service.load_lab(token, lab_id)
                     session["current_lab_id"] = lab_id
                     flash(f"Лаборатория #{lab_id} открыта.", "success")
                     return redirect(url_for("dashboard"))
@@ -240,7 +240,7 @@ def create_app() -> Flask:
                     if result:
                         flash("Существо подходит под заказ клиента.", "success")
                     else:
-                        flash("This creature does not match the client order yet.", "warning")
+                        flash("Пока не подходит: выберите другое существо или продолжите эксперименты.", "warning")
                     return redirect(url_for("tasks"))
 
                 if action == "complete":
@@ -252,7 +252,7 @@ def create_app() -> Flask:
                             "success",
                         )
                     else:
-                        flash("The selected creature does not complete this order.", "warning")
+                        flash("Выбранное существо не закрывает цель заказа.", "warning")
                     return redirect(url_for("tasks"))
 
                 flash("Неизвестное действие с заказом.", "error")
@@ -276,11 +276,11 @@ def create_app() -> Flask:
             if str(task.get("task_status", "")).upper() == "ACTIVE"
         ]
         completed_tasks = [
-            task for task in tasks_rows
+            task for task in task_views
             if str(task.get("task_status", "")).upper() == "COMPLETED"
         ]
         other_tasks = [
-            task for task in tasks_rows
+            task for task in task_views
             if task not in active_tasks and task not in completed_tasks
         ]
 
@@ -331,9 +331,9 @@ def create_app() -> Flask:
                     )
                     preview_options = display_service.preview_views(preview_rows)
                     if len(preview_options) == 3:
-                        flash("Shown: 3 offspring preview options. Lab state is unchanged.", "success")
+                        flash("Показаны 3 варианта потомства. Лаборатория не изменилась.", "success")
                     else:
-                        flash(f"Shown options: {len(preview_options)}.", "warning")
+                        flash(f"Показано вариантов: {len(preview_options)}.", "warning")
 
                 elif action == "create":
                     if not offspring_name:
@@ -346,7 +346,7 @@ def create_app() -> Flask:
                             parent2_id,
                             offspring_name,
                         )
-                        flash(f"Offspring created: #{offspring_id}.", "success")
+                        flash(f"Потомок создан: #{offspring_id}.", "success")
                         if offspring_id:
                             return redirect(url_for("creature_detail", creature_id=offspring_id))
                         return redirect(url_for("creatures"))
@@ -384,9 +384,9 @@ def create_app() -> Flask:
                         raise ValueError
                     result = mutation_service.buy_mutation(token, lab_id, mutation_id)
                     if result:
-                        flash("Mutation purchased. Wallet has been updated.", "success")
+                        flash("Мутация куплена. Бюджет обновлён.", "success")
                     else:
-                        flash("Mutation purchased. Wallet has been updated.", "success")
+                        flash("Мутация куплена. Бюджет обновлён.", "success")
                     return redirect(url_for("mutations"))
 
                 if action == "apply_mutation":
@@ -395,7 +395,7 @@ def create_app() -> Flask:
                     if creature_id <= 0 or mutation_id <= 0:
                         raise ValueError
                     mutation_service.apply_mutation(token, lab_id, creature_id, mutation_id)
-                    flash("Mutation was not purchased. Check wallet and purchase conditions.", "warning")
+                    flash("Мутация применена. Откройте карточку существа, чтобы увидеть изменения.", "success")
                     return redirect(url_for("creature_detail", creature_id=creature_id))
 
                 if action == "apply_mutagen":

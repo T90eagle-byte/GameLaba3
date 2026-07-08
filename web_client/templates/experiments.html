@@ -1,29 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Evolution line - BioSborKA{% endblock %}
+{% block title %}Эволюционная линия — БиоСборка{% endblock %}
 {% block content %}
-<section class="hero-panel compact-hero">
-  <div><p class="eyebrow">Lab memory</p><h1>Evolution line</h1><p class="lead">A readable sequence of crosses, mutations, and mutagen actions that led the lab toward target traits.</p></div>
-</section>
-
-{% if experiments %}
-<section class="timeline">
-  {% for item in experiments %}
-    <article class="timeline-item {{ item.type_class }}">
-      <span class="timeline-dot"></span>
-      <div class="panel">
-        <div class="entity-card-header"><h2>{{ item.type_label }}</h2><span class="badge">{{ item.created_at or item.experiment_date or '' }}</span></div>
-        <p>{{ item.description_text }}</p>
-        <div class="badge-row">
-          {% if item.parent1_id %}<span class="badge">Parent #{{ item.parent1_id }}</span>{% endif %}
-          {% if item.parent2_id %}<span class="badge">Parent #{{ item.parent2_id }}</span>{% endif %}
-          {% if item.result_creature_id %}<a class="badge link-badge" href="{{ url_for('creature_detail', creature_id=item.result_creature_id) }}">Result #{{ item.result_creature_id }}</a>{% endif %}
-          {% if item.mutation_id %}<span class="badge">Mutation #{{ item.mutation_id }}</span>{% endif %}
-        </div>
-      </div>
-    </article>
-  {% endfor %}
-</section>
-{% else %}
-<section class="panel empty-state"><h2>No experiments yet</h2><p>Crossbreed creatures or apply mutations to build the lab's evolutionary story.</p></section>
-{% endif %}
+<section class="hero-panel compact-hero"><div><p class="eyebrow">Память лаборатории</p><h1>Эволюционная линия</h1><p class="lead">Последовательность скрещиваний, мутаций и мутагенных воздействий показывает путь лаборатории к нужным признакам.</p></div></section>
+{% if experiments %}<section class="timeline">{% for item in experiments %}<article class="timeline-item {{ item.type_class }}"><span class="timeline-dot"></span><div class="panel"><div class="entity-card-header"><h2>{{ item.type_label }}</h2><span class="badge">{{ item.created_at or item.experiment_date or '' }}</span></div><p>{{ item.description_text }}</p><div class="badge-row">{% if item.parent1_id %}<span class="badge">Родитель #{{ item.parent1_id }}</span>{% endif %}{% if item.parent2_id %}<span class="badge">Родитель #{{ item.parent2_id }}</span>{% endif %}{% if item.result_creature_id %}<a class="badge link-badge" href="{{ url_for('creature_detail', creature_id=item.result_creature_id) }}">Результат #{{ item.result_creature_id }}</a>{% endif %}{% if item.mutation_id %}<span class="badge">Мутация #{{ item.mutation_id }}</span>{% endif %}</div></div></article>{% endfor %}</section>{% else %}<section class="panel empty-state"><h2>Экспериментов пока нет</h2><p>Проведите скрещивание или примените мутацию, чтобы появилась история лаборатории.</p></section>{% endif %}
 {% endblock %}

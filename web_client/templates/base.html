@@ -3,44 +3,40 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}BioSborKA{% endblock %}</title>
+  <title>{% block title %}БиоСборка{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark"></span><span>BioSborKA</span></a>
+    <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark"></span><span>БиоСборка</span></a>
     <nav class="nav">
       {% if is_authenticated %}
-        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-        <a href="{{ url_for('labs') }}">Labs</a>
-        <a href="{{ url_for('creatures') }}">Creatures</a>
-        <a href="{{ url_for('tasks') }}">Client orders</a>
-        <a href="{{ url_for('crossbreed') }}">Crossbreed</a>
-        <a href="{{ url_for('mutations') }}">Mutations</a>
-        <a href="{{ url_for('experiments') }}">Evolution line</a>
-        <a href="{{ url_for('rating_events') }}">Consequences</a>
-        <a href="{{ url_for('about_requirements') }}">Requirements</a>
-        <a href="{{ url_for('logout') }}">Logout</a>
+        <a href="{{ url_for('dashboard') }}">Обзор</a>
+        <a href="{{ url_for('labs') }}">Лаборатории</a>
+        <a href="{{ url_for('creatures') }}">Существа</a>
+        <a href="{{ url_for('tasks') }}">Заказы клиентов</a>
+        <a href="{{ url_for('crossbreed') }}">Скрещивание</a>
+        <a href="{{ url_for('mutations') }}">Мутации</a>
+        <a href="{{ url_for('experiments') }}">Эволюционная линия</a>
+        <a href="{{ url_for('rating_events') }}">Последствия</a>
+        <a href="{{ url_for('about_requirements') }}">Требования</a>
+        <a href="{{ url_for('logout') }}">Выйти</a>
       {% else %}
-        <a href="{{ url_for('login') }}">Login</a>
-        <a href="{{ url_for('register') }}">Register</a>
-        <a href="{{ url_for('about_requirements') }}">Requirements</a>
+        <a href="{{ url_for('login') }}">Вход</a>
+        <a href="{{ url_for('register') }}">Регистрация</a>
+        <a href="{{ url_for('about_requirements') }}">Требования</a>
         <a href="{{ url_for('health') }}">Health</a>
       {% endif %}
     </nav>
   </header>
-
   <main class="page">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <section class="flash-stack" aria-label="Messages">
-          {% for category, message in messages %}
-            <div class="flash flash-{{ category }}">{{ message }}</div>
-          {% endfor %}
+        <section class="flash-stack" aria-label="Сообщения">
+          {% for category, message in messages %}<div class="flash flash-{{ category }}">{{ message }}</div>{% endfor %}
         </section>
       {% endif %}
     {% endwith %}
-
     {% block content %}{% endblock %}
   </main>
 </body>

@@ -1,46 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Creatures - BioSborKA{% endblock %}
+{% block title %}Существа — БиоСборка{% endblock %}
 {% block content %}
-<section class="hero-panel compact-hero">
-  <div>
-    <p class="eyebrow">Living collection</p>
-    <h1>Creatures of the laboratory</h1>
-    <p class="lead">Each card shows the visible phenotype, species identity, and quick access to genotype details.</p>
-  </div>
-  <a class="button secondary" href="{{ url_for('dashboard') }}">Back to dashboard</a>
-</section>
-
-{% if creatures %}
-<section class="creature-grid">
-  {% for creature in creatures %}
-    <article class="creature-card {{ creature.visual.tone_class }}">
-      <div class="creature-portrait {{ creature.visual.species_class }} {{ creature.visual.tone_class }} {{ creature.visual.wings_class }}">
-        <span class="wing left"></span><span class="wing right"></span><span class="body"></span><span class="crest"></span><span class="tail"></span>
-      </div>
-      <div class="creature-card-body">
-        <div class="entity-card-header">
-          <div>
-            <p class="eyebrow">#{{ creature.creature_id }}</p>
-            <h2>{{ creature.display_name }}</h2>
-          </div>
-          <span class="badge species-badge">{{ creature.species_label }}</span>
-        </div>
-        <p class="summary">{{ creature.phenotype_text }}</p>
-        <div class="trait-row">
-          {% for item in creature.phenotype_items[:4] %}
-            <span class="trait-pill {{ item.class }}"><small>{{ item.label }}</small>{{ item.value }}</span>
-          {% endfor %}
-        </div>
-        <a class="button secondary" href="{{ url_for('creature_detail', creature_id=creature.creature_id) }}">Details</a>
-      </div>
-    </article>
-  {% endfor %}
-</section>
-{% else %}
-  <section class="panel empty-state">
-    <h2>No creatures yet</h2>
-    <p>Create or open a laboratory to start with a generated population.</p>
-    <a class="button" href="{{ url_for('labs') }}">Open labs</a>
-  </section>
-{% endif %}
+<section class="hero-panel compact-hero"><div><p class="eyebrow">Живая коллекция</p><h1>Существа лаборатории</h1><p class="lead">Карточки показывают вид, портрет и основные признаки без технических кодов.</p></div><a class="button secondary" href="{{ url_for('dashboard') }}">К обзору</a></section>
+{% if creatures %}<section class="creature-grid">{% for creature in creatures %}<article class="creature-card {{ creature.visual.tone_class }}"><div class="creature-portrait {{ creature.visual.species_class }} {{ creature.visual.tone_class }} {{ creature.visual.wings_class }}"><span class="wing left"></span><span class="wing right"></span><span class="body"></span><span class="head"></span><span class="tail"></span><span class="fin top"></span><span class="fin bottom"></span><span class="claw left"></span><span class="claw right"></span><span class="leg one"></span><span class="leg two"></span><span class="leg three"></span><span class="leg four"></span></div><div class="creature-card-body"><div class="entity-card-header"><div><p class="eyebrow">#{{ creature.creature_id }}</p><h2>{{ creature.display_name }}</h2></div><span class="badge species-badge">{{ creature.species_label }}</span></div><p class="summary">{{ creature.phenotype_text }}</p><div class="trait-row">{% for item in creature.phenotype_items[:4] %}<span class="trait-pill {{ item.class }}"><small>{{ item.label }}</small>{{ item.value }}</span>{% endfor %}</div><a class="button secondary" href="{{ url_for('creature_detail', creature_id=creature.creature_id) }}">Подробнее</a></div></article>{% endfor %}</section>{% else %}<section class="panel empty-state"><h2>Существ пока нет</h2><p>Создайте или откройте лабораторию, чтобы получить стартовую популяцию.</p><a class="button" href="{{ url_for('labs') }}">Открыть лаборатории</a></section>{% endif %}
 {% endblock %}
