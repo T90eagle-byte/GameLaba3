@@ -458,6 +458,7 @@ def create_app() -> Flask:
             mutation["quantity_label"] = "0"
             mutation["target_genes"] = []
             mutation["compatible_creatures"] = []
+            mutation["compatible_ids"] = []
             mutation["compatible_count"] = 0
             mutation["compatible_summary"] = "Совместимость проверится при применении."
             if mutation_id <= 0:
@@ -471,7 +472,8 @@ def create_app() -> Flask:
                 mutation["quantity"] = quantity
                 mutation["quantity_label"] = display_service.number_label(quantity)
                 mutation["target_genes"] = display_service.mutation_target_views(targets)
-                mutation["compatible_creatures"] = compatible_creatures[:4]
+                mutation["compatible_creatures"] = compatible_creatures
+                mutation["compatible_ids"] = [int(creature.get("creature_id") or 0) for creature in compatible_creatures]
                 mutation["compatible_count"] = len(compatible_creatures)
                 mutation["compatible_summary"] = (
                     f"Совместимых существ: {len(compatible_creatures)}"

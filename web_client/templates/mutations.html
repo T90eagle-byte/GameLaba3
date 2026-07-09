@@ -5,7 +5,7 @@
   <div>
     <p class="eyebrow">Лабораторные воздействия</p>
     <h1>Мутации и мутагены</h1>
-    <p class="lead">Покупайте контролируемые мутации или применяйте рискованные мутагены. Результат смотрите в существах, истории экспериментов и истории рейтинга.</p>
+    <p class="lead">Покупайте контролируемые мутации или применяйте рискованные мутагены.</p>
   </div>
 </section>
 <section class="stat-grid slim">
@@ -14,7 +14,7 @@
   <article class="stat-card"><span>Существа</span><strong>{{ stats.creature_count }}</strong></article>
   <article class="stat-card"><span>Эксперименты</span><strong>{{ stats.experiment_count }}</strong></article>
 </section>
-<section class="section-block">
+<section class="section-block mutations-catalog" data-mutation-page>
   <div class="section-title">
     <div>
       <p class="eyebrow">Каталог</p>
@@ -25,42 +25,46 @@
       <span class="badge">Куплено за всё время: {{ mutation_purchase_count }}</span>
     </div>
   </div>
+  <div class="filter-panel" aria-label="Фильтры мутаций">
+    <label><input type="checkbox" id="filter-owned"> Показать только купленные мутации</label>
+    <label><input type="checkbox" id="filter-compatible"> Показать только совместимых существ</label>
+  </div>
   {% if mutations %}
-    <div class="mutation-grid">
+    <div class="mutation-grid compact-mutation-grid">
       {% for mutation in mutations %}
-        <article class="mutation-card">
+        {% set target_summary = mutation.target_genes[0].gene_label if mutation.target_genes else mutation.target_label %}
+        <article class="mutation-card compact-mutation-card" data-mutation-card data-owned="{{ 1 if mutation.quantity > 0 else 0 }}" data-compatible="{{ 1 if mutation.compatible_count > 0 else 0 }}" data-mutation-id="{{ mutation.mutation_id }}">
           <div class="entity-card-header">
             <h3>{{ mutation.display_name }}</h3>
-            <span class="badge">#{{ mutation.mutation_id }}</span>
+            <span class="badge stock-badge">{{ mutation.quantity_label }} куплено</span>
           </div>
-          <p>{{ mutation.description_text }}</p>
-          <div class="badge-row">
-            <span class="badge">Цель: {{ mutation.target_label }}</span>
-            <span class="badge reward">Стоимость: {{ mutation.cost_label }}</span>
-            <span class="badge">Влияние на рейтинг: {{ mutation.rating_effect_label }}</span>
-            <span class="badge stock-badge">Куплено сейчас: {{ mutation.quantity_label }}</span>
+          <p class="summary clamp-text">{{ mutation.description_text }}</p>
+          <div class="mutation-facts">
+            <span>Стоимость: <strong>{{ mutation.cost_label }}</strong></span>
+            <span>Рейтинг: <strong>{{ mutation.rating_effect_label }}</strong></span>
+            <span>Целевой ген: <strong>{{ target_summary }}</strong></span>
+            <span>Совместимых: <strong>{{ mutation.compatible_count }}</strong></span>
           </div>
-          {% if mutation.target_genes %}
-            <div class="mutation-meta-block">
-              <strong>Целевые гены</strong>
-              <div class="badge-row">
-                {% for target in mutation.target_genes[:4] %}
-                  <span class="badge">{{ target.gene_label }} → {{ target.allele_label }}</span>
-                {% endfor %}
-              </div>
-            </div>
-          {% endif %}
-          <div class="mutation-meta-block">
+          <div class="compact-compatible" data-compatible-block>
             <strong>Подходит для</strong>
-            <p class="muted">{{ mutation.compatible_summary }}</p>
             {% if mutation.compatible_creatures %}
               <div class="compatible-list">
-                {% for creature in mutation.compatible_creatures %}
+                {% for creature in mutation.compatible_creatures[:3] %}
                   <a class="mini-creature-link" href="{{ url_for('creature_detail', creature_id=creature.creature_id) }}">#{{ creature.creature_id }} — {{ creature.display_name }}</a>
                 {% endfor %}
               </div>
+              {% if mutation.compatible_creatures|length > 3 %}
+                <details class="more-compatible">
+                  <summary>Показать ещё...</summary>
+                  <div class="compatible-list">
+                    {% for creature in mutation.compatible_creatures[3:] %}
+                      <a class="mini-creature-link" href="{{ url_for('creature_detail', creature_id=creature.creature_id) }}">#{{ creature.creature_id }} — {{ creature.display_name }}</a>
+                    {% endfor %}
+                  </div>
+                </details>
+              {% endif %}
             {% else %}
-              <p class="muted tiny-note">Окончательная проверка совместимости выполнится при применении.</p>
+              <p class="muted tiny-note">Совместимость проверит backend при применении.</p>
             {% endif %}
           </div>
           <form method="post" class="card-action-form">
@@ -75,48 +79,34 @@
   {% endif %}
 </section>
 <section class="section-block">
-  <div class="section-title">
-    <div>
-      <p class="eyebrow">История покупок</p>
-      <h2>Купленные мутации</h2>
-    </div>
-    <span class="badge">{{ purchased_mutations|length }}</span>
-  </div>
+  <div class="section-title"><div><p class="eyebrow">История покупок</p><h2>Купленные мутации</h2></div><span class="badge">{{ purchased_mutations|length }}</span></div>
   {% if purchased_mutations %}
     <div class="purchase-list">
-      {% for purchase in purchased_mutations[:8] %}
-        <article class="purchase-card">
-          <strong>{{ purchase.display_name }}</strong>
-          <span>{{ purchase.created_at_label }}</span>
-          <span class="delta {{ purchase.wallet_class }}">Деньги {{ purchase.wallet_delta_label }}</span>
-        </article>
-      {% endfor %}
+      {% for purchase in purchased_mutations[:8] %}<article class="purchase-card"><strong>{{ purchase.display_name }}</strong><span>{{ purchase.created_at_label }}</span><span class="delta {{ purchase.wallet_class }}">Деньги {{ purchase.wallet_delta_label }}</span></article>{% endfor %}
     </div>
   {% else %}
     <p class="empty">Покупок мутаций пока нет. Остатки появятся после покупки.</p>
   {% endif %}
 </section>
 <section class="two-column">
-  <article class="panel action-panel">
+  <article class="panel action-panel mutation-apply-panel">
     <h2>Применить купленную мутацию</h2>
-    <p class="muted">В списке существ показаны вид и ключевые признаки. Если мутация не подходит, система покажет понятное сообщение.</p>
-    <form class="form" method="post">
-      <label>
-        <span>Существо</span>
-        <select name="creature_id" required>
-          {% for creature in creatures %}
-            <option value="{{ creature.creature_id }}">#{{ creature.creature_id }} — {{ creature.display_name }} · {{ creature.species_label }} · {{ creature.phenotype_text }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>
-        <span>Мутация</span>
-        <select name="mutation_id" required>
-          {% for mutation in mutations %}
-            <option value="{{ mutation.mutation_id }}">{{ mutation.display_name }} · куплено сейчас: {{ mutation.quantity_label }} · {{ mutation.compatible_summary }}</option>
-          {% endfor %}
-        </select>
-      </label>
+    <p class="muted">Выберите мутацию и существо. Web показывает область воздействия, а результат применяет backend package.</p>
+    <form class="form" method="post" id="mutation-apply-form">
+      <label><span>Существо</span><select name="creature_id" id="mutation-creature-select" required>{% for creature in creatures %}<option value="{{ creature.creature_id }}" data-creature-name="#{{ creature.creature_id }} — {{ creature.display_name }}">#{{ creature.creature_id }} — {{ creature.display_name }}</option>{% endfor %}</select></label>
+      <label><span>Мутация</span><select name="mutation_id" id="mutation-select" required>{% for mutation in mutations %}{% set target_summary = mutation.target_genes[0].gene_label if mutation.target_genes else mutation.target_label %}<option value="{{ mutation.mutation_id }}" data-name="{{ mutation.display_name }}" data-target="{{ target_summary }}" data-rating="{{ mutation.rating_effect_label }}" data-quantity="{{ mutation.quantity }}" data-quantity-label="{{ mutation.quantity_label }}" data-compatible-ids="{{ mutation.compatible_ids|join(',') }}">{{ mutation.display_name }} · куплено: {{ mutation.quantity_label }}</option>{% endfor %}</select></label>
+      <div class="mutation-impact" id="mutation-impact" aria-live="polite">
+        <h3>Что изменится</h3>
+        <dl>
+          <div><dt>Мутация</dt><dd data-impact="mutation">-</dd></div>
+          <div><dt>Целевой ген</dt><dd data-impact="target">-</dd></div>
+          <div><dt>Влияние на рейтинг</dt><dd data-impact="rating">-</dd></div>
+          <div><dt>Куплено сейчас</dt><dd data-impact="quantity">-</dd></div>
+          <div><dt>Существо</dt><dd data-impact="creature">-</dd></div>
+          <div><dt>Статус</dt><dd data-impact="status">-</dd></div>
+        </dl>
+        <p class="muted">После применения backend изменит соответствующий ген/признак по правилам package. Web только показывает ожидаемую область воздействия.</p>
+      </div>
       <button name="action" value="apply_mutation" type="submit">Применить мутацию</button>
     </form>
   </article>
@@ -126,12 +116,67 @@
     <p>Облучение и химикаты могут изменить состояние лаборатории. После применения проверьте обзор, существ, эволюционную линию и историю рейтинга.</p>
     <form class="form" method="post">
       <label><span>Существо</span><select name="creature_id" required>{% for creature in creatures %}<option value="{{ creature.creature_id }}">#{{ creature.creature_id }} — {{ creature.display_name }} · {{ creature.species_label }}</option>{% endfor %}</select></label>
-      <div class="button-row">
-        <button name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='RADIATION'">Применить RADIATION</button>
-        <button class="secondary" name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='CHEMICAL'">Применить CHEMICAL</button>
-      </div>
+      <div class="button-row"><button name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='RADIATION'">Применить RADIATION</button><button class="secondary" name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='CHEMICAL'">Применить CHEMICAL</button></div>
       <input type="hidden" name="mutagen_type" value="RADIATION">
     </form>
   </article>
 </section>
+<script>
+(() => {
+  const ownedFilter = document.getElementById('filter-owned');
+  const compatibleFilter = document.getElementById('filter-compatible');
+  const cards = Array.from(document.querySelectorAll('[data-mutation-card]'));
+  const mutationSelect = document.getElementById('mutation-select');
+  const creatureSelect = document.getElementById('mutation-creature-select');
+  const impact = document.getElementById('mutation-impact');
+  const setImpact = (key, value) => {
+    const node = impact?.querySelector(`[data-impact="${key}"]`);
+    if (node) node.textContent = value || '-';
+  };
+  const compatibleIds = () => new Set((mutationSelect?.selectedOptions[0]?.dataset.compatibleIds || '').split(',').filter(Boolean));
+  const applyFilters = () => {
+    const onlyOwned = !!ownedFilter?.checked;
+    const onlyCompatible = !!compatibleFilter?.checked;
+    cards.forEach((card) => {
+      const hide = (onlyOwned && card.dataset.owned !== '1') || (onlyCompatible && card.dataset.compatible !== '1');
+      card.hidden = hide;
+    });
+    updateCreatureOptions();
+  };
+  const updateCreatureOptions = () => {
+    if (!creatureSelect || !mutationSelect) return;
+    const ids = compatibleIds();
+    const filterCreatures = !!compatibleFilter?.checked && ids.size > 0;
+    Array.from(creatureSelect.options).forEach((option) => {
+      option.hidden = filterCreatures && !ids.has(option.value);
+    });
+    if (creatureSelect.selectedOptions[0]?.hidden) {
+      const firstVisible = Array.from(creatureSelect.options).find((option) => !option.hidden);
+      if (firstVisible) creatureSelect.value = firstVisible.value;
+    }
+    updateImpact();
+  };
+  const updateImpact = () => {
+    if (!mutationSelect || !creatureSelect) return;
+    const mutation = mutationSelect.selectedOptions[0];
+    const creature = creatureSelect.selectedOptions[0];
+    const ids = compatibleIds();
+    const quantity = Number(mutation?.dataset.quantity || 0);
+    let status = 'Не найдено в списке совместимых — backend проверит при применении';
+    if (quantity <= 0) status = 'Мутация не куплена';
+    else if (ids.has(creature?.value || '')) status = 'Совместимо по данным backend';
+    setImpact('mutation', mutation?.dataset.name);
+    setImpact('target', mutation?.dataset.target);
+    setImpact('rating', mutation?.dataset.rating);
+    setImpact('quantity', mutation?.dataset.quantityLabel);
+    setImpact('creature', creature?.dataset.creatureName || creature?.textContent?.trim());
+    setImpact('status', status);
+  };
+  ownedFilter?.addEventListener('change', applyFilters);
+  compatibleFilter?.addEventListener('change', applyFilters);
+  mutationSelect?.addEventListener('change', applyFilters);
+  creatureSelect?.addEventListener('change', updateImpact);
+  applyFilters();
+})();
+</script>
 {% endblock %}

@@ -102,12 +102,14 @@ TASK_LABELS = {
     "task_green_specimen": "Зелёное существо",
     "task_winged_specimen": "Крылатое существо",
     "task_fast_turtle": "Быстрая черепаха",
+    "task_predator_fish_line": "Линия хищных рыб",
 }
 
 TASK_DESCRIPTIONS = {
     "task_green_specimen": "Клиент просит вывести существо с зелёным окрасом.",
     "task_winged_specimen": "Клиенту нужен организм с крыльями.",
     "task_fast_turtle": "Нужно получить быструю черепаху для специального заказа.",
+    "task_predator_fish_line": "Отберите костную рыбу с хищным типом питания и развивайте линию через скрещивание и мутации.",
 }
 
 MUTATION_LABELS = {
