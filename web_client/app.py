@@ -127,6 +127,14 @@ def create_app() -> Flask:
     def labs() -> Any:
         token = str(session["session_token"])
 
+        def close_current_lab() -> int | None:
+            current_lab_id = selected_lab_id()
+            if not current_lab_id:
+                return None
+            lab_service.exit_lab(token, current_lab_id)
+            session.pop("current_lab_id", None)
+            return current_lab_id
+
         if request.method == "POST":
             action = request.form.get("action")
             try:
@@ -138,7 +146,13 @@ def create_app() -> Flask:
 
                 if action == "open":
                     lab_id = int(request.form.get("lab_id", "0"))
-                    lab_service.switch_lab(token, lab_id) if session.get("current_lab_id") else lab_service.load_lab(token, lab_id)
+                    current_lab_id = selected_lab_id()
+                    if current_lab_id == lab_id:
+                        flash(f"Лаборатория #{lab_id} уже открыта.", "success")
+                        return redirect(url_for("dashboard"))
+                    if current_lab_id:
+                        close_current_lab()
+                    lab_service.load_lab(token, lab_id)
                     session["current_lab_id"] = lab_id
                     flash(f"Лаборатория #{lab_id} открыта.", "success")
                     return redirect(url_for("dashboard"))
@@ -157,9 +171,9 @@ def create_app() -> Flask:
                     lab_id = int(request.form.get("lab_id", "0"))
                     if lab_id <= 0:
                         raise ValueError
+                    if selected_lab_id():
+                        close_current_lab()
                     lab_service.delete_lab(token, lab_id)
-                    if selected_lab_id() == lab_id:
-                        session.pop("current_lab_id", None)
                     flash(f"Лаборатория #{lab_id} удалена.", "success")
                     return redirect(url_for("labs"))
 
@@ -168,8 +182,8 @@ def create_app() -> Flask:
                 flash("Некорректный идентификатор лаборатории.", "error")
             except ServiceError as exc:
                 message = str(exc)
-                if "уже открыта" in message or "активную лабораторию" in message:
-                    flash("Сначала закройте активную лабораторию кнопкой ниже, затем откройте нужную. Если лаборатория открыта в другой вкладке или старом входе, выйдите и войдите заново.", "warning")
+                if "уже открыта" in message or "активн" in message:
+                    flash("Эта лаборатория числится открытой в другой сессии. Выйдите из аккаунта и войдите снова. Если проблема останется, попросите администратора сбросить старую сессию.", "warning")
                 else:
                     flash(message, "error")
 

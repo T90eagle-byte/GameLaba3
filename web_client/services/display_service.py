@@ -92,7 +92,11 @@ TRAIT_LABELS = {
 
 DOMINANCE_LABELS = {
     "complete": "полное доминирование",
+    "full": "полное доминирование",
+    "dominant": "полное доминирование",
+    "complete_dominance": "полное доминирование",
     "incomplete": "неполное доминирование",
+    "incomplete_dominance": "неполное доминирование",
     "codominance": "кодоминирование",
     "codominant": "кодоминирование",
     "linked": "сцепленное наследование",
@@ -283,17 +287,93 @@ def count_mutation_purchases(rows: list[dict[str, Any]]) -> int:
     return sum(1 for row in rows if _text(row.get("event_type") or row.get("event_code")).upper() == "MUTATION_PURCHASE")
 
 
+def _base_trait_label(value: Any) -> str:
+    code = _clean_code(value)
+    return TRAIT_LABELS.get(code) or GENE_LABELS.get(code) or SPECIES_LABELS.get(code) or DOMINANCE_LABELS.get(code) or _title_fallback(code)
+
+
+def _size_blend_label(codes: list[str]) -> str | None:
+    normalized = tuple(sorted(code.replace("_size", "") for code in codes))
+    labels = {
+        ("compact", "medium"): "компактно-средний",
+        ("large", "medium"): "средне-крупный",
+        ("compact", "large"): "переменный",
+    }
+    return labels.get(normalized)
+
+
+def _color_blend_label(codes: list[str]) -> str | None:
+    roots = [code.replace("_color", "") for code in codes]
+    if len(roots) != 2:
+        return None
+    prefixes = {
+        "red": "красно",
+        "blue": "сине",
+        "green": "зелёно",
+        "yellow": "жёлто",
+        "purple": "фиолетово",
+        "white": "бело",
+        "orange": "оранжево",
+        "black": "чёрно",
+    }
+    finals = {
+        "red": "красный",
+        "blue": "синий",
+        "green": "зелёный",
+        "yellow": "жёлтый",
+        "purple": "фиолетовый",
+        "white": "белый",
+        "orange": "оранжевый",
+        "black": "чёрный",
+    }
+    if roots[0] in prefixes and roots[1] in finals:
+        return f"{prefixes[roots[0]]}-{finals[roots[1]]}"
+    return None
+
+
+def _blend_label(raw: Any, fallback: str) -> str:
+    parts = [_clean_code(part) for part in _text(raw).split("/") if part.strip()]
+    if not parts:
+        return fallback
+    if {"herbivore", "carnivore"}.issubset(set(parts)):
+        return "смешанное"
+    if all("color" in part for part in parts):
+        return _color_blend_label(parts) or "двухцветный"
+    if all(part in {"compact", "medium", "large", "compact_size", "medium_size", "large_size"} for part in parts):
+        return _size_blend_label(parts) or "промежуточный"
+    return fallback
+
+
+def _intermediate_label(raw: Any) -> str:
+    inner = _text(raw)
+    inner = inner[inner.find("(") + 1 : inner.rfind(")")]
+    parts = [_clean_code(part) for part in inner.split("/") if part.strip()]
+    if not parts:
+        return "промежуточный"
+    if all(part in {"compact", "medium", "large", "compact_size", "medium_size", "large_size"} for part in parts):
+        return _size_blend_label(parts) or "промежуточный"
+    if all("color" in part for part in parts):
+        return _color_blend_label(parts) or "двухцветный"
+    return "промежуточный признак"
+
+
+def allele_label(value: Any) -> str:
+    raw = _text(value)
+    try:
+        return number_label(float(raw))
+    except (TypeError, ValueError):
+        return trait_label(value)
+
+
 def humanize_code(value: Any) -> str:
     raw = _text(value)
     code = _clean_code(raw)
     if not code:
         return "не указано"
     if code.startswith("intermediate(") and code.endswith(")"):
-        inner = raw[raw.find("(") + 1 : raw.rfind(")")]
-        return "промежуточный: " + " / ".join(trait_label(part) for part in inner.split("/"))
+        return _intermediate_label(raw)
     if "/" in code:
-        parts = [trait_label(part) for part in raw.split("/") if part.strip()]
-        return "смешанное: " + " / ".join(parts)
+        return _blend_label(raw, "смешанный признак")
     if code in TRAIT_LABELS:
         return TRAIT_LABELS[code]
     if code in GENE_LABELS:
@@ -342,7 +422,10 @@ def gene_label(value: Any) -> str:
 
 
 def dominance_label(value: Any) -> str:
-    return DOMINANCE_LABELS.get(_clean_code(value), humanize_code(value))
+    code = _clean_code(value).replace(" ", "_").replace("-", "_")
+    if not code:
+        return "тип наследования не указан"
+    return DOMINANCE_LABELS.get(code, "особый тип наследования")
 
 
 def _color_key(value: Any) -> str:
@@ -519,7 +602,7 @@ def genotype_view(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         allele2 = row.get("allele2_trait_value") or row.get("allele2_display_name")
         gene = row.get("gene_name") or row.get("gene_type") or row.get("gene_display_name")
         dominance = row.get("dominance_type") or row.get("dominance_display_name")
-        formatted.append({**row, "gene_label": gene_label(gene), "gene_code": _text(gene), "dominance_label": dominance_label(dominance), "allele1_label": trait_label(allele1), "allele2_label": trait_label(allele2), "pair_label": f"{trait_label(allele1)} / {trait_label(allele2)}"})
+        formatted.append({**row, "gene_label": gene_label(gene), "gene_code": _text(gene), "dominance_label": dominance_label(dominance), "allele1_label": allele_label(allele1), "allele2_label": allele_label(allele2), "pair_label": f"Аллели: {allele_label(allele1)} / {allele_label(allele2)}"})
     return formatted
 
 

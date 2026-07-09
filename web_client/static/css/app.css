@@ -687,3 +687,134 @@ select option[disabled] { color: #9a9a8e; }
   .mutation-impact dl { grid-template-columns: 1fr; }
   .creature-card .trait-pill { max-width: 100%; }
 }
+
+
+/* Final UI hit-area and card stabilization. */
+.button,
+a.button,
+button,
+.action-grid a,
+.hero-actions a,
+.button-row a,
+.button-row button,
+.lab-actions button,
+.inline-action-form button,
+.card-action-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.lab-actions form,
+.card-action-form,
+.inline-action-form {
+  min-width: 0;
+}
+.lab-actions form,
+.lab-actions button,
+.card-action-form button,
+.inline-action-form button {
+  width: 100%;
+}
+.button-row form {
+  display: flex;
+  min-width: 0;
+}
+.button-row form > button {
+  width: 100%;
+}
+.creature-card,
+.order-card,
+.mutation-card,
+.preview-card,
+.panel {
+  min-width: 0;
+}
+.creature-card-body,
+.order-card,
+.mutation-card {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+}
+.creature-card-body {
+  grid-template-rows: auto auto 1fr auto;
+}
+.creature-card-body .summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.creature-card .trait-row {
+  align-content: start;
+}
+.creature-card .trait-pill {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+}
+.creature-card .button {
+  align-self: end;
+  width: 100%;
+}
+.entity-card-header h2,
+.entity-card-header h3,
+.order-card h2 {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+.order-header .badge,
+.badge.status-active,
+.badge.status-completed {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.order-action-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(132px, auto) minmax(132px, auto);
+  gap: .6rem;
+  align-items: stretch;
+}
+.order-action-form select {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.order-action-form button {
+  min-width: 0;
+  white-space: normal;
+}
+.mutation-impact dd,
+.mutation-facts span,
+.compact-compatible,
+.mini-creature-link {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+.creature-svg .body,
+.creature-svg .tail,
+.creature-svg .fin,
+.creature-svg .claw,
+.creature-svg .leg,
+.creature-svg .head,
+.creature-svg .ear,
+.creature-svg .soft {
+  stroke-width: 1.6;
+}
+.creature-svg .feature-mark,
+.creature-svg .shell-lines,
+.creature-svg .shell-spiral,
+.creature-svg .fur-lines,
+.creature-svg .wing-vein {
+  stroke-width: 2.2;
+}
+@media (max-width: 760px) {
+  .order-action-form {
+    grid-template-columns: 1fr;
+  }
+}
