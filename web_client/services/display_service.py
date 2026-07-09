@@ -132,6 +132,22 @@ MUTATION_LABELS = {
     "medium_mutation": "Средний размер",
     "red_mutation": "Красная окраска",
     "aquatic_form_mutation": "Водная форма",
+    "enhanced_color_mutation": "Усиленная окраска",
+    "size_shift_mutation": "Изменение размера",
+    "wing_activation_mutation": "Активация крыльев",
+    "aquatic_form_bony_mutation": "Водная форма костной рыбы",
+    "aquatic_form_turtle_shell_mutation": "Панцирь черепахи",
+    "morphology_refine_mutation": "Форма клешней",
+    "morphology_refine_mollusk_mutation": "Профиль моллюска",
+    "morphology_refine_mammal_mutation": "Покров млекопитающего",
+    "red_color_mutation": "Красная окраска",
+    "medium_size_mutation": "Средний размер",
+    "cartilaginous_crescent_fin_mutation": "Серповидный плавник",
+    "bony_ribbon_fin_mutation": "Ленточный плавник",
+    "hooked_claws_mutation": "Крючковатые клешни",
+    "spiral_profile_mutation": "Спиральный профиль",
+    "plated_shell_mutation": "Пластинчатый панцирь",
+    "soft_fur_mutation": "Мягкая шерсть",
 }
 
 EVENT_LABELS = {
@@ -159,6 +175,21 @@ COLOR_CLASSES = {
     "black": "tone-black",
     "brown": "tone-brown",
     "silver": "tone-silver",
+}
+
+SPECIES_CLASS_CODES = {
+    "1": "cartilaginous-fish",
+    "2": "bony-fish",
+    "3": "crustacean",
+    "4": "mollusk",
+    "5": "turtle",
+    "6": "mammal",
+    "cartilaginous_fish": "cartilaginous-fish",
+    "bony_fish": "bony-fish",
+    "crustacean": "crustacean",
+    "mollusk": "mollusk",
+    "turtle": "turtle",
+    "mammal": "mammal",
 }
 
 TECH_SPECIES_PREFIXES = tuple(SPECIES_LABELS.keys())
@@ -363,12 +394,12 @@ def phenotype_sentence(row: dict[str, Any]) -> str:
 
 
 def creature_visual(row: dict[str, Any]) -> dict[str, str]:
-    species = _clean_code(row.get("species_type") or row.get("species_label"))
-    species_class = "species-" + (species.replace("_", "-") if species else "default")
+    species = _clean_code(row.get("species_type") or row.get("species_code") or row.get("species_label"))
+    species_code = SPECIES_CLASS_CODES.get(species, species.replace("_", "-") if species else "default")
     color = row.get("phenotype_color") or row.get("phenotype_summary")
     wings_raw = _clean_code(row.get("phenotype_has_wings") or row.get("phenotype_summary"))
     wings = "has-wings" if "wing" in wings_raw and "no_wings" not in wings_raw else "no-wings"
-    return {"species_class": species_class, "tone_class": color_class(color), "wings_class": wings}
+    return {"species_class": "species-" + species_code, "tone_class": color_class(color), "wings_class": wings}
 
 
 def creature_view(row: dict[str, Any]) -> dict[str, Any]:
@@ -467,6 +498,36 @@ def mutation_view(row: dict[str, Any]) -> dict[str, Any]:
 
 def mutation_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [mutation_view(row) for row in rows]
+
+
+def mutation_target_view(row: dict[str, Any]) -> dict[str, Any]:
+    gene = row.get("gene_type_display_name") or row.get("gene_type") or row.get("gene_name")
+    allele = row.get("target_allele_display_name") or row.get("target_allele_description") or row.get("trait_value")
+    species = species_label(row)
+    return {
+        **row,
+        "gene_label": gene_label(gene),
+        "allele_label": trait_label(allele),
+        "species_label": species,
+    }
+
+
+def mutation_target_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [mutation_target_view(row) for row in rows]
+
+
+def purchased_mutation_views(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    purchases = []
+    for event in events:
+        kind = _text(event.get("event_type") or event.get("event_code")).upper()
+        if kind != "MUTATION_PURCHASE":
+            continue
+        view = rating_event_view(event)
+        purchases.append({
+            **view,
+            "display_name": translate_free_text(view.get("description_text")).replace("Покупка мутации:", "").strip() or "Покупка мутации",
+        })
+    return purchases
 
 
 def experiment_view(row: dict[str, Any]) -> dict[str, Any]:

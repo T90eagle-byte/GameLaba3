@@ -38,6 +38,30 @@
             <span class="badge">Цель: {{ mutation.target_label }}</span>
             <span class="badge reward">Стоимость: {{ mutation.cost_label }}</span>
             <span class="badge">Влияние на рейтинг: {{ mutation.rating_effect_label }}</span>
+            <span class="badge stock-badge">Куплено сейчас: {{ mutation.quantity_label }}</span>
+          </div>
+          {% if mutation.target_genes %}
+            <div class="mutation-meta-block">
+              <strong>Целевые гены</strong>
+              <div class="badge-row">
+                {% for target in mutation.target_genes[:4] %}
+                  <span class="badge">{{ target.gene_label }} → {{ target.allele_label }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+          <div class="mutation-meta-block">
+            <strong>Подходит для</strong>
+            <p class="muted">{{ mutation.compatible_summary }}</p>
+            {% if mutation.compatible_creatures %}
+              <div class="compatible-list">
+                {% for creature in mutation.compatible_creatures %}
+                  <a class="mini-creature-link" href="{{ url_for('creature_detail', creature_id=creature.creature_id) }}">#{{ creature.creature_id }} — {{ creature.display_name }}</a>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="muted tiny-note">Окончательная проверка совместимости выполнится при применении.</p>
+            {% endif %}
           </div>
           <form method="post" class="card-action-form">
             <input type="hidden" name="mutation_id" value="{{ mutation.mutation_id }}">
@@ -50,12 +74,49 @@
     <p class="empty">Каталог мутаций пуст.</p>
   {% endif %}
 </section>
+<section class="section-block">
+  <div class="section-title">
+    <div>
+      <p class="eyebrow">История покупок</p>
+      <h2>Купленные мутации</h2>
+    </div>
+    <span class="badge">{{ purchased_mutations|length }}</span>
+  </div>
+  {% if purchased_mutations %}
+    <div class="purchase-list">
+      {% for purchase in purchased_mutations[:8] %}
+        <article class="purchase-card">
+          <strong>{{ purchase.display_name }}</strong>
+          <span>{{ purchase.created_at_label }}</span>
+          <span class="delta {{ purchase.wallet_class }}">Деньги {{ purchase.wallet_delta_label }}</span>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">Покупок мутаций пока нет. Остатки появятся после покупки.</p>
+  {% endif %}
+</section>
 <section class="two-column">
   <article class="panel action-panel">
     <h2>Применить купленную мутацию</h2>
+    <p class="muted">В списке существ показаны вид и ключевые признаки. Если мутация не подходит, система покажет понятное сообщение.</p>
     <form class="form" method="post">
-      <label><span>Существо</span><select name="creature_id" required>{% for creature in creatures %}<option value="{{ creature.creature_id }}">#{{ creature.creature_id }} — {{ creature.display_name }}</option>{% endfor %}</select></label>
-      <label><span>Мутация</span><select name="mutation_id" required>{% for mutation in mutations %}<option value="{{ mutation.mutation_id }}">{{ mutation.display_name }}</option>{% endfor %}</select></label>
+      <label>
+        <span>Существо</span>
+        <select name="creature_id" required>
+          {% for creature in creatures %}
+            <option value="{{ creature.creature_id }}">#{{ creature.creature_id }} — {{ creature.display_name }} · {{ creature.species_label }} · {{ creature.phenotype_text }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>Мутация</span>
+        <select name="mutation_id" required>
+          {% for mutation in mutations %}
+            <option value="{{ mutation.mutation_id }}">{{ mutation.display_name }} · куплено сейчас: {{ mutation.quantity_label }} · {{ mutation.compatible_summary }}</option>
+          {% endfor %}
+        </select>
+      </label>
       <button name="action" value="apply_mutation" type="submit">Применить мутацию</button>
     </form>
   </article>
@@ -64,7 +125,7 @@
     <h2>Мутагены</h2>
     <p>Облучение и химикаты могут изменить состояние лаборатории. После применения проверьте обзор, существ, эволюционную линию и историю рейтинга.</p>
     <form class="form" method="post">
-      <label><span>Существо</span><select name="creature_id" required>{% for creature in creatures %}<option value="{{ creature.creature_id }}">#{{ creature.creature_id }} — {{ creature.display_name }}</option>{% endfor %}</select></label>
+      <label><span>Существо</span><select name="creature_id" required>{% for creature in creatures %}<option value="{{ creature.creature_id }}">#{{ creature.creature_id }} — {{ creature.display_name }} · {{ creature.species_label }}</option>{% endfor %}</select></label>
       <div class="button-row">
         <button name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='RADIATION'">Применить RADIATION</button>
         <button class="secondary" name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='CHEMICAL'">Применить CHEMICAL</button>

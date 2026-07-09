@@ -143,6 +143,16 @@ def create_app() -> Flask:
                     flash(f"Лаборатория #{lab_id} открыта.", "success")
                     return redirect(url_for("dashboard"))
 
+                if action == "close_active":
+                    lab_id = selected_lab_id()
+                    if not lab_id:
+                        flash("Активная лаборатория уже закрыта.", "warning")
+                        return redirect(url_for("labs"))
+                    lab_service.exit_lab(token, lab_id)
+                    session.pop("current_lab_id", None)
+                    flash(f"Лаборатория #{lab_id} закрыта. Теперь можно открыть или удалить другую лабораторию.", "success")
+                    return redirect(url_for("labs"))
+
                 if action == "delete":
                     lab_id = int(request.form.get("lab_id", "0"))
                     if lab_id <= 0:
@@ -157,7 +167,11 @@ def create_app() -> Flask:
             except (TypeError, ValueError):
                 flash("Некорректный идентификатор лаборатории.", "error")
             except ServiceError as exc:
-                flash(str(exc), "error")
+                message = str(exc)
+                if "уже открыта" in message or "активную лабораторию" in message:
+                    flash("Сначала закройте активную лабораторию кнопкой ниже, затем откройте нужную. Если лаборатория открыта в другой вкладке или старом входе, выйдите и войдите заново.", "warning")
+                else:
+                    flash(message, "error")
 
         try:
             labs_rows = lab_service.list_user_labs(token)
@@ -436,11 +450,45 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("dashboard"))
 
+        creature_views = display_service.creature_views(creatures_rows)
+        mutations = display_service.mutation_views(shop_rows)
+        for mutation in mutations:
+            mutation_id = int(mutation.get("mutation_id") or 0)
+            mutation["quantity"] = 0
+            mutation["quantity_label"] = "0"
+            mutation["target_genes"] = []
+            mutation["compatible_creatures"] = []
+            mutation["compatible_count"] = 0
+            mutation["compatible_summary"] = "Совместимость проверится при применении."
+            if mutation_id <= 0:
+                continue
+            try:
+                quantity = mutation_service.get_lab_mutation_quantity(token, lab_id, mutation_id)
+                targets = mutation_service.get_mutation_target_genes(token, lab_id, mutation_id)
+                compatible_rows = mutation_service.get_compatible_creatures_for_mutation(token, lab_id, mutation_id)
+                compatible_ids = {int(row.get("creature_id")) for row in compatible_rows if row.get("creature_id") is not None}
+                compatible_creatures = [creature for creature in creature_views if int(creature.get("creature_id") or 0) in compatible_ids]
+                mutation["quantity"] = quantity
+                mutation["quantity_label"] = display_service.number_label(quantity)
+                mutation["target_genes"] = display_service.mutation_target_views(targets)
+                mutation["compatible_creatures"] = compatible_creatures[:4]
+                mutation["compatible_count"] = len(compatible_creatures)
+                mutation["compatible_summary"] = (
+                    f"Совместимых существ: {len(compatible_creatures)}"
+                    if compatible_creatures
+                    else "Совместимых существ не найдено; система уточнит причину при применении."
+                )
+            except ServiceError:
+                mutation["compatible_summary"] = "Совместимость проверится при применении."
+
+        purchased_mutations = display_service.purchased_mutation_views(rating_rows)
+
         return render_template(
             "mutations.html",
             stats=display_service.stats_view(stats),
-            creatures=display_service.creature_views(creatures_rows),
-            mutations=display_service.mutation_views(shop_rows),
+            creatures=creature_views,
+            mutations=mutations,
+            purchased_mutations=purchased_mutations,
             mutation_purchase_count=display_service.count_mutation_purchases(rating_rows),
             lab_id=lab_id,
         )

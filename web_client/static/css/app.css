@@ -322,3 +322,111 @@ button.danger:hover,
   .hero-panel > .button,
   .hero-panel > a.button { width: 100%; }
 }
+
+/* UX pass: active lab controls, mutation inventory hints, readable SVG silhouettes. */
+.active-lab-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, rgba(255,253,247,.95), rgba(90,138,160,.13));
+}
+.active-lab-actions { align-items: stretch; min-width: min(100%, 360px); }
+.active-lab-actions form { display: grid; flex: 1 1 180px; }
+.lab-row.is-active { border-color: rgba(67,118,91,.45); background: #f4f8ef; }
+.active-note { color: var(--leaf-dark); font-weight: 800; }
+.mutation-meta-block {
+  display: grid;
+  gap: .45rem;
+  padding: .75rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255,253,247,.72);
+}
+.stock-badge { background: rgba(90,138,160,.13); color: #315f72; }
+.compatible-list,
+.purchase-list { display: grid; gap: .45rem; }
+.mini-creature-link,
+.purchase-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .45rem;
+  padding: .52rem .65rem;
+  border-radius: 12px;
+  background: #fffdf7;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.mini-creature-link:hover { text-decoration: none; border-color: rgba(67,118,91,.38); }
+.tiny-note { font-size: .86rem; }
+
+.creature-portrait {
+  --portrait-stroke: rgba(35,48,39,.22);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,255,255,.52), transparent 42%),
+    linear-gradient(150deg, rgba(255,255,255,.58), rgba(67,118,91,.16));
+}
+.creature-svg {
+  position: relative;
+  z-index: 2;
+  width: min(88%, 250px);
+  height: min(88%, 174px);
+  overflow: visible;
+  filter: drop-shadow(0 14px 18px rgba(38, 52, 42, .18));
+}
+.creature-svg > g { display: none; }
+.creature-svg .body,
+.creature-svg .tail,
+.creature-svg .fin,
+.creature-svg .claw,
+.creature-svg .leg,
+.creature-svg .head,
+.creature-svg .ear {
+  position: static;
+  display: inline;
+  fill: var(--creature-tone, var(--moss));
+  stroke: var(--portrait-stroke);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+.creature-svg .tail,
+.creature-svg .fin,
+.creature-svg .claw,
+.creature-svg .leg,
+.creature-svg .ear { fill: var(--creature-accent, var(--leaf)); }
+.creature-svg .shell,
+.creature-svg .mark {
+  fill: none;
+  stroke: rgba(255,255,255,.58);
+  stroke-width: 5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.creature-svg .eye { display: inline; fill: #1f2d25; stroke: rgba(255,255,255,.75); stroke-width: 2; }
+.creature-svg .svg-wings path {
+  fill: rgba(255,255,255,.64);
+  stroke: rgba(67,118,91,.22);
+  stroke-width: 3;
+}
+.creature-portrait.has-wings .creature-svg .svg-wings { display: block; }
+.creature-portrait.no-wings .creature-svg .svg-wings { display: none; }
+.species-cartilaginous-fish .creature-svg .svg-fish,
+.species-bony-fish .creature-svg .svg-fish,
+.species-default .creature-svg .svg-mammal { display: block; }
+.species-cartilaginous-fish .creature-svg .svg-fish .body { rx: 0; }
+.species-crustacean .creature-svg .svg-crustacean { display: block; }
+.species-turtle .creature-svg .svg-turtle { display: block; }
+.species-mammal .creature-svg .svg-mammal { display: block; }
+.species-mollusk .creature-svg .svg-mollusk { display: block; }
+.species-bony-fish .creature-svg .svg-fish .body { filter: saturate(1.08); }
+.species-cartilaginous-fish .creature-svg .svg-fish .fin { fill: rgba(255,255,255,.45); }
+.creature-portrait.large .creature-svg { width: min(92%, 330px); height: min(92%, 235px); }
+.creature-portrait.mini .creature-svg { width: min(92%, 190px); height: min(92%, 132px); }
+
+@media (max-width: 760px) {
+  .active-lab-panel { display: grid; }
+  .active-lab-actions { width: 100%; }
+}

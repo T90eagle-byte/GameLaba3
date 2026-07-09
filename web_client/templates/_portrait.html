@@ -1,0 +1,48 @@
+{% macro creature_portrait(visual, size='') -%}
+<div class="creature-portrait {{ size }} {{ visual.species_class }} {{ visual.tone_class }} {{ visual.wings_class }}">
+  <svg class="creature-svg" viewBox="0 0 260 180" role="img" aria-hidden="true">
+    <g class="svg-wings">
+      <path class="wing-left" d="M113 82 C65 39 24 51 20 105 C54 107 82 102 116 88 Z"/>
+      <path class="wing-right" d="M147 82 C195 39 236 51 240 105 C206 107 178 102 144 88 Z"/>
+    </g>
+    <g class="svg-fish">
+      <path class="tail" d="M64 90 L20 52 L34 90 L20 128 Z"/>
+      <path class="body" d="M61 90 C86 45 173 43 219 90 C173 137 86 135 61 90 Z"/>
+      <path class="fin top" d="M119 58 C133 28 154 29 166 59 Z"/>
+      <path class="fin bottom" d="M125 121 C140 151 162 148 170 119 Z"/>
+      <circle class="eye" cx="196" cy="78" r="5"/>
+      <path class="mark" d="M96 76 C116 87 139 87 160 75"/>
+    </g>
+    <g class="svg-crustacean">
+      <path class="leg l1" d="M88 112 L48 142"/><path class="leg l2" d="M111 119 L87 157"/><path class="leg r1" d="M172 112 L212 142"/><path class="leg r2" d="M149 119 L173 157"/>
+      <path class="claw left" d="M82 78 C42 45 25 66 45 90 C23 93 23 123 52 119 C70 116 80 100 91 86 Z"/>
+      <path class="claw right" d="M178 78 C218 45 235 66 215 90 C237 93 237 123 208 119 C190 116 180 100 169 86 Z"/>
+      <ellipse class="body" cx="130" cy="94" rx="63" ry="48"/>
+      <ellipse class="head" cx="130" cy="56" rx="33" ry="24"/>
+      <circle class="eye" cx="117" cy="50" r="4"/><circle class="eye" cx="143" cy="50" r="4"/>
+    </g>
+    <g class="svg-turtle">
+      <ellipse class="leg l1" cx="72" cy="62" rx="20" ry="14"/><ellipse class="leg l2" cx="72" cy="124" rx="20" ry="14"/>
+      <ellipse class="leg r1" cx="168" cy="62" rx="20" ry="14"/><ellipse class="leg r2" cx="168" cy="124" rx="20" ry="14"/>
+      <ellipse class="head" cx="203" cy="91" rx="24" ry="21"/>
+      <path class="body" d="M55 92 C68 34 163 24 193 91 C164 159 67 149 55 92 Z"/>
+      <path class="shell" d="M89 58 C110 78 145 77 166 58 M82 92 H176 M92 126 C113 106 144 107 164 126"/>
+      <circle class="eye" cx="211" cy="84" r="4"/>
+    </g>
+    <g class="svg-mammal">
+      <path class="tail" d="M65 91 C27 66 27 37 59 47 C49 66 60 79 83 87 Z"/>
+      <ellipse class="body" cx="129" cy="101" rx="70" ry="43"/>
+      <circle class="head" cx="192" cy="70" r="33"/>
+      <path class="ear left" d="M174 45 L181 17 L196 47 Z"/><path class="ear right" d="M202 45 L222 25 L219 57 Z"/>
+      <rect class="leg l1" x="90" y="132" width="18" height="32" rx="9"/><rect class="leg l2" x="151" y="132" width="18" height="32" rx="9"/>
+      <circle class="eye" cx="203" cy="64" r="4"/>
+    </g>
+    <g class="svg-mollusk">
+      <path class="body" d="M72 112 C83 56 137 32 181 62 C216 86 196 140 137 145 C96 148 65 139 72 112 Z"/>
+      <path class="shell" d="M99 114 C103 84 128 64 154 69 C178 74 188 101 171 120 C153 140 118 139 99 114 Z M119 112 C124 97 138 87 151 91 C164 95 168 109 159 119 C149 130 128 127 119 112 Z"/>
+      <path class="head" d="M176 113 C202 104 223 112 229 130 C207 134 189 129 176 113 Z"/>
+      <circle class="eye" cx="210" cy="120" r="4"/>
+    </g>
+  </svg>
+</div>
+{%- endmacro %}

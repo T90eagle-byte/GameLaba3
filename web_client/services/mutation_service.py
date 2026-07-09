@@ -90,3 +90,42 @@ def get_compatible_creatures_for_mutation(
                 ref_cursor.close()
 
     return run_db(action)
+
+
+def get_mutation_target_genes(
+    session_token: str,
+    lab_id: int,
+    mutation_id: int,
+) -> list[dict[str, Any]]:
+    def action(connection: oracledb.Connection) -> list[dict[str, Any]]:
+        with connection.cursor() as cursor:
+            cursor.callproc("pkg_genetics_game.load_lab", [session_token, lab_id])
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.get_mutation_target_genes_cursor",
+                oracledb.DB_TYPE_CURSOR,
+                [mutation_id],
+            )
+            try:
+                return rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()
+
+    return run_db(action)
+
+
+def get_lab_mutation_quantity(
+    session_token: str,
+    lab_id: int,
+    mutation_id: int,
+) -> int:
+    def action(connection: oracledb.Connection) -> int:
+        with connection.cursor() as cursor:
+            cursor.callproc("pkg_genetics_game.load_lab", [session_token, lab_id])
+            value = cursor.callfunc(
+                "pkg_genetics_game.get_lab_mutation_quantity",
+                oracledb.DB_TYPE_NUMBER,
+                [lab_id, mutation_id],
+            )
+            return 0 if value is None else int(value)
+
+    return run_db(action)

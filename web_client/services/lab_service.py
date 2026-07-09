@@ -87,6 +87,15 @@ def delete_lab(session_token: str, lab_id: int) -> None:
     run_db(action)
 
 
+def exit_lab(session_token: str, lab_id: int) -> None:
+    def action(connection: oracledb.Connection) -> None:
+        with connection.cursor() as cursor:
+            cursor.callproc("pkg_genetics_game.load_lab", [session_token, lab_id])
+            cursor.callproc("pkg_genetics_game.exit_lab", [lab_id])
+
+    run_db(action)
+
+
 def get_lab_stats(session_token: str, lab_id: int) -> dict[str, Any]:
     def action(connection: oracledb.Connection) -> dict[str, Any]:
         with connection.cursor() as cursor:
