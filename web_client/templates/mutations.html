@@ -26,8 +26,8 @@
     </div>
   </div>
   <div class="filter-panel" aria-label="Фильтры мутаций">
-    <label><input type="checkbox" id="filter-owned"> Показать только купленные мутации</label>
-    <label><input type="checkbox" id="filter-compatible"> Показать только совместимых существ</label>
+    <label><input type="checkbox" id="catalog-filter-owned"> Показать только купленные мутации</label>
+    <label><input type="checkbox" id="catalog-filter-compatible"> Показать только совместимых существ</label>
   </div>
   {% if mutations %}
     <div class="mutation-grid compact-mutation-grid">
@@ -64,7 +64,7 @@
                 </details>
               {% endif %}
             {% else %}
-              <p class="muted tiny-note">Совместимость проверит backend при применении.</p>
+              <p class="muted tiny-note">Совместимость будет проверена при применении.</p>
             {% endif %}
           </div>
           <form method="post" class="card-action-form">
@@ -74,6 +74,7 @@
         </article>
       {% endfor %}
     </div>
+    <p class="empty filter-empty" id="mutation-filter-empty" hidden>По выбранным фильтрам мутаций не найдено.</p>
   {% else %}
     <p class="empty">Каталог мутаций пуст.</p>
   {% endif %}
@@ -91,10 +92,15 @@
 <section class="two-column">
   <article class="panel action-panel mutation-apply-panel">
     <h2>Применить купленную мутацию</h2>
-    <p class="muted">Выберите мутацию и существо. Web показывает область воздействия, а результат применяет backend package.</p>
+    <p class="muted">Выберите мутацию и существо. Подсказка покажет область воздействия и текущую совместимость.</p>
+    <div class="filter-panel apply-filter-panel" aria-label="Фильтры применения мутации">
+      <label><input type="checkbox" id="apply-filter-owned"> Показывать только купленные мутации</label>
+      <label><input type="checkbox" id="apply-filter-compatible"> Показывать только совместимых существ</label>
+    </div>
     <form class="form" method="post" id="mutation-apply-form">
       <label><span>Существо</span><select name="creature_id" id="mutation-creature-select" required>{% for creature in creatures %}<option value="{{ creature.creature_id }}" data-creature-name="#{{ creature.creature_id }} — {{ creature.display_name }}">#{{ creature.creature_id }} — {{ creature.display_name }}</option>{% endfor %}</select></label>
-      <label><span>Мутация</span><select name="mutation_id" id="mutation-select" required>{% for mutation in mutations %}{% set target_summary = mutation.target_genes[0].gene_label if mutation.target_genes else mutation.target_label %}<option value="{{ mutation.mutation_id }}" data-name="{{ mutation.display_name }}" data-target="{{ target_summary }}" data-rating="{{ mutation.rating_effect_label }}" data-quantity="{{ mutation.quantity }}" data-quantity-label="{{ mutation.quantity_label }}" data-compatible-ids="{{ mutation.compatible_ids|join(',') }}">{{ mutation.display_name }} · куплено: {{ mutation.quantity_label }}</option>{% endfor %}</select></label>
+      <label><span>Мутация</span><select name="mutation_id" id="mutation-select" required>{% for mutation in mutations %}{% set target_summary = mutation.target_genes[0].gene_label if mutation.target_genes else mutation.target_label %}<option value="{{ mutation.mutation_id }}" data-name="{{ mutation.display_name }}" data-target="{{ target_summary }}" data-rating="{{ mutation.rating_effect_label }}" data-quantity="{{ mutation.quantity }}" data-quantity-label="{{ mutation.quantity_label }}" data-compatible="{{ 1 if mutation.compatible_count > 0 else 0 }}" data-compatible-ids="{{ mutation.compatible_ids|join(',') }}">{{ mutation.display_name }} · куплено: {{ mutation.quantity_label }}</option>{% endfor %}</select></label>
+      <p class="empty filter-empty" id="apply-filter-empty" hidden>По выбранным фильтрам нет доступной пары мутации и существа.</p>
       <div class="mutation-impact" id="mutation-impact" aria-live="polite">
         <h3>Что изменится</h3>
         <dl>
@@ -105,7 +111,7 @@
           <div><dt>Существо</dt><dd data-impact="creature">-</dd></div>
           <div><dt>Статус</dt><dd data-impact="status">-</dd></div>
         </dl>
-        <p class="muted">После применения backend изменит соответствующий ген/признак по правилам package. Web только показывает ожидаемую область воздействия.</p>
+        <p class="muted">После применения мутации признак существа изменится согласно правилам лаборатории.</p>
       </div>
       <button name="action" value="apply_mutation" type="submit">Применить мутацию</button>
     </form>
@@ -122,61 +128,123 @@
   </article>
 </section>
 <script>
-(() => {
-  const ownedFilter = document.getElementById('filter-owned');
-  const compatibleFilter = document.getElementById('filter-compatible');
-  const cards = Array.from(document.querySelectorAll('[data-mutation-card]'));
-  const mutationSelect = document.getElementById('mutation-select');
-  const creatureSelect = document.getElementById('mutation-creature-select');
-  const impact = document.getElementById('mutation-impact');
-  const setImpact = (key, value) => {
-    const node = impact?.querySelector(`[data-impact="${key}"]`);
+(function () {
+  var catalogOwned = document.getElementById('catalog-filter-owned');
+  var catalogCompatible = document.getElementById('catalog-filter-compatible');
+  var catalogEmpty = document.getElementById('mutation-filter-empty');
+  var cards = Array.prototype.slice.call(document.querySelectorAll('[data-mutation-card]'));
+  var applyOwned = document.getElementById('apply-filter-owned');
+  var applyCompatible = document.getElementById('apply-filter-compatible');
+  var applyEmpty = document.getElementById('apply-filter-empty');
+  var mutationSelect = document.getElementById('mutation-select');
+  var creatureSelect = document.getElementById('mutation-creature-select');
+  var impact = document.getElementById('mutation-impact');
+
+  function selectedMutation() { return mutationSelect && mutationSelect.options[mutationSelect.selectedIndex]; }
+  function selectedCreature() { return creatureSelect && creatureSelect.options[creatureSelect.selectedIndex]; }
+  function compatibleIds(option) {
+    var raw = option ? option.getAttribute('data-compatible-ids') || '' : '';
+    var ids = raw.split(',').filter(function (value) { return value !== ''; });
+    var map = {};
+    ids.forEach(function (id) { map[id] = true; });
+    return map;
+  }
+  function setImpact(key, value) {
+    if (!impact) return;
+    var node = impact.querySelector('[data-impact="' + key + '"]');
     if (node) node.textContent = value || '-';
-  };
-  const compatibleIds = () => new Set((mutationSelect?.selectedOptions[0]?.dataset.compatibleIds || '').split(',').filter(Boolean));
-  const applyFilters = () => {
-    const onlyOwned = !!ownedFilter?.checked;
-    const onlyCompatible = !!compatibleFilter?.checked;
-    cards.forEach((card) => {
-      const hide = (onlyOwned && card.dataset.owned !== '1') || (onlyCompatible && card.dataset.compatible !== '1');
-      card.hidden = hide;
+  }
+  function applyCatalogFilters() {
+    var onlyOwned = catalogOwned && catalogOwned.checked;
+    var onlyCompatible = catalogCompatible && catalogCompatible.checked;
+    var visibleCount = 0;
+    cards.forEach(function (card) {
+      var visible = true;
+      if (onlyOwned && card.getAttribute('data-owned') !== '1') visible = false;
+      if (onlyCompatible && card.getAttribute('data-compatible') !== '1') visible = false;
+      card.classList.toggle('is-filtered-out', !visible);
+      card.style.display = visible ? '' : 'none';
+      if (visible) visibleCount += 1;
     });
-    updateCreatureOptions();
-  };
-  const updateCreatureOptions = () => {
-    if (!creatureSelect || !mutationSelect) return;
-    const ids = compatibleIds();
-    const filterCreatures = !!compatibleFilter?.checked && ids.size > 0;
-    Array.from(creatureSelect.options).forEach((option) => {
-      option.hidden = filterCreatures && !ids.has(option.value);
-    });
-    if (creatureSelect.selectedOptions[0]?.hidden) {
-      const firstVisible = Array.from(creatureSelect.options).find((option) => !option.hidden);
-      if (firstVisible) creatureSelect.value = firstVisible.value;
+    if (catalogEmpty) catalogEmpty.hidden = visibleCount !== 0;
+  }
+  function firstEnabled(select) {
+    if (!select) return null;
+    for (var i = 0; i < select.options.length; i += 1) {
+      if (!select.options[i].disabled) return select.options[i];
     }
-    updateImpact();
-  };
-  const updateImpact = () => {
-    if (!mutationSelect || !creatureSelect) return;
-    const mutation = mutationSelect.selectedOptions[0];
-    const creature = creatureSelect.selectedOptions[0];
-    const ids = compatibleIds();
-    const quantity = Number(mutation?.dataset.quantity || 0);
-    let status = 'Не найдено в списке совместимых — backend проверит при применении';
-    if (quantity <= 0) status = 'Мутация не куплена';
-    else if (ids.has(creature?.value || '')) status = 'Совместимо по данным backend';
-    setImpact('mutation', mutation?.dataset.name);
-    setImpact('target', mutation?.dataset.target);
-    setImpact('rating', mutation?.dataset.rating);
-    setImpact('quantity', mutation?.dataset.quantityLabel);
-    setImpact('creature', creature?.dataset.creatureName || creature?.textContent?.trim());
+    return null;
+  }
+  function applyMutationOptionFilters() {
+    if (!mutationSelect) return;
+    var onlyOwned = applyOwned && applyOwned.checked;
+    var onlyCompatible = applyCompatible && applyCompatible.checked;
+    Array.prototype.forEach.call(mutationSelect.options, function (option) {
+      var enabled = true;
+      if (onlyOwned && Number(option.getAttribute('data-quantity') || 0) <= 0) enabled = false;
+      if (onlyCompatible && option.getAttribute('data-compatible') !== '1') enabled = false;
+      option.disabled = !enabled;
+      option.hidden = !enabled;
+    });
+    if (selectedMutation() && selectedMutation().disabled) {
+      var next = firstEnabled(mutationSelect);
+      if (next) mutationSelect.value = next.value;
+    }
+  }
+  function applyCreatureOptionFilters() {
+    if (!creatureSelect || !mutationSelect) return;
+    var ids = compatibleIds(selectedMutation());
+    var filter = applyCompatible && applyCompatible.checked && Object.keys(ids).length > 0;
+    Array.prototype.forEach.call(creatureSelect.options, function (option) {
+      var enabled = !filter || !!ids[option.value];
+      option.disabled = !enabled;
+      option.hidden = !enabled;
+    });
+    if (selectedCreature() && selectedCreature().disabled) {
+      var next = firstEnabled(creatureSelect);
+      if (next) creatureSelect.value = next.value;
+    }
+  }
+  function updateImpact() {
+    var mutation = selectedMutation();
+    var creature = selectedCreature();
+    if (!mutation || !creature || mutation.disabled || creature.disabled) {
+      if (applyEmpty) applyEmpty.hidden = false;
+      setImpact('mutation', '-');
+      setImpact('target', '-');
+      setImpact('rating', '-');
+      setImpact('quantity', '-');
+      setImpact('creature', '-');
+      setImpact('status', '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0443\u044e \u043c\u0443\u0442\u0430\u0446\u0438\u044e \u0438 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043e');
+      return;
+    }
+    if (applyEmpty) applyEmpty.hidden = true;
+    var ids = compatibleIds(mutation);
+    var quantity = Number(mutation.getAttribute('data-quantity') || 0);
+    var status = '\u0421\u043e\u0432\u043c\u0435\u0441\u0442\u0438\u043c\u043e\u0441\u0442\u044c \u0431\u0443\u0434\u0435\u0442 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u0430 \u043f\u0440\u0438 \u043f\u0440\u0438\u043c\u0435\u043d\u0435\u043d\u0438\u0438.';
+    if (quantity <= 0) status = '\u041c\u0443\u0442\u0430\u0446\u0438\u044f \u043d\u0435 \u043a\u0443\u043f\u043b\u0435\u043d\u0430';
+    else if (ids[creature.value]) status = '\u0421\u043e\u0432\u043c\u0435\u0441\u0442\u0438\u043c\u043e \u043f\u043e \u0434\u0430\u043d\u043d\u044b\u043c \u043b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u0438';
+    else if (Object.keys(ids).length > 0) status = '\u0421\u043e\u0432\u043c\u0435\u0441\u0442\u0438\u043c\u043e\u0441\u0442\u044c \u043d\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0430. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0432\u044b\u0431\u0440\u0430\u0442\u044c \u0434\u0440\u0443\u0433\u043e\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043e \u0438\u043b\u0438 \u043f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u0435 \u043c\u0443\u0442\u0430\u0446\u0438\u044e \u043d\u0430 \u0441\u0432\u043e\u0439 \u0440\u0438\u0441\u043a.';
+    setImpact('mutation', mutation.getAttribute('data-name'));
+    setImpact('target', mutation.getAttribute('data-target'));
+    setImpact('rating', mutation.getAttribute('data-rating'));
+    setImpact('quantity', mutation.getAttribute('data-quantity-label'));
+    setImpact('creature', creature.getAttribute('data-creature-name') || creature.textContent.replace(/^\s+|\s+$/g, ''));
     setImpact('status', status);
-  };
-  ownedFilter?.addEventListener('change', applyFilters);
-  compatibleFilter?.addEventListener('change', applyFilters);
-  mutationSelect?.addEventListener('change', applyFilters);
-  creatureSelect?.addEventListener('change', updateImpact);
-  applyFilters();
-})();
+  }
+  function applyFormFilters() {
+    applyMutationOptionFilters();
+    applyCreatureOptionFilters();
+    updateImpact();
+  }
+  if (catalogOwned) catalogOwned.addEventListener('change', applyCatalogFilters);
+  if (catalogCompatible) catalogCompatible.addEventListener('change', applyCatalogFilters);
+  if (applyOwned) applyOwned.addEventListener('change', applyFormFilters);
+  if (applyCompatible) applyCompatible.addEventListener('change', applyFormFilters);
+  if (mutationSelect) mutationSelect.addEventListener('change', applyFormFilters);
+  if (creatureSelect) creatureSelect.addEventListener('change', updateImpact);
+  applyCatalogFilters();
+  applyFormFilters();
+}());
 </script>
 {% endblock %}

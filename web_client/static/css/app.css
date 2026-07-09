@@ -532,3 +532,158 @@ button.danger:hover,
   .active-lab-panel { display: grid; }
   .active-lab-actions { width: 100%; }
 }
+
+
+/* Bugfix UX pass: working filters, calmer text wrapping, modular creature portraits. */
+.creature-card .summary,
+.preview-card .summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.summary,
+.entity-card-header,
+.entity-card-header h2,
+.entity-card-header h3,
+.trait-pill,
+.badge,
+.delta,
+.event-card p,
+.order-card p,
+.mutation-card p {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+}
+.badge,
+.trait-pill,
+.entity-card-header h2,
+.entity-card-header h3 { line-break: auto; }
+.creature-card {
+  grid-template-rows: minmax(176px, 190px) 1fr;
+  height: 100%;
+}
+.creature-card-body { min-height: 0; }
+.creature-card .trait-row { gap: .45rem; }
+.creature-card .trait-pill {
+  flex: 1 1 calc(50% - .45rem);
+  max-width: calc(50% - .25rem);
+  min-height: 58px;
+  padding: .48rem .55rem;
+  overflow: hidden;
+}
+.creature-card .trait-pill small,
+.creature-card .trait-pill { line-height: 1.22; }
+.creature-card .species-badge { flex: 0 0 auto; max-width: 46%; justify-content: center; }
+
+.order-action-form {
+  grid-template-columns: minmax(0, 1fr) minmax(128px, 1fr);
+  gap: .6rem;
+}
+.order-action-form select { grid-column: 1 / -1; }
+.order-action-form button { min-width: 0; white-space: normal; }
+.order-card .badge { white-space: normal; }
+.order-header .badge { flex: 0 0 auto; white-space: nowrap; }
+
+.filter-empty {
+  margin-top: .75rem;
+  padding: .9rem 1rem;
+  border: 1px dashed rgba(67,118,91,.28);
+  border-radius: 14px;
+  background: rgba(255,253,247,.72);
+}
+.mutation-card.is-filtered-out { display: none !important; }
+.apply-filter-panel { margin-top: .2rem; margin-bottom: .2rem; }
+.mutation-impact dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mutation-impact .muted { margin-bottom: 0; }
+select option[disabled] { color: #9a9a8e; }
+
+.creature-portrait {
+  --portrait-stroke: rgba(42, 59, 49, .16);
+  --creature-scale: 1;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255,255,255,.68), transparent 42%),
+    linear-gradient(150deg, rgba(255,255,255,.64), rgba(67,118,91,.13));
+}
+.size-compact { --creature-scale: .86; }
+.size-small { --creature-scale: .9; }
+.size-medium { --creature-scale: 1; }
+.size-large { --creature-scale: 1.12; }
+.size-giant { --creature-scale: 1.18; }
+.size-intermediate { --creature-scale: 1.02; }
+.creature-svg { width: min(94%, 250px); height: min(94%, 176px); filter: drop-shadow(0 12px 16px rgba(38,52,42,.14)); }
+.creature-svg .ground { display: inline; fill: url(#portraitGlow); opacity: .92; stroke: none; }
+.creature-svg .creature-body-layer {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(var(--creature-scale));
+}
+.creature-svg .body,
+.creature-svg .tail,
+.creature-svg .fin,
+.creature-svg .claw,
+.creature-svg .leg,
+.creature-svg .head,
+.creature-svg .ear,
+.creature-svg .soft {
+  fill: var(--creature-tone, var(--moss));
+  stroke: var(--portrait-stroke);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.creature-svg .tail,
+.creature-svg .fin,
+.creature-svg .claw,
+.creature-svg .leg,
+.creature-svg .ear { fill: var(--creature-accent, var(--leaf)); }
+.creature-svg .shade { fill: url(#creatureShade); opacity: .38; stroke: none; }
+.creature-svg .gill,
+.creature-svg .feature-mark,
+.creature-svg .shell-lines,
+.creature-svg .shell-spiral,
+.creature-svg .fur-lines,
+.creature-svg .leaf-vein,
+.creature-svg .wing-vein {
+  fill: none;
+  stroke: rgba(255,255,255,.62);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.creature-svg .eye { fill: #25352c; stroke: rgba(255,255,255,.82); stroke-width: 1.7; }
+.creature-svg .svg-wings path:not(.wing-vein) { fill: rgba(255,255,255,.58); stroke: rgba(67,118,91,.18); stroke-width: 2; }
+.creature-svg .nutrition-icons { display: none; }
+.creature-svg .leaf-icon { fill: #6fa866; stroke: rgba(35,48,39,.14); stroke-width: 1.5; }
+.creature-svg .fang-icon { fill: #f6f0dc; stroke: rgba(35,48,39,.18); stroke-width: 1.8; }
+.nutrition-herbivore .creature-svg .nutrition-icons,
+.nutrition-carnivore .creature-svg .nutrition-icons,
+.nutrition-mixed .creature-svg .nutrition-icons { display: block; }
+.nutrition-herbivore .creature-svg .fang-icon,
+.nutrition-herbivore .creature-svg .fang-icon.second { display: none; }
+.nutrition-carnivore .creature-svg .leaf-icon,
+.nutrition-carnivore .creature-svg .leaf-vein { display: none; }
+.feature-broad-fin .creature-svg .svg-fish .fin { transform-box: fill-box; transform-origin: center; transform: scale(1.22, 1.04); }
+.feature-pointed-fin .creature-svg .svg-fish .fin { fill: rgba(255,255,255,.56); stroke-width: 2.6; }
+.feature-ribbon-fin .creature-svg .svg-fish .fin { opacity: .75; transform-box: fill-box; transform-origin: center; transform: scale(.72, 1.35); }
+.feature-forked-fin .creature-svg .svg-fish .tail { transform-box: fill-box; transform-origin: center; transform: scale(1.08, 1.12); }
+.feature-long-claws .creature-svg .svg-crustacean .claw { transform-box: fill-box; transform-origin: center; transform: scale(1.18); }
+.feature-hooked-claws .creature-svg .svg-crustacean .claw { stroke-width: 3; fill: var(--creature-accent, var(--leaf)); }
+.feature-short-claws .creature-svg .svg-crustacean .claw { transform-box: fill-box; transform-origin: center; transform: scale(.84); }
+.feature-thick-armor .creature-svg .svg-turtle .body,
+.feature-thick-armor .creature-svg .svg-crustacean .body { stroke-width: 3.2; }
+.feature-ridged-armor .creature-svg .shell-lines { stroke-dasharray: 5 5; }
+.feature-smooth-shell .creature-svg .shell-lines { opacity: .42; }
+.feature-plated-shell .creature-svg .shell-lines { stroke-width: 4; }
+.feature-spiral-profile .creature-svg .shell-spiral { stroke-width: 4; }
+.feature-fast-speed .creature-svg .ground { opacity: .58; }
+.feature-soft-fur .creature-svg .fur-lines { stroke-dasharray: 2 6; }
+.feature-dense-fur .creature-svg .fur-lines { stroke-width: 4; }
+
+@media (max-width: 760px) {
+  .order-action-form { grid-template-columns: 1fr; }
+  .order-action-form select { grid-column: auto; }
+  .mutation-impact dl { grid-template-columns: 1fr; }
+  .creature-card .trait-pill { max-width: 100%; }
+}

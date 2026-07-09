@@ -388,20 +388,114 @@ def phenotype_items(row: dict[str, Any]) -> list[dict[str, str]]:
     return items
 
 
+def _item_by_key(items: list[dict[str, str]], key: str) -> dict[str, str] | None:
+    clean_key = _clean_code(key)
+    for item in items:
+        if _clean_code(item.get("key")) == clean_key:
+            return item
+    return None
+
+
+def _item_with_keys(items: list[dict[str, str]], keys: tuple[str, ...]) -> dict[str, str] | None:
+    clean_keys = {_clean_code(key) for key in keys}
+    for item in items:
+        if _clean_code(item.get("key")) in clean_keys:
+            return item
+    return None
+
+
 def phenotype_sentence(row: dict[str, Any]) -> str:
     items = phenotype_items(row)
     if not items:
         return "Фенотип пока не описан."
-    return " · ".join(f"{item['label']}: {item['value']}" for item in items[:5])
+    preferred = ["color", "has_wings", "nutrition_type", "size"]
+    selected: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for key in preferred:
+        item = _item_by_key(items, key)
+        if item:
+            selected.append(item)
+            seen.add(_clean_code(item.get("key")))
+    for item in items:
+        key = _clean_code(item.get("key"))
+        if key not in seen:
+            selected.append(item)
+            break
+    parts: list[str] = []
+    for item in selected[:5]:
+        key = _clean_code(item.get("key"))
+        value = item.get("value", "")
+        if key == "color":
+            parts.append(f"{value.capitalize()} окрас")
+        elif key == "has_wings":
+            parts.append(value)
+        elif key == "nutrition_type":
+            parts.append(f"{value} питание")
+        elif key == "size":
+            parts.append(f"{value} размер")
+        else:
+            parts.append(value)
+    return " · ".join(parts)
+
+
+def _class_from_raw(raw: Any, prefix: str, variants: tuple[str, ...], default: str) -> str:
+    code = _clean_code(raw)
+    for variant in variants:
+        if variant in code:
+            return f"{prefix}-{variant.replace('_', '-')}"
+    return f"{prefix}-{default}"
+
+
+def _nutrition_class(raw: Any) -> str:
+    code = _clean_code(raw)
+    has_herbivore = "herbivore" in code
+    has_carnivore = "carnivore" in code or "predator" in code
+    if has_herbivore and has_carnivore:
+        return "nutrition-mixed"
+    if has_carnivore:
+        return "nutrition-carnivore"
+    if has_herbivore:
+        return "nutrition-herbivore"
+    return "nutrition-neutral"
+
+
+def _feature_class(items: list[dict[str, str]]) -> str:
+    feature = _item_with_keys(items, ("fin_shape", "claw_form", "shell_armor", "beak_nose_shape", "speed_level", "fur_density"))
+    raw = _clean_code(feature.get("raw") if feature else "")
+    variants = (
+        "crescent_fin", "broad_fin", "pointed_fin", "ribbon_fin", "forked_fin", "rounded_fin",
+        "long_claws", "hooked_claws", "short_claws",
+        "thick_armor", "ridged_armor", "smooth_shell", "plated_shell",
+        "spiral_profile", "rounded_nose", "sharp_beak",
+        "fast_speed", "slow_speed", "short_fur", "soft_fur", "dense_fur",
+    )
+    for variant in variants:
+        if variant in raw:
+            return "feature-" + variant.replace("_", "-")
+    return "feature-neutral"
 
 
 def creature_visual(row: dict[str, Any]) -> dict[str, str]:
     species = _clean_code(row.get("species_type") or row.get("species_code") or row.get("species_label"))
     species_code = SPECIES_CLASS_CODES.get(species, species.replace("_", "-") if species else "default")
-    color = row.get("phenotype_color") or row.get("phenotype_summary")
-    wings_raw = _clean_code(row.get("phenotype_has_wings") or row.get("phenotype_summary"))
+    items = phenotype_items(row)
+    color_item = _item_by_key(items, "color")
+    size_item = _item_by_key(items, "size")
+    wings_item = _item_by_key(items, "has_wings")
+    nutrition_item = _item_by_key(items, "nutrition_type")
+    color = color_item.get("raw") if color_item else row.get("phenotype_color") or row.get("phenotype_summary")
+    wings_raw = _clean_code((wings_item or {}).get("raw") or row.get("phenotype_has_wings") or row.get("phenotype_summary"))
     wings = "has-wings" if "wing" in wings_raw and "no_wings" not in wings_raw else "no-wings"
-    return {"species_class": "species-" + species_code, "tone_class": color_class(color), "wings_class": wings}
+    size_class = _class_from_raw((size_item or {}).get("raw") or row.get("phenotype_size") or row.get("phenotype_summary"), "size", ("compact", "small", "medium", "large", "giant", "intermediate"), "medium")
+    nutrition_class = _nutrition_class((nutrition_item or {}).get("raw") or row.get("phenotype_nutrition_type") or row.get("phenotype_summary"))
+    return {
+        "species_class": "species-" + species_code,
+        "tone_class": color_class(color),
+        "wings_class": wings,
+        "size_class": size_class,
+        "nutrition_class": nutrition_class,
+        "feature_class": _feature_class(items),
+    }
 
 
 def creature_view(row: dict[str, Any]) -> dict[str, Any]:
