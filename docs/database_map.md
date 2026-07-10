@@ -86,14 +86,14 @@ Each reference table includes `display_name`.
 
 - `lab_id` - primary key.
 - `user_id -> users(user_id)`.
-- `session_id -> sessions(session_id)`.
+- nullable `session_id -> sessions(session_id)`; it identifies only the active session currently holding the lab.
 - `(session_id, user_id) -> sessions(session_id, user_id)`.
 - `wallet`, `rating`.
 - Aggregate counters: `creature_count`, `active_task_count`, `completed_task_count`, `experiment_count`.
 
 `labs.wallet` and `labs.rating` remain the current aggregate state. Detailed explanations for changes are stored in `rating_events`.
 
-`labs.session_id` is NOT NULL. In the current model, `exit_lab` clears package context and does not set `labs.session_id` to NULL.
+`labs.session_id` is an active lock, not permanent ownership. `exit_lab` and `logout_user` release it, while `reset_other_user_sessions` closes only the caller's other active sessions and releases their labs. Ownership remains defined by `labs.user_id`.
 
 ## 6. Genetics
 

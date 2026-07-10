@@ -88,6 +88,17 @@ From repository root:
 @database/ddl/01_create_tables.sql
 ```
 
+For an existing local schema created before nullable lab session locks, stop the
+application and run the one-time migration before recompiling the package:
+
+```sql
+@database/migrations/01_release_lab_session_bindings.sql
+```
+
+The migration makes `labs.session_id` nullable and releases bindings left by
+older application sessions. A clean schema created from the current DDL does
+not need this migration.
+
 ## 2) Run core seed data
 
 ```sql

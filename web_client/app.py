@@ -167,6 +167,11 @@ def create_app() -> Flask:
                     flash(f"Лаборатория #{lab_id} закрыта. Теперь можно открыть или удалить другую лабораторию.", "success")
                     return redirect(url_for("labs"))
 
+                if action == "reset_sessions":
+                    lab_service.reset_other_user_sessions(token)
+                    flash("Старые сессии завершены. Удерживаемые ими лаборатории снова доступны.", "success")
+                    return redirect(url_for("labs"))
+
                 if action == "delete":
                     lab_id = int(request.form.get("lab_id", "0"))
                     if lab_id <= 0:

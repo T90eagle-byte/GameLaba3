@@ -95,3 +95,10 @@ Flask не строит последствия и не считает deltas; о
 - Added `/about-requirements` as a compact requirements coverage page.
 - Backend remains the source of truth: Flask only calls `pkg_genetics_game` and renders returned data. Direct SQL remains limited to health-check `select 1 from dual`.
 - Next step: final clean run, browser smoke on the defense machine, and only small UX fixes if needed.
+
+## Checkpoint 2026-07-10: persistent lab release
+
+- `labs.session_id` is nullable and represents only an active session lock.
+- `exit_lab` and `logout_user` persistently release held laboratories.
+- `reset_other_user_sessions` safely closes only other active sessions of the same user; the current and foreign-user sessions remain active.
+- Existing local schemas use `database/migrations/01_release_lab_session_bindings.sql` with the application stopped.

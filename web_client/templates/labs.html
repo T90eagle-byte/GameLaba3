@@ -11,6 +11,17 @@
     <a class="button secondary" href="{{ url_for('dashboard') }}">Перейти в обзор</a>
   {% endif %}
 </section>
+<section class="panel session-recovery-panel">
+  <div>
+    <p class="eyebrow">Восстановление доступа</p>
+    <h2>Старые сессии</h2>
+    <p class="muted">Если браузер был закрыт без выхода, завершите прежние сессии своего аккаунта. Текущая сессия останется активной, а удерживаемые лаборатории освободятся.</p>
+  </div>
+  <form method="post">
+    <input type="hidden" name="action" value="reset_sessions">
+    <button class="secondary" type="submit">Завершить старые сессии</button>
+  </form>
+</section>
 {% if current_lab_id %}
   <section class="panel active-lab-panel">
     <div>

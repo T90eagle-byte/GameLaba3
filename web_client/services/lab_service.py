@@ -96,6 +96,14 @@ def exit_lab(session_token: str, lab_id: int) -> None:
     run_db(action)
 
 
+def reset_other_user_sessions(session_token: str) -> None:
+    def action(connection: oracledb.Connection) -> None:
+        with connection.cursor() as cursor:
+            cursor.callproc("pkg_genetics_game.reset_other_user_sessions", [session_token])
+
+    run_db(action)
+
+
 def get_lab_stats(session_token: str, lab_id: int) -> dict[str, Any]:
     def action(connection: oracledb.Connection) -> dict[str, Any]:
         with connection.cursor() as cursor:

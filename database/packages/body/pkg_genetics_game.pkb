@@ -424,21 +424,69 @@ end hash_password_sha256;
     procedure logout_user(
         p_session_token in varchar2
     ) is
+        v_session_id sessions.session_id%type;
     begin
+        begin
+            select s.session_id
+              into v_session_id
+              from sessions s
+             where s.session_token = p_session_token
+               and s.status = 'ACTIVE'
+             for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20021, 'Active session not found.');
+        end;
+
+        update labs l
+           set l.session_id = null
+         where l.session_id = v_session_id;
+
         update sessions s
            set s.status = 'CLOSED',
                s.ended_at = systimestamp
-         where s.session_token = p_session_token
-           and s.status = 'ACTIVE';
-
-        if sql%rowcount = 0 then
-            raise_application_error(-20021, 'Active session not found.');
-        end if;
+         where s.session_id = v_session_id;
 
         if g_current_session_token = p_session_token then
             clear_current_session_context();
         end if;
     end logout_user;
+
+    procedure reset_other_user_sessions(
+        p_session_token in varchar2
+    ) is
+        v_current_session_id sessions.session_id%type;
+        v_user_id            users.user_id%type;
+    begin
+        get_active_session(
+            p_session_token => p_session_token,
+            p_session_id    => v_current_session_id,
+            p_user_id       => v_user_id
+        );
+
+        update labs l
+           set l.session_id = null
+         where l.session_id in (
+             select s.session_id
+               from sessions s
+              where s.user_id = v_user_id
+                and s.status = 'ACTIVE'
+                and s.session_id <> v_current_session_id
+         );
+
+        update sessions s
+           set s.status = 'CLOSED',
+               s.ended_at = systimestamp
+         where s.user_id = v_user_id
+           and s.status = 'ACTIVE'
+           and s.session_id <> v_current_session_id;
+
+        set_current_session_context(
+            p_user_id       => v_user_id,
+            p_session_id    => v_current_session_id,
+            p_session_token => p_session_token
+        );
+    end reset_other_user_sessions;
 
     procedure update_user_profile(
         p_user_id       in number,
@@ -748,6 +796,12 @@ end hash_password_sha256;
     ) is
     begin
         assert_lab_access(p_lab_id => p_lab_id);
+
+        update labs l
+           set l.session_id = null
+         where l.lab_id = p_lab_id
+           and l.user_id = g_current_user_id
+           and l.session_id = g_current_session_id;
 
         if g_current_lab_id = p_lab_id then
             g_current_lab_id := null;

@@ -20,6 +20,7 @@ declare
 
     v_session1 varchar2(128);
     v_session1b varchar2(128);
+    v_session1c varchar2(128);
     v_session2 varchar2(128);
 
     v_wallet number;
@@ -361,11 +362,73 @@ begin
             end if;
     end;
 
+    pkg_genetics_game.load_lab(v_session1, v_lab1_id);
+    pkg_genetics_game.exit_lab(v_lab1_id);
+
+    select count(*)
+      into v_tmp
+      from labs l
+     where l.lab_id = v_lab1_id
+       and l.session_id is null;
+    assert_true(v_tmp = 1, 'exit_lab releases persistent lab session binding');
+
+    pkg_genetics_game.load_lab(v_session1b, v_lab1_id);
+    pass_test('session2 can open lab after exit_lab');
+    pkg_genetics_game.exit_lab(v_lab1_id);
+
+    pkg_genetics_game.load_lab(v_session1, v_lab1_id);
     pkg_genetics_game.logout_user(v_session1);
     pass_test('logout user1 session1');
 
+    select count(*)
+      into v_tmp
+      from labs l
+     where l.lab_id = v_lab1_id
+       and l.session_id is null;
+    assert_true(v_tmp = 1, 'logout_user releases held laboratories');
+
     pkg_genetics_game.load_lab(v_session1b, v_lab1_id);
     pass_test('session2 can open lab after session1 logout');
+
+    v_session1c := pkg_genetics_game.login_user(
+        p_login    => v_login1,
+        p_password => 'Multi_user1_123'
+    );
+    assert_true(v_session1c is not null, 'login user1 recovery session');
+
+    pkg_genetics_game.reset_other_user_sessions(v_session1c);
+    pass_test('reset other user sessions');
+
+    select count(*)
+      into v_tmp
+      from sessions s
+     where s.session_token = v_session1b
+       and s.status = 'CLOSED';
+    assert_true(v_tmp = 1, 'reset closes another active session of same user');
+
+    select count(*)
+      into v_tmp
+      from sessions s
+     where s.session_token = v_session1c
+       and s.status = 'ACTIVE';
+    assert_true(v_tmp = 1, 'reset keeps current session active');
+
+    select count(*)
+      into v_tmp
+      from sessions s
+     where s.session_token = v_session2
+       and s.status = 'ACTIVE';
+    assert_true(v_tmp = 1, 'reset does not close another user session');
+
+    select count(*)
+      into v_tmp
+      from labs l
+     where l.lab_id = v_lab1_id
+       and l.session_id is null;
+    assert_true(v_tmp = 1, 'reset releases labs held by old sessions');
+
+    pkg_genetics_game.load_lab(v_session1c, v_lab1_id);
+    pass_test('current session can load released lab after reset');
 
     pkg_genetics_game.get_lab_stats(
         p_lab_id               => v_lab1_id,
@@ -376,17 +439,17 @@ begin
         p_completed_task_count => v_completed_task_count,
         p_experiment_count     => v_experiment_count
     );
-    pass_test('gameplay works in new active session');
+    pass_test('gameplay works in current session after reset');
 
     begin
-        pkg_genetics_game.load_lab(v_session1, v_lab1_id);
-        expect_error('closed old session cannot reopen lab', -20020);
+        pkg_genetics_game.load_lab(v_session1b, v_lab1_id);
+        expect_error('reset old session cannot reopen lab', -20020);
     exception
         when others then
             if sqlcode = -20020 then
-                pass_test('closed old session cannot reopen lab');
+                pass_test('reset old session cannot reopen lab');
             else
-                fail_test('closed old session cannot reopen lab', sqlcode || ' / ' || sqlerrm);
+                fail_test('reset old session cannot reopen lab', sqlcode || ' / ' || sqlerrm);
             end if;
     end;
 
@@ -394,9 +457,10 @@ begin
     dbms_output.put_line('Passed: ' || v_passed);
     dbms_output.put_line('Failed: ' || v_failed);
 
-    safe_delete_lab(v_session1b, v_lab1_id);
+    safe_delete_lab(v_session1c, v_lab1_id);
     safe_delete_lab(v_session2, v_lab2_id);
     safe_logout(v_session1b);
+    safe_logout(v_session1c);
     safe_logout(v_session2);
     direct_cleanup;
 
@@ -407,10 +471,11 @@ exception
     when others then
         dbms_output.put_line('[ERROR] Unhandled exception in 08_multiuser_sessions_smoke_test: ' || sqlcode || ' / ' || sqlerrm);
 
-        safe_delete_lab(v_session1b, v_lab1_id);
+        safe_delete_lab(v_session1c, v_lab1_id);
         safe_delete_lab(v_session2, v_lab2_id);
         safe_logout(v_session1);
         safe_logout(v_session1b);
+        safe_logout(v_session1c);
         safe_logout(v_session2);
         direct_cleanup;
 

@@ -18,6 +18,10 @@ create or replace package pkg_genetics_game as
         p_session_token in varchar2
     );
 
+    procedure reset_other_user_sessions(
+        p_session_token in varchar2
+    );
+
     function resolve_user_id_by_token(
         p_session_token in varchar2
     ) return number;

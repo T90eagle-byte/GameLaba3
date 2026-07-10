@@ -27,7 +27,6 @@
   </div>
   <div class="filter-panel" aria-label="Фильтры мутаций">
     <label><input type="checkbox" id="catalog-filter-owned"> Показать только купленные мутации</label>
-    <label><input type="checkbox" id="catalog-filter-compatible"> Показать только совместимых существ</label>
   </div>
   {% if mutations %}
     <div class="mutation-grid compact-mutation-grid">
@@ -130,7 +129,6 @@
 <script>
 (function () {
   var catalogOwned = document.getElementById('catalog-filter-owned');
-  var catalogCompatible = document.getElementById('catalog-filter-compatible');
   var catalogEmpty = document.getElementById('mutation-filter-empty');
   var cards = Array.prototype.slice.call(document.querySelectorAll('[data-mutation-card]'));
   var applyOwned = document.getElementById('apply-filter-owned');
@@ -156,12 +154,10 @@
   }
   function applyCatalogFilters() {
     var onlyOwned = catalogOwned && catalogOwned.checked;
-    var onlyCompatible = catalogCompatible && catalogCompatible.checked;
     var visibleCount = 0;
     cards.forEach(function (card) {
       var visible = true;
       if (onlyOwned && card.getAttribute('data-owned') !== '1') visible = false;
-      if (onlyCompatible && card.getAttribute('data-compatible') !== '1') visible = false;
       card.classList.toggle('is-filtered-out', !visible);
       card.style.display = visible ? '' : 'none';
       if (visible) visibleCount += 1;
@@ -238,7 +234,6 @@
     updateImpact();
   }
   if (catalogOwned) catalogOwned.addEventListener('change', applyCatalogFilters);
-  if (catalogCompatible) catalogCompatible.addEventListener('change', applyCatalogFilters);
   if (applyOwned) applyOwned.addEventListener('change', applyFormFilters);
   if (applyCompatible) applyCompatible.addEventListener('change', applyFormFilters);
   if (mutationSelect) mutationSelect.addEventListener('change', applyFormFilters);
