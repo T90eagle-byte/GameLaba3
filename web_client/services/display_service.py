@@ -598,8 +598,10 @@ def creature_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def genotype_view(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     formatted = []
     for row in rows:
-        allele1 = row.get("allele1_trait_value") or row.get("allele1_display_name")
-        allele2 = row.get("allele2_trait_value") or row.get("allele2_display_name")
+        allele1_value = row.get("allele1_trait_value")
+        allele2_value = row.get("allele2_trait_value")
+        allele1 = allele1_value if allele1_value is not None else row.get("allele1_display_name")
+        allele2 = allele2_value if allele2_value is not None else row.get("allele2_display_name")
         gene = row.get("gene_name") or row.get("gene_type") or row.get("gene_display_name")
         dominance = row.get("dominance_type") or row.get("dominance_display_name")
         formatted.append({**row, "gene_label": gene_label(gene), "gene_code": _text(gene), "dominance_label": dominance_label(dominance), "allele1_label": allele_label(allele1), "allele2_label": allele_label(allele2), "pair_label": f"Аллели: {allele_label(allele1)} / {allele_label(allele2)}"})

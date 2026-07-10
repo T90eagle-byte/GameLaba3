@@ -59,7 +59,7 @@ a:hover { text-decoration: underline; }
   box-shadow: var(--shadow-soft);
 }
 .hero-panel { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; padding: clamp(1.35rem, 3vw, 2.2rem); margin-bottom: 1.2rem; overflow: hidden; position: relative; }
-.hero-panel:after { content: ""; position: absolute; inset: auto -3rem -5rem auto; width: 15rem; height: 15rem; border-radius: 45% 55% 50% 40%; background: rgba(145,179,123,.18); transform: rotate(-18deg); }
+.hero-panel::after { content: ""; position: absolute; inset: auto -3rem -5rem auto; width: 15rem; height: 15rem; border-radius: 45% 55% 50% 40%; background: rgba(145,179,123,.18); transform: rotate(-18deg); pointer-events: none; }
 .compact-hero { min-height: 150px; }
 .dashboard-hero { background: linear-gradient(135deg, rgba(251,250,244,.95), rgba(224,235,207,.86)); }
 .mutation-hero { background: linear-gradient(135deg, rgba(251,250,244,.95), rgba(232,184,91,.16)); }
@@ -777,7 +777,7 @@ button,
 }
 .order-action-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(132px, auto) minmax(132px, auto);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: .6rem;
   align-items: stretch;
 }

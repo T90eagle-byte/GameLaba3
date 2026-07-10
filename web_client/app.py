@@ -182,8 +182,9 @@ def create_app() -> Flask:
                 flash("Некорректный идентификатор лаборатории.", "error")
             except ServiceError as exc:
                 message = str(exc)
-                if "уже открыта" in message or "активн" in message:
-                    flash("Эта лаборатория числится открытой в другой сессии. Выйдите из аккаунта и войдите снова. Если проблема останется, попросите администратора сбросить старую сессию.", "warning")
+                foreign_session_message = "Эта лаборатория числится открытой в другой сессии. Выйдите из аккаунта и войдите снова. Если проблема останется, попросите администратора сбросить старую сессию."
+                if message == foreign_session_message:
+                    flash(foreign_session_message, "warning")
                 else:
                     flash(message, "error")
 
