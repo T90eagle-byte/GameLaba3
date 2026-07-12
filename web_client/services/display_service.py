@@ -183,6 +183,19 @@ COLOR_CLASSES = {
     "silver": "tone-silver",
 }
 
+COLOR_VALUES = {
+    "green": ("#83ad69", "#477a59"),
+    "blue": ("#76a9bd", "#42768e"),
+    "red": ("#cf7567", "#9e4c45"),
+    "yellow": ("#e7c76b", "#b88735"),
+    "purple": ("#aa82ae", "#7e5684"),
+    "orange": ("#df9a5e", "#ae6639"),
+    "white": ("#f4f1df", "#aaa78f"),
+    "black": ("#48524a", "#222b26"),
+    "brown": ("#a77b56", "#6f4f36"),
+    "silver": ("#c7d0c9", "#77877f"),
+}
+
 SPECIES_CLASS_CODES = {
     "1": "cartilaginous-fish",
     "2": "bony-fish",
@@ -440,6 +453,29 @@ def color_class(value: Any) -> str:
     return COLOR_CLASSES.get(_color_key(value), "tone-green")
 
 
+def _color_visual(raw: Any) -> dict[str, str]:
+    code = _clean_code(raw)
+    keys = [key for key in COLOR_CLASSES if key in code]
+    if not keys:
+        keys = ["green"]
+    primary = keys[0]
+    result = {
+        "tone_class": COLOR_CLASSES[primary],
+        "tone_mode_class": "tone-solid",
+        "tone_style": "",
+    }
+    if len(keys) > 1:
+        secondary = keys[1]
+        primary_tone, primary_accent = COLOR_VALUES[primary]
+        secondary_tone, secondary_accent = COLOR_VALUES[secondary]
+        result["tone_mode_class"] = "tone-mixed"
+        result["tone_style"] = (
+            f"--creature-tone:{primary_tone};--creature-accent:{primary_accent};"
+            f"--creature-tone-secondary:{secondary_tone};--creature-accent-secondary:{secondary_accent};"
+        )
+    return result
+
+
 def parse_phenotype(summary: Any) -> list[dict[str, str]]:
     text = _text(summary)
     items: list[dict[str, str]] = []
@@ -542,20 +578,41 @@ def _nutrition_class(raw: Any) -> str:
     return "nutrition-neutral"
 
 
-def _feature_class(items: list[dict[str, str]]) -> str:
-    feature = _item_with_keys(items, ("fin_shape", "claw_form", "shell_armor", "beak_nose_shape", "speed_level", "fur_density"))
-    raw = _clean_code(feature.get("raw") if feature else "")
+def _size_class(raw: Any) -> str:
+    code = _clean_code(raw)
+    if "intermediate" in code or "/" in code:
+        has_compact = "compact" in code or "small" in code
+        has_medium = "medium" in code
+        has_large = "large" in code or "giant" in code
+        if has_compact and has_medium and not has_large:
+            return "size-intermediate-compact-medium"
+        if has_medium and has_large and not has_compact:
+            return "size-intermediate-medium-large"
+        if has_compact and has_large:
+            return "size-intermediate-wide"
+        return "size-intermediate"
+    return _class_from_raw(code, "size", ("compact", "small", "medium", "large", "giant"), "medium")
+
+
+def _feature_classes(items: list[dict[str, str]]) -> str:
     variants = (
         "crescent_fin", "broad_fin", "pointed_fin", "ribbon_fin", "forked_fin", "rounded_fin",
         "long_claws", "hooked_claws", "short_claws",
-        "thick_armor", "ridged_armor", "smooth_shell", "plated_shell",
+        "thick_armor", "light_armor", "ridged_armor", "smooth_shell", "plated_shell", "spiked_shell",
         "spiral_profile", "rounded_nose", "sharp_beak",
         "fast_speed", "slow_speed", "short_fur", "soft_fur", "dense_fur",
     )
-    for variant in variants:
-        if variant in raw:
-            return "feature-" + variant.replace("_", "-")
-    return "feature-neutral"
+    classes: list[str] = []
+    feature_keys = {"fin_shape", "claw_form", "shell_armor", "beak_nose_shape", "speed_level", "fur_density"}
+    for item in items:
+        if _clean_code(item.get("key")) not in feature_keys:
+            continue
+        raw = _clean_code(item.get("raw"))
+        for variant in variants:
+            class_name = "feature-" + variant.replace("_", "-")
+            if variant in raw and class_name not in classes:
+                classes.append(class_name)
+    return " ".join(classes) if classes else "feature-neutral"
 
 
 def creature_visual(row: dict[str, Any]) -> dict[str, str]:
@@ -567,17 +624,20 @@ def creature_visual(row: dict[str, Any]) -> dict[str, str]:
     wings_item = _item_by_key(items, "has_wings")
     nutrition_item = _item_by_key(items, "nutrition_type")
     color = color_item.get("raw") if color_item else row.get("phenotype_color") or row.get("phenotype_summary")
+    color_visual = _color_visual(color)
     wings_raw = _clean_code((wings_item or {}).get("raw") or row.get("phenotype_has_wings") or row.get("phenotype_summary"))
     wings = "has-wings" if "wing" in wings_raw and "no_wings" not in wings_raw else "no-wings"
-    size_class = _class_from_raw((size_item or {}).get("raw") or row.get("phenotype_size") or row.get("phenotype_summary"), "size", ("compact", "small", "medium", "large", "giant", "intermediate"), "medium")
+    size_class = _size_class((size_item or {}).get("raw") or row.get("phenotype_size") or row.get("phenotype_summary"))
     nutrition_class = _nutrition_class((nutrition_item or {}).get("raw") or row.get("phenotype_nutrition_type") or row.get("phenotype_summary"))
     return {
         "species_class": "species-" + species_code,
-        "tone_class": color_class(color),
+        "tone_class": color_visual["tone_class"],
+        "tone_mode_class": color_visual["tone_mode_class"],
+        "tone_style": color_visual["tone_style"],
         "wings_class": wings,
         "size_class": size_class,
         "nutrition_class": nutrition_class,
-        "feature_class": _feature_class(items),
+        "feature_classes": _feature_classes(items),
     }
 
 

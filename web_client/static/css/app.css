@@ -818,3 +818,175 @@ button,
     grid-template-columns: 1fr;
   }
 }
+
+/* Expressive modular SVG portraits. */
+.creature-portrait {
+  --creature-scale: 1;
+  --creature-tone-secondary: var(--creature-tone);
+  --creature-accent-secondary: var(--creature-accent);
+  min-height: 194px;
+  padding: .35rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255,255,255,.72), transparent 47%),
+    linear-gradient(155deg, rgba(255,255,255,.72), rgba(89,128,101,.14));
+}
+.creature-portrait.large { min-height: 304px; }
+.creature-portrait.mini { min-height: 142px; padding: .15rem; }
+.creature-svg {
+  width: min(96%, 286px);
+  height: auto;
+  max-height: 188px;
+  overflow: visible;
+  filter: none;
+}
+.creature-portrait.large .creature-svg { width: min(96%, 390px); max-height: 274px; }
+.creature-portrait.mini .creature-svg { width: min(98%, 214px); max-height: 136px; }
+.creature-svg > g { display: none; }
+.creature-svg .portrait-backdrop { display: block; }
+.species-cartilaginous-fish .creature-svg .svg-cartilaginous-fish,
+.species-bony-fish .creature-svg .svg-bony-fish,
+.species-crustacean .creature-svg .svg-crustacean,
+.species-mollusk .creature-svg .svg-mollusk,
+.species-turtle .creature-svg .svg-turtle,
+.species-mammal .creature-svg .svg-mammal,
+.species-default .creature-svg .svg-mammal { display: block; }
+.creature-svg .creature-body-layer {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(var(--creature-scale));
+}
+.size-compact { --creature-scale: .84; }
+.size-small { --creature-scale: .9; }
+.size-medium { --creature-scale: 1; }
+.size-large { --creature-scale: 1.08; }
+.size-giant { --creature-scale: 1.12; }
+.size-intermediate { --creature-scale: .98; }
+.size-intermediate-compact-medium { --creature-scale: .94; }
+.size-intermediate-medium-large { --creature-scale: 1.05; }
+.size-intermediate-wide { --creature-scale: 1.01; }
+
+.creature-svg .main-tone { fill: var(--portrait-body-fill) !important; }
+.creature-svg .accent-tone,
+.creature-svg .tail,
+.creature-svg .fin,
+.creature-svg .claw,
+.creature-svg .leg,
+.creature-svg .ear { fill: var(--creature-accent); }
+.creature-svg .neck { fill: var(--creature-accent); }
+.creature-svg .shade { fill: var(--portrait-shade-fill); opacity: .36; stroke: none; }
+.creature-svg .body,
+.creature-svg .tail,
+.creature-svg .fin,
+.creature-svg .claw,
+.creature-svg .leg,
+.creature-svg .head,
+.creature-svg .ear,
+.creature-svg .soft,
+.creature-svg .shell,
+.creature-svg .neck {
+  stroke: rgba(42,59,49,.18);
+  stroke-width: 1.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.creature-svg .gill,
+.creature-svg .feature-mark,
+.creature-svg .lateral-line,
+.creature-svg .scale-detail path,
+.creature-svg .armor-segments path,
+.creature-svg .shell-lines path,
+.creature-svg .shell-spiral,
+.creature-svg .fur-lines path,
+.creature-svg .speed-lines path,
+.creature-svg .antenna,
+.creature-svg .tentacle,
+.creature-svg .muzzle,
+.creature-svg .arm,
+.creature-svg .claw-hook,
+.creature-svg .wing-vein {
+  fill: none;
+  stroke: rgba(255,255,255,.68);
+  stroke-width: 2.15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.creature-svg .scale-detail path { stroke-width: 1.35; opacity: .62; }
+.creature-svg .antenna,
+.creature-svg .tentacle,
+.creature-svg .arm { stroke: var(--creature-accent); opacity: .8; }
+.creature-svg .eye { fill: #24352b; stroke: rgba(255,255,255,.9); stroke-width: 1.4; }
+
+.creature-portrait.has-wings .creature-svg .svg-wings { display: block; }
+.creature-portrait.no-wings .creature-svg .svg-wings { display: none; }
+.creature-svg .svg-wings {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(.92);
+}
+.creature-svg .svg-wings path:not(.wing-vein) {
+  fill: var(--portrait-wing-fill);
+  stroke: rgba(67,118,91,.2);
+  stroke-width: 1.5;
+}
+.species-cartilaginous-fish .creature-svg .svg-wings,
+.species-bony-fish .creature-svg .svg-wings { transform: translateY(-4px) scale(.88); }
+.species-crustacean .creature-svg .svg-wings { transform: translateY(-7px) scale(.82); }
+.species-turtle .creature-svg .svg-wings { transform: translateY(-6px) scale(.86); }
+.species-mollusk .creature-svg .svg-wings { transform: translateY(-10px) scale(.84); }
+.species-mammal .creature-svg .svg-wings { transform: translateY(-8px) scale(.88); }
+
+.creature-svg .nutrition-icons { transform-box: fill-box; transform-origin: center; }
+.nutrition-herbivore .creature-svg .nutrition-icons,
+.nutrition-carnivore .creature-svg .nutrition-icons,
+.nutrition-mixed .creature-svg .nutrition-icons { display: block; }
+.creature-svg .nutrition-disc { fill: rgba(255,253,247,.88); stroke: rgba(42,59,49,.15); stroke-width: 1.2; }
+.creature-svg .leaf-icon { fill: #6fa866; stroke: rgba(35,48,39,.16); stroke-width: 1; }
+.creature-svg .leaf-vein { fill: none; stroke: #477a59; stroke-width: 1.2; }
+.creature-svg .fang-icon { fill: #fff8df; stroke: rgba(35,48,39,.22); stroke-width: 1.15; }
+.nutrition-herbivore .creature-svg .fang-symbol { display: none; }
+.nutrition-carnivore .creature-svg .leaf-symbol { display: none; }
+
+.creature-svg .ribbon-fin-detail,
+.creature-svg .claw-hook,
+.creature-svg .shell-spikes,
+.creature-svg .speed-lines,
+.creature-svg .profile-sharp { display: none; }
+.creature-svg .profile-rounded { fill: none; stroke: rgba(255,255,255,.72); stroke-width: 2.2; }
+.feature-crescent-fin .creature-svg .dorsal { transform-box: fill-box; transform-origin: center; transform: scale(1.08, 1.18); }
+.feature-broad-fin .creature-svg .dorsal { transform-box: fill-box; transform-origin: center; transform: scale(1.22, 1.04); }
+.feature-pointed-fin .creature-svg .dorsal { transform-box: fill-box; transform-origin: bottom; transform: scale(.86, 1.2); }
+.feature-ribbon-fin .creature-svg .ribbon-fin-detail { display: block; fill: var(--creature-accent); opacity: .82; }
+.feature-ribbon-fin .creature-svg .dorsal { opacity: .2; }
+.feature-forked-fin .creature-svg .tail { transform-box: fill-box; transform-origin: right center; transform: scale(1.08, 1.13); }
+.feature-rounded-fin .creature-svg .dorsal { transform-box: fill-box; transform-origin: center; transform: scale(1.08, .82); }
+
+.feature-long-claws .creature-svg .claw-pair { transform-box: fill-box; transform-origin: center; transform: scale(1.06); }
+.feature-hooked-claws .creature-svg .claw-hook { display: block; stroke: rgba(255,255,255,.82); stroke-width: 2.7; }
+.feature-short-claws .creature-svg .claw-pair { transform-box: fill-box; transform-origin: center; transform: scale(.86); }
+.feature-thick-armor .creature-svg .svg-crustacean .body,
+.feature-thick-armor .creature-svg .svg-turtle .body { stroke-width: 3.2; }
+.feature-light-armor .creature-svg .armor-segments { opacity: .46; }
+.feature-ridged-armor .creature-svg .armor-ridges { stroke-dasharray: 4 3; stroke-width: 2.6; }
+.feature-smooth-shell .creature-svg .shell-lines { opacity: .32; }
+.feature-plated-shell .creature-svg .shell-lines { opacity: .94; stroke-width: 2.7; }
+.feature-spiked-shell .creature-svg .shell-spikes { display: block; fill: var(--creature-accent); stroke: rgba(42,59,49,.18); stroke-width: 1.2; }
+
+.feature-sharp-beak .creature-svg .profile-rounded { display: none; }
+.feature-sharp-beak .creature-svg .profile-sharp { display: block; fill: var(--creature-accent); }
+.feature-rounded-nose .creature-svg .profile-rounded { stroke: rgba(255,255,255,.72); stroke-width: 2.2; fill: none; }
+.feature-spiral-profile .creature-svg .shell-spiral { stroke-width: 3.6; }
+.feature-fast-speed .creature-svg .speed-lines { display: block; opacity: .72; }
+.feature-slow-speed .creature-svg .speed-lines { display: none; }
+.feature-short-fur .creature-svg .fur-lines { opacity: .4; }
+.feature-soft-fur .creature-svg .fur-lines { opacity: .72; stroke-dasharray: 2 5; }
+.feature-dense-fur .creature-svg .fur-lines { opacity: 1; stroke-width: 3.1; }
+
+@media (max-width: 760px) {
+  .creature-portrait { min-height: 178px; }
+  .creature-portrait.large { min-height: 244px; }
+  .creature-portrait.large .creature-svg { max-height: 222px; }
+  .creature-portrait.mini { min-height: 132px; }
+}
