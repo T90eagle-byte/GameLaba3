@@ -255,10 +255,11 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("creatures"))
 
+        creature_view = display_service.creature_view(creature)
         return render_template(
             "creature_detail.html",
-            creature=display_service.creature_view(creature),
-            genotype=display_service.genotype_view(genotype),
+            creature=creature_view,
+            genotype=display_service.genotype_view(genotype, creature_view["phenotype_items"]),
             lab_id=lab_id,
         )
 

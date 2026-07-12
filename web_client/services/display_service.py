@@ -305,14 +305,19 @@ def _base_trait_label(value: Any) -> str:
     return TRAIT_LABELS.get(code) or GENE_LABELS.get(code) or SPECIES_LABELS.get(code) or DOMINANCE_LABELS.get(code) or _title_fallback(code)
 
 
-def _size_blend_label(codes: list[str]) -> str | None:
+def _size_blend_label(codes: list[str], detailed: bool = False) -> str | None:
     normalized = tuple(sorted(code.replace("_size", "") for code in codes))
-    labels = {
+    short_labels = {
         ("compact", "medium"): "компактно-средний",
         ("large", "medium"): "средне-крупный",
         ("compact", "large"): "переменный",
     }
-    return labels.get(normalized)
+    detailed_labels = {
+        ("compact", "medium"): "промежуточный между компактным и средним",
+        ("large", "medium"): "промежуточный между средним и крупным",
+        ("compact", "large"): "промежуточный между компактным и крупным",
+    }
+    return (detailed_labels if detailed else short_labels).get(normalized)
 
 
 def _color_blend_label(codes: list[str]) -> str | None:
@@ -357,14 +362,14 @@ def _blend_label(raw: Any, fallback: str) -> str:
     return fallback
 
 
-def _intermediate_label(raw: Any) -> str:
+def _intermediate_label(raw: Any, detailed: bool = False) -> str:
     inner = _text(raw)
     inner = inner[inner.find("(") + 1 : inner.rfind(")")]
     parts = [_clean_code(part) for part in inner.split("/") if part.strip()]
     if not parts:
         return "промежуточный"
     if all(part in {"compact", "medium", "large", "compact_size", "medium_size", "large_size"} for part in parts):
-        return _size_blend_label(parts) or "промежуточный"
+        return _size_blend_label(parts, detailed=detailed) or "промежуточный размер"
     if all("color" in part for part in parts):
         return _color_blend_label(parts) or "двухцветный"
     return "промежуточный признак"
@@ -376,6 +381,14 @@ def allele_label(value: Any) -> str:
         return number_label(float(raw))
     except (TypeError, ValueError):
         return trait_label(value)
+
+
+def trait_detail_label(value: Any) -> str:
+    raw = _text(value)
+    code = _clean_code(raw)
+    if code.startswith("intermediate(") and code.endswith(")"):
+        return _intermediate_label(raw, detailed=True)
+    return humanize_code(value)
 
 
 def humanize_code(value: Any) -> str:
@@ -493,7 +506,7 @@ def parse_phenotype(summary: Any) -> list[dict[str, str]]:
             key, value = "trait", part
         key = key.strip()
         value = value.strip()
-        items.append({"key": key, "label": gene_label(key), "value": trait_label(value), "raw": value, "class": color_class(value) if "color" in key.lower() else "tone-neutral"})
+        items.append({"key": key, "label": gene_label(key), "value": trait_label(value), "detail_value": trait_detail_label(value), "raw": value, "class": color_class(value) if "color" in key.lower() else "tone-neutral"})
     return items
 
 
@@ -503,7 +516,7 @@ def phenotype_items(row: dict[str, Any]) -> list[dict[str, str]]:
     explicit = [("color", row.get("phenotype_color")), ("size", row.get("phenotype_size")), ("has_wings", row.get("phenotype_has_wings")), ("nutrition_type", row.get("phenotype_nutrition_type"))]
     for key, value in explicit:
         if value and key not in seen:
-            items.append({"key": key, "label": gene_label(key), "value": trait_label(value), "raw": _text(value), "class": color_class(value) if key == "color" else "tone-neutral"})
+            items.append({"key": key, "label": gene_label(key), "value": trait_label(value), "detail_value": trait_detail_label(value), "raw": _text(value), "class": color_class(value) if key == "color" else "tone-neutral"})
     return items
 
 
@@ -655,16 +668,44 @@ def creature_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [creature_view(row) for row in rows]
 
 
-def genotype_view(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def genotype_view(
+    rows: list[dict[str, Any]],
+    phenotype: list[dict[str, str]] | None = None,
+) -> list[dict[str, Any]]:
+    phenotype_by_gene = {
+        _clean_code(item.get("key")): item
+        for item in (phenotype or [])
+    }
     formatted = []
     for row in rows:
-        allele1_value = row.get("allele1_trait_value")
-        allele2_value = row.get("allele2_trait_value")
-        allele1 = allele1_value if allele1_value is not None else row.get("allele1_display_name")
-        allele2 = allele2_value if allele2_value is not None else row.get("allele2_display_name")
         gene = row.get("gene_name") or row.get("gene_type") or row.get("gene_display_name")
         dominance = row.get("dominance_type") or row.get("dominance_display_name")
-        formatted.append({**row, "gene_label": gene_label(gene), "gene_code": _text(gene), "dominance_label": dominance_label(dominance), "allele1_label": allele_label(allele1), "allele2_label": allele_label(allele2), "pair_label": f"Аллели: {allele_label(allele1)} / {allele_label(allele2)}"})
+        gene_code = _clean_code(gene)
+        allele1_name = row.get("allele1_display_name") or row.get("allele1_description")
+        allele2_name = row.get("allele2_display_name") or row.get("allele2_description")
+        allele1_semantic = trait_label(allele1_name) if allele1_name else "не указана"
+        allele2_semantic = trait_label(allele2_name) if allele2_name else "не указана"
+        allele1_technical = number_label(row.get("allele1_trait_value"))
+        allele2_technical = number_label(row.get("allele2_trait_value"))
+        result_item = phenotype_by_gene.get(gene_code)
+        result_label = result_item.get("detail_value") if result_item else "не указан"
+        inheritance = dominance_label(dominance)
+        formatted.append({
+            **row,
+            "gene_label": gene_label(gene),
+            "gene_code": gene_code,
+            "allele1_label": allele1_semantic,
+            "allele2_label": allele2_semantic,
+            "allele1_semantic_label": allele1_semantic,
+            "allele2_semantic_label": allele2_semantic,
+            "allele1_technical_label": allele1_technical,
+            "allele2_technical_label": allele2_technical,
+            "dominance_label": inheritance,
+            "inheritance_label": inheritance,
+            "result_label": result_label,
+            "pair_label": f"Аллели: {allele1_semantic} / {allele2_semantic}",
+            "technical_pair_label": f"{allele1_technical} / {allele2_technical}",
+        })
     return formatted
 
 
