@@ -532,10 +532,12 @@ end hash_password_sha256;
 
     procedure start_new_lab(
         p_session_token in varchar2,
+        p_lab_name      in varchar2,
         p_lab_id        out number
     ) is
         v_session_id           number;
         v_user_id              number;
+        v_lab_name             varchar2(32767);
         v_wallet               number;
         v_rating               number;
         v_creature_count       number;
@@ -556,10 +558,18 @@ end hash_password_sha256;
         );
 
         p_lab_id := labs_seq.nextval;
+        v_lab_name := trim(p_lab_name);
+
+        if v_lab_name is null then
+            v_lab_name := 'Био-мастерская #' || to_char(p_lab_id);
+        elsif length(v_lab_name) > 60 then
+            raise_application_error(-20078, 'Lab name is too long.');
+        end if;
 
         insert into labs (
             lab_id,
             user_id,
+            lab_name,
             session_id,
             wallet,
             rating,
@@ -570,6 +580,7 @@ end hash_password_sha256;
         ) values (
             p_lab_id,
             v_user_id,
+            v_lab_name,
             v_session_id,
             1000,
             0,
@@ -597,6 +608,18 @@ end hash_password_sha256;
             p_active_task_count    => v_active_task_count,
             p_completed_task_count => v_completed_task_count,
             p_experiment_count     => v_experiment_count
+        );
+    end start_new_lab;
+
+    procedure start_new_lab(
+        p_session_token in varchar2,
+        p_lab_id        out number
+    ) is
+    begin
+        start_new_lab(
+            p_session_token => p_session_token,
+            p_lab_name      => null,
+            p_lab_id        => p_lab_id
         );
     end start_new_lab;
 
@@ -680,6 +703,7 @@ end hash_password_sha256;
             select
                 l.lab_id,
                 l.user_id,
+                l.lab_name,
                 l.session_id,
                 l.wallet,
                 l.rating,
@@ -790,6 +814,37 @@ end hash_password_sha256;
             g_current_lab_id := null;
         end if;
     end delete_lab;
+
+    procedure rename_lab(
+        p_session_token in varchar2,
+        p_lab_id        in number,
+        p_lab_name      in varchar2
+    ) is
+        v_lab_name varchar2(32767);
+    begin
+        load_lab(
+            p_session_token => p_session_token,
+            p_lab_id        => p_lab_id
+        );
+
+        v_lab_name := trim(p_lab_name);
+        if v_lab_name is null then
+            raise_application_error(-20077, 'Lab name cannot be empty.');
+        end if;
+        if length(v_lab_name) > 60 then
+            raise_application_error(-20078, 'Lab name is too long.');
+        end if;
+
+        update labs l
+           set l.lab_name = v_lab_name,
+               l.updated_at = systimestamp
+         where l.lab_id = p_lab_id
+           and l.user_id = g_current_user_id;
+
+        if sql%rowcount = 0 then
+            raise_application_error(-20025, 'Lab not found or access denied.');
+        end if;
+    end rename_lab;
 
     procedure exit_lab(
         p_lab_id in number

@@ -453,6 +453,18 @@ begin
             end if;
     end;
 
+    begin
+        pkg_genetics_game.rename_lab(v_session2, v_lab1_id, 'Чужая лаборатория');
+        expect_error('user2 rename_lab user1 lab blocked', -20023);
+    exception
+        when others then
+            if sqlcode = -20023 then
+                pass_test('user2 rename_lab user1 lab blocked');
+            else
+                fail_test('user2 rename_lab user1 lab blocked', sqlcode || ' / ' || sqlerrm);
+            end if;
+    end;
+
     dbms_output.put_line('----------------------------------------------------');
     dbms_output.put_line('Passed: ' || v_passed);
     dbms_output.put_line('Failed: ' || v_failed);

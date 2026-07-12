@@ -11,22 +11,12 @@
     <a class="button secondary" href="{{ url_for('dashboard') }}">Перейти в обзор</a>
   {% endif %}
 </section>
-<section class="panel session-recovery-panel">
-  <div>
-    <p class="eyebrow">Восстановление доступа</p>
-    <h2>Старые сессии</h2>
-    <p class="muted">Если браузер был закрыт без выхода, завершите прежние сессии своего аккаунта. Текущая сессия останется активной, а удерживаемые лаборатории освободятся.</p>
-  </div>
-  <form method="post">
-    <input type="hidden" name="action" value="reset_sessions">
-    <button class="secondary" type="submit">Завершить старые сессии</button>
-  </form>
-</section>
 {% if current_lab_id %}
   <section class="panel active-lab-panel">
     <div>
       <p class="eyebrow">Активная сессия</p>
-      <h2>Сейчас открыта лаборатория #{{ current_lab_id }}</h2>
+      <h2>Сейчас открыта {{ current_lab.lab_name if current_lab else 'лаборатория' }}</h2>
+      <p class="muted">Лаборатория #{{ current_lab_id }}</p>
       <p class="muted">Перед открытием или удалением другой лаборатории закройте активную лабораторию. Это обычное безопасное действие: оно закрывает текущую лабораторию и освобождает выбор другой.</p>
     </div>
     <div class="button-row active-lab-actions">
@@ -44,6 +34,10 @@
     <p>Новая лаборатория получает стартовую популяцию существ и первые заказы клиентов.</p>
     <form method="post" class="form">
       <input type="hidden" name="action" value="create">
+      <label>Название лаборатории
+        <input name="lab_name" maxlength="60" placeholder="Например, Морская мастерская">
+      </label>
+      <p class="field-hint">Можно оставить пустым — название будет создано автоматически.</p>
       <button type="submit">Создать лабораторию</button>
     </form>
   </article>
@@ -57,8 +51,8 @@
         {% for lab in labs %}
           <div class="lab-row {% if current_lab_id and lab.lab_id|string == current_lab_id|string %}is-active{% endif %}">
             <div class="lab-info">
-              <strong>Лаборатория #{{ lab.lab_id }}</strong>
-              <span>{{ lab.lab_name or 'Био-мастерская' }}</span>
+              <strong>{{ lab.lab_name }}</strong>
+              <span>Лаборатория #{{ lab.lab_id }}</span>
               {% if current_lab_id and lab.lab_id|string == current_lab_id|string %}<span class="active-note">Открыта сейчас</span>{% endif %}
             </div>
             <div class="lab-actions">
@@ -72,6 +66,16 @@
                 <input type="hidden" name="lab_id" value="{{ lab.lab_id }}">
                 <button class="danger" type="submit">Удалить</button>
               </form>
+              <details class="lab-rename">
+                <summary>Переименовать</summary>
+                <form method="post" class="compact-form">
+                  <input type="hidden" name="action" value="rename">
+                  <input type="hidden" name="lab_id" value="{{ lab.lab_id }}">
+                  <label class="sr-only" for="lab-name-{{ lab.lab_id }}">Новое название</label>
+                  <input id="lab-name-{{ lab.lab_id }}" name="lab_name" value="{{ lab.lab_name }}" maxlength="60" required>
+                  <button type="submit">Сохранить</button>
+                </form>
+              </details>
             </div>
           </div>
         {% endfor %}

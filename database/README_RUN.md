@@ -99,6 +99,16 @@ The migration makes `labs.session_id` nullable and releases bindings left by
 older application sessions. A clean schema created from the current DDL does
 not need this migration.
 
+For an existing schema created before laboratory names were introduced, keep
+the application stopped and run the next migration separately:
+
+```sql
+@database/migrations/02_add_lab_names.sql
+```
+
+It fills existing rows with `Био-мастерская #<lab_id>` and then makes
+`labs.lab_name` mandatory. Do not rerun an already applied migration.
+
 ## 2) Run core seed data
 
 ```sql

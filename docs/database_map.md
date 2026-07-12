@@ -86,6 +86,7 @@ Each reference table includes `display_name`.
 
 - `lab_id` - primary key.
 - `user_id -> users(user_id)`.
+- `lab_name` - trimmed player-facing name, up to 60 characters; required after migration `02_add_lab_names.sql`.
 - nullable `session_id -> sessions(session_id)`; it identifies only the active session currently holding the lab.
 - `(session_id, user_id) -> sessions(session_id, user_id)`.
 - `wallet`, `rating`.
@@ -94,6 +95,8 @@ Each reference table includes `display_name`.
 `labs.wallet` and `labs.rating` remain the current aggregate state. Detailed explanations for changes are stored in `rating_events`.
 
 `labs.session_id` is an active lock, not permanent ownership. `exit_lab` and `logout_user` release it, while `reset_other_user_sessions` closes only the caller's other active sessions and releases their labs. Ownership remains defined by `labs.user_id`.
+
+`start_new_lab` keeps its original signature and also has a named overload. `rename_lab` validates the active session and ownership; `list_user_labs` is the source of current names for both the laboratory list and dashboard.
 
 ## 6. Genetics
 

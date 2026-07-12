@@ -146,6 +146,7 @@ comment on table ref_rating_event_types is 'Rating/economy event type domain ref
 create table labs (
     lab_id                number not null,
     user_id               number not null,
+    lab_name              varchar2(60 char) not null,
     session_id            number null,
     wallet                number(12, 2) default 1000 not null,
     rating                number(12, 2) default 0 not null,
@@ -168,6 +169,7 @@ create table labs (
 
 comment on table labs is 'Player laboratory state and aggregated counters.';
 comment on column labs.lab_id is 'Primary key.';
+comment on column labs.lab_name is 'Player-facing laboratory name (trimmed, up to 60 characters).';
 comment on column labs.session_id is 'Current active session holding the lab; NULL when the lab is released.';
 
 create table genes (

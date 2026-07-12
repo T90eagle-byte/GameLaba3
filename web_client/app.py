@@ -16,7 +16,7 @@ from flask import (
 
 from config import load_config
 from services import auth_service, creature_service, crossbreed_service, display_service, history_service, lab_service, mutation_service, rating_service, task_service
-from services.oracle import ServiceError, check_connection
+from services.oracle import LAB_SESSION_CONFLICT_MESSAGE, ServiceError, check_connection
 
 
 ViewFunc = TypeVar("ViewFunc", bound=Callable[..., Any])
@@ -127,6 +127,17 @@ def create_app() -> Flask:
     def labs() -> Any:
         token = str(session["session_token"])
 
+        def run_with_session_recovery(action: Callable[[], None]) -> bool:
+            try:
+                action()
+                return False
+            except ServiceError as exc:
+                if str(exc) != LAB_SESSION_CONFLICT_MESSAGE:
+                    raise
+                lab_service.reset_other_user_sessions(token)
+                action()
+                return True
+
         def close_current_lab() -> int | None:
             current_lab_id = selected_lab_id()
             if not current_lab_id:
@@ -139,7 +150,8 @@ def create_app() -> Flask:
             action = request.form.get("action")
             try:
                 if action == "create":
-                    lab_id = lab_service.start_new_lab(token)
+                    lab_name = request.form.get("lab_name", "").strip()
+                    lab_id = lab_service.start_new_lab(token, lab_name or None)
                     session["current_lab_id"] = lab_id
                     flash(f"Лаборатория #{lab_id} создана.", "success")
                     return redirect(url_for("dashboard"))
@@ -152,9 +164,14 @@ def create_app() -> Flask:
                         return redirect(url_for("dashboard"))
                     if current_lab_id:
                         close_current_lab()
-                    lab_service.load_lab(token, lab_id)
+                    recovered = run_with_session_recovery(
+                        lambda: lab_service.load_lab(token, lab_id)
+                    )
                     session["current_lab_id"] = lab_id
-                    flash(f"Лаборатория #{lab_id} открыта.", "success")
+                    if recovered:
+                        flash("Старая сессия завершена. Лаборатория открыта.", "success")
+                    else:
+                        flash(f"Лаборатория #{lab_id} открыта.", "success")
                     return redirect(url_for("dashboard"))
 
                 if action == "close_active":
@@ -167,31 +184,35 @@ def create_app() -> Flask:
                     flash(f"Лаборатория #{lab_id} закрыта. Теперь можно открыть или удалить другую лабораторию.", "success")
                     return redirect(url_for("labs"))
 
-                if action == "reset_sessions":
-                    lab_service.reset_other_user_sessions(token)
-                    flash("Старые сессии завершены. Удерживаемые ими лаборатории снова доступны.", "success")
-                    return redirect(url_for("labs"))
-
                 if action == "delete":
                     lab_id = int(request.form.get("lab_id", "0"))
                     if lab_id <= 0:
                         raise ValueError
                     if selected_lab_id():
                         close_current_lab()
-                    lab_service.delete_lab(token, lab_id)
-                    flash(f"Лаборатория #{lab_id} удалена.", "success")
+                    recovered = run_with_session_recovery(
+                        lambda: lab_service.delete_lab(token, lab_id)
+                    )
+                    if recovered:
+                        flash("Старая сессия завершена. Лаборатория удалена.", "success")
+                    else:
+                        flash(f"Лаборатория #{lab_id} удалена.", "success")
+                    return redirect(url_for("labs"))
+
+                if action == "rename":
+                    lab_id = int(request.form.get("lab_id", "0"))
+                    lab_name = request.form.get("lab_name", "")
+                    if lab_id <= 0:
+                        raise ValueError
+                    lab_service.rename_lab(token, lab_id, lab_name)
+                    flash("Название лаборатории обновлено.", "success")
                     return redirect(url_for("labs"))
 
                 flash("Неизвестное действие.", "error")
             except (TypeError, ValueError):
                 flash("Некорректный идентификатор лаборатории.", "error")
             except ServiceError as exc:
-                message = str(exc)
-                foreign_session_message = "Эта лаборатория числится открытой в другой сессии. Выйдите из аккаунта и войдите снова. Если проблема останется, попросите администратора сбросить старую сессию."
-                if message == foreign_session_message:
-                    flash(foreign_session_message, "warning")
-                else:
-                    flash(message, "error")
+                flash(str(exc), "error")
 
         try:
             labs_rows = lab_service.list_user_labs(token)
@@ -199,7 +220,16 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             labs_rows = []
 
-        return render_template("labs.html", labs=labs_rows)
+        current_lab_id = selected_lab_id()
+        current_lab = next(
+            (
+                lab
+                for lab in labs_rows
+                if current_lab_id and int(lab["lab_id"]) == current_lab_id
+            ),
+            None,
+        )
+        return render_template("labs.html", labs=labs_rows, current_lab=current_lab)
 
     @app.route("/dashboard")
     @login_required
@@ -212,12 +242,18 @@ def create_app() -> Flask:
 
         try:
             stats = lab_service.get_lab_stats(token, lab_id)
+            lab = lab_service.find_user_lab(token, lab_id)
         except ServiceError as exc:
             session.pop("current_lab_id", None)
             flash(str(exc), "error")
             return redirect(url_for("labs"))
 
-        return render_template("dashboard.html", stats=display_service.stats_view(stats), lab_id=lab_id)
+        return render_template(
+            "dashboard.html",
+            stats=display_service.stats_view(stats),
+            lab=lab,
+            lab_id=lab_id,
+        )
 
     @app.route("/creatures")
     @login_required

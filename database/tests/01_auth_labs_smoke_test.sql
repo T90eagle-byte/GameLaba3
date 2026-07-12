@@ -5,6 +5,8 @@ declare
     v_user_id                 number;
     v_dup_user_id             number;
     v_lab_id                  number;
+    v_named_lab_id            number;
+    v_lab_name                varchar2(60);
     v_login                   varchar2(20);
     v_username                varchar2(255);
     v_password                varchar2(100) := 'smokepass123';
@@ -23,6 +25,7 @@ declare
     v_labs_cursor             sys_refcursor;
     v_fetch_lab_id            number;
     v_fetch_user_id           number;
+    v_fetch_lab_name          varchar2(60);
     v_fetch_session_id        number;
     v_fetch_wallet            number;
     v_fetch_rating            number;
@@ -135,6 +138,12 @@ begin
             p_lab_id        => v_lab_id
         );
         assert_true(v_lab_id is not null and v_lab_id > 0, 'start_new_lab creates lab, generates 30 creatures, and assigns 3 ACTIVE tasks', 'lab_id is null or <= 0');
+        select l.lab_name into v_lab_name from labs l where l.lab_id = v_lab_id;
+        assert_true(
+            v_lab_name = 'Био-мастерская #' || to_char(v_lab_id),
+            'legacy start_new_lab assigns default name',
+            'actual=' || v_lab_name
+        );
     exception
         when others then
             fail_test('start_new_lab creates lab, generates 30 creatures, and assigns 3 ACTIVE tasks', sqlerrm);
@@ -149,6 +158,7 @@ begin
             fetch v_labs_cursor into
                 v_fetch_lab_id,
                 v_fetch_user_id,
+                v_fetch_lab_name,
                 v_fetch_session_id,
                 v_fetch_wallet,
                 v_fetch_rating,
@@ -227,6 +237,52 @@ begin
     end;
 
     begin
+        pkg_genetics_game.start_new_lab(
+            p_session_token => v_session_token,
+            p_lab_name      => '  Северная био-мастерская  ',
+            p_lab_id        => v_named_lab_id
+        );
+        select l.lab_name into v_lab_name from labs l where l.lab_id = v_named_lab_id;
+        assert_true(v_lab_name = 'Северная био-мастерская', 'named start_new_lab trims name', 'actual=' || v_lab_name);
+    exception
+        when others then
+            fail_test('named start_new_lab', sqlerrm);
+    end;
+
+    begin
+        pkg_genetics_game.rename_lab(v_session_token, v_lab_id, '  Основная лаборатория  ');
+        select l.lab_name into v_lab_name from labs l where l.lab_id = v_lab_id;
+        assert_true(v_lab_name = 'Основная лаборатория', 'rename_lab trims name', 'actual=' || v_lab_name);
+    exception
+        when others then
+            fail_test('rename_lab trims name', sqlerrm);
+    end;
+
+    begin
+        pkg_genetics_game.rename_lab(v_session_token, v_lab_id, '   ');
+        fail_test('rename_lab rejects empty name', 'empty name was accepted');
+    exception
+        when others then
+            if sqlcode = -20077 then
+                pass_test('rename_lab rejects empty name');
+            else
+                fail_test('rename_lab rejects empty name', sqlcode || ' / ' || sqlerrm);
+            end if;
+    end;
+
+    begin
+        pkg_genetics_game.rename_lab(v_session_token, v_lab_id, rpad('x', 61, 'x'));
+        fail_test('rename_lab rejects long name', 'long name was accepted');
+    exception
+        when others then
+            if sqlcode = -20078 then
+                pass_test('rename_lab rejects long name');
+            else
+                fail_test('rename_lab rejects long name', sqlcode || ' / ' || sqlerrm);
+            end if;
+    end;
+
+    begin
         pkg_genetics_game.logout_user(
             p_session_token => v_session_token
         );
@@ -259,6 +315,17 @@ begin
     end;
 
     begin
+        pkg_genetics_game.delete_lab(
+            p_session_token => v_session_token_2,
+            p_lab_id        => v_named_lab_id
+        );
+        pass_test('delete named lab');
+    exception
+        when others then
+            fail_test('delete named lab', sqlerrm);
+    end;
+
+    begin
         v_labs_count := 0;
         v_labs_cursor := pkg_genetics_game.list_user_labs(p_user_id => v_user_id);
 
@@ -266,6 +333,7 @@ begin
             fetch v_labs_cursor into
                 v_fetch_lab_id,
                 v_fetch_user_id,
+                v_fetch_lab_name,
                 v_fetch_session_id,
                 v_fetch_wallet,
                 v_fetch_rating,

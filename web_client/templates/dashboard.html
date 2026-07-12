@@ -4,7 +4,7 @@
 <section class="hero-panel dashboard-hero">
   <div>
     <p class="eyebrow">Лаборатория #{{ lab_id }}</p>
-    <h1>Обзор лаборатории</h1>
+    <h1>{{ lab.lab_name if lab else 'Обзор лаборатории' }}</h1>
     <p class="lead">Центральная страница показа: состояние лаборатории, быстрые переходы и полный игровой цикл.</p>
   </div>
   <a class="button secondary" href="{{ url_for('labs') }}">Сменить лабораторию</a>

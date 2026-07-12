@@ -44,6 +44,12 @@ create or replace package pkg_genetics_game as
         p_lab_id        out number
     );
 
+    procedure start_new_lab(
+        p_session_token in varchar2,
+        p_lab_name      in varchar2,
+        p_lab_id        out number
+    );
+
     procedure load_lab(
         p_session_token in varchar2,
         p_lab_id        in number
@@ -71,6 +77,12 @@ create or replace package pkg_genetics_game as
     procedure delete_lab(
         p_session_token in varchar2,
         p_lab_id        in number
+    );
+
+    procedure rename_lab(
+        p_session_token in varchar2,
+        p_lab_id        in number,
+        p_lab_name      in varchar2
     );
 
     procedure exit_lab(

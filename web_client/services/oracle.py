@@ -15,6 +15,9 @@ class ServiceError(RuntimeError):
     """User-facing service error safe to show in templates."""
 
 
+LAB_SESSION_CONFLICT_MESSAGE = "Эта лаборатория открыта в другой активной сессии."
+
+
 def make_dsn(settings: OracleSettings) -> str:
     dsn_kwargs: dict[str, object] = {"host": settings.host, "port": settings.port}
     if settings.service_name:
@@ -116,8 +119,10 @@ def map_oracle_error(exc: Exception) -> str:
             -20066: "Контекст сессии не инициализирован. Выполните вход.",
             -20067: "Сессия истекла. Выполните вход заново.",
             -20068: "Нет доступа к выбранной лаборатории.",
-            -20072: "Эта лаборатория числится открытой в другой сессии. Выйдите из аккаунта и войдите снова. Если проблема останется, попросите администратора сбросить старую сессию.",
+            -20072: LAB_SESSION_CONFLICT_MESSAGE,
             -20073: "Выбранная лаборатория не активна в текущей сессии.",
+            -20077: "Название лаборатории не может быть пустым.",
+            -20078: "Название лаборатории должно содержать не более 60 символов.",
         }
         for lookup_code in (normalized_code, code):
             if lookup_code in custom:

@@ -312,6 +312,11 @@ button.danger:hover,
 .lab-actions { display: grid; grid-template-columns: repeat(2, minmax(104px, 1fr)); gap: .55rem; align-items: stretch; }
 .lab-actions form,
 .card-action-form { display: grid; }
+.lab-rename { grid-column: 1 / -1; color: var(--muted); }
+.lab-rename summary { cursor: pointer; font-weight: 700; text-align: center; }
+.lab-rename .compact-form { grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; margin-top: .55rem; }
+.lab-rename input { min-width: 0; width: 100%; }
+.field-hint { margin: -.35rem 0 .2rem; color: var(--muted); font-size: .86rem; }
 .inline-action-form select { min-width: 180px; }
 .section-title { flex-wrap: wrap; align-items: center; }
 .mutation-card,

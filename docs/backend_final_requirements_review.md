@@ -45,7 +45,7 @@ Backend в текущем состоянии в целом соответств�
 | Задания | Marker-based completion | `tasks`, `lab_tasks`, `task_markers`, `check_task`, `complete_task`, test `06` | OK | Происхождение существа не проверяется; формулировки должны оставаться честными: найти/предъявить. |
 | История экспериментов | История CROSS/MUTATION/MUTAGEN | `experiments`, `get_experiment_history`, `show_mutation_history`, test `05` | OK | История событий рейтинга вынесена отдельно в `rating_events`. |
 | Многопользовательский режим | Пользователи, сессии, session context, запрет чужого доступа | `users`, `sessions`, `labs`, `assert_lab_access`, test `08` | OK | Одна лаборатория не должна быть открыта в другой active session. |
-| Лаборатории | Лаборатория содержит существ, задания, мутации, агрегаты | `labs`, `start_new_lab`, `load_lab`, `delete_lab` | OK | `labs.session_id` остается NOT NULL; `exit_lab` очищает package context. |
+| Лаборатории | Лаборатория содержит существ, задания, мутации, агрегаты | `labs`, `start_new_lab`, `load_lab`, `delete_lab` | OK | `labs.session_id` является nullable-блокировкой активной сессии; у лаборатории есть пользовательское имя. |
 | Сессии | Session token и ACTIVE/CLOSED status | `sessions`, `login_user`, `logout_user` | OK | `sessions.status` оставлен technical CHECK, не `ref_*`. |
 | Защита доступа к чужим лабораториям | Package access checks и negative tests | `assert_lab_access`, tests `06`, `07`, `08`, `10` | OK | Для чужой истории рейтинга корректен отказ `ORA-20023`. |
 | Стартовая генерация существ | Генерация 30 существ и 3 ACTIVE tasks | `generate_starting_creatures`, `start_new_lab`, tests `01`, `03`, `09` | OK | Покрыто несколькими smoke-tests. |
@@ -65,7 +65,7 @@ Backend в текущем состоянии в целом соответств�
 | `load_lab` | Да | Да | `01`, `08` | OK, адаптировано | Принимает `p_session_token`; это session-token модель проекта. |
 | `start_new_lab` | Да | Да | `01`, `03`, `09` | OK, адаптировано | В проекте принимает `p_session_token`, в PDF указан более короткий вариант. |
 | `list_user_labs` | Да | Да | `01` | OK | Возвращает `SYS_REFCURSOR`. |
-| `exit_lab` | Да | Да | `09` | OK | Очищает текущий lab context, не зануляет `labs.session_id`. |
+| `exit_lab` | Да | Да | `08`, `09` | OK | Очищает текущий lab context и освобождает `labs.session_id`. |
 | `switch_lab` | Да | Да | `01`, `08` | OK | Session-token aware. |
 | `show_lab_stats` | Да | Да | `09` | OK | Demo wrapper через `dbms_output`. |
 | `get_lab_stats` | Да | Да | `01`, `03`, `04`, `06` | OK | Возвращает aggregate values через OUT parameters. |

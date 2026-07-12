@@ -53,11 +53,14 @@ def list_user_labs(session_token: str) -> list[dict[str, Any]]:
     return run_db(action)
 
 
-def start_new_lab(session_token: str) -> int:
+def start_new_lab(session_token: str, lab_name: str | None = None) -> int:
     def action(connection: oracledb.Connection) -> int:
         with connection.cursor() as cursor:
             out_lab_id = cursor.var(oracledb.DB_TYPE_NUMBER)
-            cursor.callproc("pkg_genetics_game.start_new_lab", [session_token, out_lab_id])
+            cursor.callproc(
+                "pkg_genetics_game.start_new_lab",
+                [session_token, lab_name, out_lab_id],
+            )
             return int(out_lab_id.getvalue())
 
     return run_db(action)
@@ -85,6 +88,24 @@ def delete_lab(session_token: str, lab_id: int) -> None:
             cursor.callproc("pkg_genetics_game.delete_lab", [session_token, lab_id])
 
     run_db(action)
+
+
+def rename_lab(session_token: str, lab_id: int, lab_name: str) -> None:
+    def action(connection: oracledb.Connection) -> None:
+        with connection.cursor() as cursor:
+            cursor.callproc(
+                "pkg_genetics_game.rename_lab",
+                [session_token, lab_id, lab_name],
+            )
+
+    run_db(action)
+
+
+def find_user_lab(session_token: str, lab_id: int) -> dict[str, Any] | None:
+    return next(
+        (lab for lab in list_user_labs(session_token) if int(lab["lab_id"]) == lab_id),
+        None,
+    )
 
 
 def exit_lab(session_token: str, lab_id: int) -> None:
