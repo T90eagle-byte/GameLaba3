@@ -1,0 +1,67 @@
+name: biosborka-game
+
+services:
+  db:
+    image: container-registry.oracle.com/database/free:latest-lite
+    environment:
+      ORACLE_PWD: ${ORACLE_SYS_PASSWORD:?Create .env from .env.example and set ORACLE_SYS_PASSWORD}
+      ORACLE_CHARACTERSET: AL32UTF8
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD-SHELL", "\"$${ORACLE_BASE}/$${CHECK_DB_FILE}\" >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 30s
+      retries: 40
+      start_period: 90s
+    restart: unless-stopped
+
+  db-init:
+    image: container-registry.oracle.com/database/free:latest-lite
+    entrypoint: ["/bin/bash", "/workspace/docker/db-init.sh"]
+    environment:
+      ORACLE_HOST: db
+      ORACLE_PORT: 1521
+      ORACLE_SERVICE: FREEPDB1
+      ORACLE_SYS_PASSWORD: ${ORACLE_SYS_PASSWORD:?Create .env from .env.example and set ORACLE_SYS_PASSWORD}
+      ORACLE_USER: ${ORACLE_USER:-biosborka}
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD:?Create .env from .env.example and set ORACLE_PASSWORD}
+    volumes:
+      - ./database:/workspace/database:ro
+      - ./docker:/workspace/docker:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      dockerfile: web_client/Dockerfile
+    environment:
+      ORACLE_HOST: db
+      ORACLE_PORT: 1521
+      ORACLE_SERVICE: FREEPDB1
+      ORACLE_USER: ${ORACLE_USER:-biosborka}
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD:?Create .env from .env.example and set ORACLE_PASSWORD}
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:?Create .env from .env.example and set FLASK_SECRET_KEY}
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: 8000
+      FLASK_DEBUG: "0"
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    depends_on:
+      db:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  oracle-data:

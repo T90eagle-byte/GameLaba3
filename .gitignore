@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .venv/
 .env
+!.env.example
 .vscode/settings.json
 .idea/
 *.log
@@ -10,3 +11,7 @@ __pycache__/
 fix_*.py
 patch_*.py
 tmp_*.txt
+docker-data/
+volumes/
+*.dmp
+*.dump

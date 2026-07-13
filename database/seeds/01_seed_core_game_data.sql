@@ -1,4 +1,4 @@
-﻿set define off;
+set define off;
 
 declare
     -- Species type mapping used in seed:

@@ -1,3 +1,4 @@
 Flask
 oracledb
 python-dotenv
+gunicorn>=22,<24
