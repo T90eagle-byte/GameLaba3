@@ -64,24 +64,26 @@
 
     <g class="creature-body-layer svg-crustacean" filter="url(#portraitShadow-{{ uid }})">
       <g class="legs">
-        <path class="leg l1" d="M91 99 L61 124 L44 126"/><path class="leg l2" d="M107 105 L88 136 L72 139"/><path class="leg l3" d="M121 107 L114 141 L99 145"/>
-        <path class="leg r1" d="M169 99 L199 124 L216 126"/><path class="leg r2" d="M153 105 L172 136 L188 139"/><path class="leg r3" d="M139 107 L146 141 L161 145"/>
+        <path class="leg l1" d="M105 100 L78 124 L59 126"/><path class="leg l2" d="M125 106 L109 137 L91 140"/><path class="leg l3" d="M145 107 L143 141 L128 145"/>
+        <path class="leg r1" d="M161 104 L178 134 L196 137"/><path class="leg r2" d="M177 96 L204 119 L220 120"/>
       </g>
-      <path class="arm left" d="M91 66 C73 55 60 48 48 45"/><path class="arm right" d="M169 66 C187 55 200 48 212 45"/>
+      <path class="arm upper" d="M177 67 C196 55 210 48 222 43"/><path class="arm lower" d="M179 92 C200 99 213 108 225 117"/>
       <g class="claw-pair">
-        <path class="claw left" d="M50 48 C31 25 12 36 22 57 C7 61 10 84 30 84 C47 83 57 66 62 52 C58 52 54 50 50 48 Z"/>
-        <path class="claw right" d="M210 48 C229 25 248 36 238 57 C253 61 250 84 230 84 C213 83 203 66 198 52 C202 52 206 50 210 48 Z"/>
-        <path class="claw-hook left" d="M25 54 Q39 48 49 60"/><path class="claw-hook right" d="M235 54 Q221 48 211 60"/>
+        <path class="claw upper" d="M220 45 C225 22 248 17 258 34 C266 48 255 62 239 61 C224 61 215 54 210 48 C214 48 217 47 220 45 Z"/>
+        <path class="claw lower" d="M223 115 C231 96 253 96 261 111 C269 126 255 139 239 135 C225 132 217 124 212 118 C216 118 220 117 223 115 Z"/>
+        <path class="claw-hook upper" d="M237 35 Q249 41 242 53"/><path class="claw-hook lower" d="M240 108 Q253 114 244 127"/>
       </g>
-      <ellipse class="body main-tone" cx="130" cy="84" rx="61" ry="40"/>
-      <path class="shade" d="M79 78 C101 55 159 51 183 78 C161 91 101 94 79 78 Z"/>
-      <path class="head accent-tone" d="M101 55 C108 34 152 34 159 55 C147 65 113 65 101 55 Z"/>
+      <path class="abdomen main-tone" d="M62 83 C70 58 102 48 139 55 L151 83 L139 112 C101 119 70 108 62 83 Z"/>
+      <path class="body cephalothorax main-tone" d="M126 83 C127 52 149 37 178 43 C203 48 214 63 210 84 C207 106 187 119 158 116 C139 113 127 101 126 83 Z"/>
+      <path class="shade" d="M80 72 C111 54 169 48 199 70 C177 82 118 91 76 88 Z"/>
       <g class="armor-segments">
-        <path d="M91 65 C105 78 155 78 169 65 M78 83 H182 M89 103 C107 92 153 92 171 103"/>
-        <path class="armor-ridges" d="M103 50 L97 112 M119 45 L116 121 M137 45 L140 121 M153 50 L161 112"/>
+        <path d="M77 65 C85 78 85 94 77 105 M96 56 C105 72 105 96 96 112 M116 54 C125 71 125 96 116 114 M137 55 C146 71 146 98 137 112"/>
+        <path class="armor-ridges" d="M143 55 C158 65 183 65 199 56 M135 78 C156 88 189 88 208 76 M138 101 C158 94 187 96 202 106"/>
       </g>
-      <path class="antenna" d="M113 42 C98 22 80 17 66 22 M147 42 C162 22 180 17 194 22"/>
-      <circle class="eye" cx="115" cy="44" r="4"/><circle class="eye" cx="145" cy="44" r="4"/>
+      <path class="eye-stalk" d="M185 49 L200 35 M196 56 L216 47"/>
+      <circle class="eye" cx="201" cy="34" r="4.5"/><circle class="eye" cx="217" cy="46" r="4.5"/>
+      <path class="antenna" d="M202 58 C225 38 244 28 264 29 M207 66 C232 57 250 55 268 61"/>
+      <path class="mouth" d="M205 78 Q214 84 205 91"/>
     </g>
 
     <g class="creature-body-layer svg-mollusk" filter="url(#portraitShadow-{{ uid }})">
@@ -97,12 +99,13 @@
     </g>
 
     <g class="creature-body-layer svg-turtle" filter="url(#portraitShadow-{{ uid }})">
-      <path class="tail accent-tone" d="M47 84 L22 73 L29 94 Z"/>
-      <ellipse class="leg front-top" cx="166" cy="48" rx="22" ry="12" transform="rotate(-24 166 48)"/>
-      <ellipse class="leg front-bottom" cx="166" cy="116" rx="22" ry="12" transform="rotate(24 166 116)"/>
-      <ellipse class="leg rear-top" cx="69" cy="50" rx="20" ry="11" transform="rotate(25 69 50)"/>
-      <ellipse class="leg rear-bottom" cx="69" cy="114" rx="20" ry="11" transform="rotate(-25 69 114)"/>
-      <ellipse class="head accent-tone" cx="218" cy="82" rx="25" ry="20"/>
+      <path class="tail accent-tone" d="M48 84 L18 72 L29 96 Z"/>
+      <ellipse class="leg front-top" cx="173" cy="48" rx="25" ry="11" transform="rotate(-29 173 48)"/>
+      <ellipse class="leg front-bottom" cx="174" cy="117" rx="25" ry="11" transform="rotate(28 174 117)"/>
+      <ellipse class="leg rear-top" cx="70" cy="52" rx="18" ry="13" transform="rotate(22 70 52)"/>
+      <ellipse class="leg rear-bottom" cx="69" cy="113" rx="18" ry="13" transform="rotate(-22 69 113)"/>
+      <path class="neck accent-tone" d="M181 68 C196 58 215 59 229 70 L229 96 C211 103 195 99 180 92 Z"/>
+      <ellipse class="head accent-tone" cx="231" cy="82" rx="30" ry="24"/>
       <path class="body main-tone" d="M45 82 C52 37 91 19 139 29 C179 37 198 57 196 83 C192 116 159 136 115 136 C72 135 48 113 45 82 Z"/>
       <path class="shade" d="M65 68 C93 39 153 36 181 65 C148 75 104 88 62 99 Z"/>
       <g class="shell-lines">
@@ -113,7 +116,8 @@
         <path d="M76 43 L82 23 L94 42 M112 31 L122 11 L132 31 M151 37 L166 18 L170 45"/>
       </g>
       <g class="speed-lines"><path d="M19 112 H57 M27 126 H67 M9 98 H48"/></g>
-      <circle class="eye" cx="228" cy="76" r="4"/>
+      <circle class="eye" cx="241" cy="74" r="4.5"/>
+      <path class="mouth" d="M245 88 Q255 92 247 98"/>
     </g>
 
     <g class="creature-body-layer svg-mammal" filter="url(#portraitShadow-{{ uid }})">
@@ -134,7 +138,7 @@
       <path class="muzzle" d="M224 65 Q239 69 230 78"/>
     </g>
 
-    <g class="nutrition-icons" transform="translate(202 119)">
+    <g class="nutrition-icons" transform="translate(-4 -2)">
       <circle class="nutrition-disc" cx="20" cy="18" r="17"/>
       <g class="leaf-symbol">
         <path class="leaf-icon" d="M4 20 C7 8 18 4 25 8 C22 18 14 23 4 20 Z"/>

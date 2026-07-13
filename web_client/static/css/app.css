@@ -894,6 +894,7 @@ button,
 .creature-svg .ear,
 .creature-svg .soft,
 .creature-svg .shell,
+.creature-svg .abdomen,
 .creature-svg .neck {
   stroke: rgba(42,59,49,.18);
   stroke-width: 1.55;
@@ -913,6 +914,8 @@ button,
 .creature-svg .antenna,
 .creature-svg .tentacle,
 .creature-svg .muzzle,
+.creature-svg .mouth,
+.creature-svg .eye-stalk,
 .creature-svg .arm,
 .creature-svg .claw-hook,
 .creature-svg .wing-vein {
@@ -926,7 +929,9 @@ button,
 .creature-svg .scale-detail path { stroke-width: 1.35; opacity: .62; }
 .creature-svg .antenna,
 .creature-svg .tentacle,
-.creature-svg .arm { stroke: var(--creature-accent); opacity: .8; }
+.creature-svg .arm,
+.creature-svg .eye-stalk { stroke: var(--creature-accent); opacity: .84; }
+.creature-svg .mouth { stroke: rgba(42,59,49,.48); stroke-width: 1.7; }
 .creature-svg .eye { fill: #24352b; stroke: rgba(255,255,255,.9); stroke-width: 1.4; }
 
 .creature-portrait.has-wings .creature-svg .svg-wings { display: block; }
@@ -948,11 +953,11 @@ button,
 .species-mollusk .creature-svg .svg-wings { transform: translateY(-10px) scale(.84); }
 .species-mammal .creature-svg .svg-wings { transform: translateY(-8px) scale(.88); }
 
-.creature-svg .nutrition-icons { transform-box: fill-box; transform-origin: center; }
+.creature-svg .nutrition-icons { transform-box: fill-box; transform-origin: center; filter: drop-shadow(0 3px 4px rgba(42,59,49,.16)); }
 .nutrition-herbivore .creature-svg .nutrition-icons,
 .nutrition-carnivore .creature-svg .nutrition-icons,
 .nutrition-mixed .creature-svg .nutrition-icons { display: block; }
-.creature-svg .nutrition-disc { fill: rgba(255,253,247,.88); stroke: rgba(42,59,49,.15); stroke-width: 1.2; }
+.creature-svg .nutrition-disc { fill: rgba(255,253,247,.94); stroke: rgba(42,59,49,.18); stroke-width: 1.2; }
 .creature-svg .leaf-icon { fill: #6fa866; stroke: rgba(35,48,39,.16); stroke-width: 1; }
 .creature-svg .leaf-vein { fill: none; stroke: #477a59; stroke-width: 1.2; }
 .creature-svg .fang-icon { fill: #fff8df; stroke: rgba(35,48,39,.22); stroke-width: 1.15; }

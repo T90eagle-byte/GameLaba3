@@ -69,6 +69,29 @@ class CreatureVisualTests(unittest.TestCase):
             "nutrition-mixed",
         )
 
+    def test_crustacean_claw_and_armor_variants_are_composable(self) -> None:
+        for claws in ("short_claws", "long_claws", "hooked_claws"):
+            for armor in ("thick_armor", "ridged_armor"):
+                with self.subTest(claws=claws, armor=armor):
+                    classes = visual(
+                        "crustacean",
+                        f"claw_form={claws}; shell_armor={armor}; nutrition_type=carnivore/herbivore",
+                    )["feature_classes"]
+                    self.assertIn(f"feature-{claws.replace('_', '-')}", classes)
+                    self.assertIn(f"feature-{armor.replace('_', '-')}", classes)
+
+    def test_turtle_shell_speed_size_and_wings_are_composable(self) -> None:
+        result = visual(
+            "turtle",
+            "shell_armor=plated_shell; speed_level=fast_speed; has_wings=wings; "
+            "size=intermediate(medium_size/large_size); nutrition_type=herbivore",
+        )
+        self.assertEqual(result["wings_class"], "has-wings")
+        self.assertEqual(result["size_class"], "size-intermediate-medium-large")
+        self.assertEqual(result["nutrition_class"], "nutrition-herbivore")
+        self.assertIn("feature-plated-shell", result["feature_classes"])
+        self.assertIn("feature-fast-speed", result["feature_classes"])
+
 
 class GenotypeDisplayTests(unittest.TestCase):
     @staticmethod
