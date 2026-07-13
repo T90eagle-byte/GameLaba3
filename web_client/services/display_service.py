@@ -107,6 +107,23 @@ TASK_LABELS = {
     "task_winged_specimen": "Крылатое существо",
     "task_fast_turtle": "Быстрая черепаха",
     "task_predator_fish_line": "Линия хищных рыб",
+    "task_armored_crustacean": "Бронированный ракообразный",
+    "task_dense_fur_mammal": "Млекопитающее с густой шерстью",
+    "task_cartilaginous_fin_line": "Линия хрящевых рыб",
+    "task_mollusk_sharp_profile": "Моллюск с острым профилем",
+    "task_large_specimen": "Крупное существо",
+    "task_herbivore_line": "Травоядная линия",
+    "task_spiked_turtle": "Шипастая черепаха",
+    "task_mammal_short_fur": "Короткошёрстное млекопитающее",
+    "task_red_specimen": "Красное существо",
+    "task_medium_specimen": "Существо среднего размера",
+    "task_winged_red_specimen": "Красное крылатое существо",
+    "task_crescent_fin_cartilaginous": "Хрящевая рыба с серповидным плавником",
+    "task_ribbon_fin_bony": "Костная рыба с ленточным плавником",
+    "task_hooked_crustacean": "Ракообразное с крючковатыми клешнями",
+    "task_spiral_mollusk": "Моллюск со спиральным профилем",
+    "task_plated_turtle": "Черепаха с пластинчатым панцирем",
+    "task_soft_fur_mammal": "Млекопитающее с мягкой шерстью",
 }
 
 TASK_DESCRIPTIONS = {
@@ -685,8 +702,6 @@ def genotype_view(
         allele2_name = row.get("allele2_display_name") or row.get("allele2_description")
         allele1_semantic = trait_label(allele1_name) if allele1_name else "не указана"
         allele2_semantic = trait_label(allele2_name) if allele2_name else "не указана"
-        allele1_technical = number_label(row.get("allele1_trait_value"))
-        allele2_technical = number_label(row.get("allele2_trait_value"))
         result_item = phenotype_by_gene.get(gene_code)
         result_label = result_item.get("detail_value") if result_item else "не указан"
         inheritance = dominance_label(dominance)
@@ -698,13 +713,10 @@ def genotype_view(
             "allele2_label": allele2_semantic,
             "allele1_semantic_label": allele1_semantic,
             "allele2_semantic_label": allele2_semantic,
-            "allele1_technical_label": allele1_technical,
-            "allele2_technical_label": allele2_technical,
             "dominance_label": inheritance,
             "inheritance_label": inheritance,
             "result_label": result_label,
             "pair_label": f"Аллели: {allele1_semantic} / {allele2_semantic}",
-            "technical_pair_label": f"{allele1_technical} / {allele2_technical}",
         })
     return formatted
 
@@ -738,11 +750,19 @@ def task_view(row: dict[str, Any]) -> dict[str, Any]:
     status = _text(row.get("task_status")).upper()
     code = _clean_code(row.get("task_name") or row.get("task_code") or row.get("title"))
     difficulty = row.get("difficulty_display_name") or row.get("difficulty_code") or row.get("difficulty")
-    name = TASK_LABELS.get(code) or _strip_mojibake(_text(row.get("task_display_name"))) or humanize_code(code.replace("task_", ""))
+    supplied_name = _strip_mojibake(_text(row.get("task_display_name")))
+    supplied_code = _clean_code(supplied_name)
+    is_internal_name = supplied_code.startswith("task_")
+    name = TASK_LABELS.get(code)
+    if not name and supplied_name and not is_internal_name:
+        name = supplied_name
+    if not name:
+        name = "Специальный заказ"
+    unknown_task_code = code if code.startswith("task_") and code not in TASK_LABELS else None
     description = _text(row.get("description") or row.get("task_description") or row.get("goal_description"))
     if not description or code in TASK_DESCRIPTIONS:
         description = TASK_DESCRIPTIONS.get(code, f"Клиент просит организм: {name.lower()}.")
-    return {**row, "display_name": name, "description_text": description, "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status), "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral", "difficulty_label": humanize_code(difficulty)}
+    return {**row, "display_name": name, "unknown_task_code": unknown_task_code, "description_text": description, "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status), "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral", "difficulty_label": humanize_code(difficulty)}
 
 
 def task_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

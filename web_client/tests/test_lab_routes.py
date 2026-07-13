@@ -163,6 +163,79 @@ class LabRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Прибрежная станция".encode(), response.data)
 
+    @patch.object(app_module.creature_service, "get_genotype")
+    @patch.object(app_module.creature_service, "get_creature_detail")
+    def test_creature_detail_hides_technical_values_and_keeps_backend_result(
+        self,
+        get_detail: Mock,
+        get_genotype: Mock,
+    ) -> None:
+        get_detail.return_value = {
+            "creature_id": 17,
+            "creature_name": "crustacean #1",
+            "species_type": "crustacean",
+            "phenotype_summary": "color=green_color; size=large_size",
+        }
+        get_genotype.return_value = [{
+            "gene_name": "color",
+            "dominance_type": "FULL",
+            "allele1_display_name": "green_color",
+            "allele1_trait_value": 10,
+            "allele2_display_name": "blue_color",
+            "allele2_trait_value": 20,
+        }]
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/creatures/17")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Аллели: зелёный / синий".encode(), response.data)
+        self.assertIn("Результат".encode(), response.data)
+        self.assertIn("зелёный".encode(), response.data)
+        self.assertNotIn("Технические значения".encode(), response.data)
+        self.assertNotIn(b">10 / 20<", response.data)
+
+    @patch.object(app_module.creature_service, "get_creatures", return_value=[])
+    @patch.object(app_module.task_service, "get_tasks")
+    def test_tasks_page_never_renders_internal_task_keys(
+        self,
+        get_tasks: Mock,
+        _get_creatures: Mock,
+    ) -> None:
+        get_tasks.return_value = [
+            {
+                "task_id": 5,
+                "task_name": "task_armored_crustacean",
+                "task_display_name": "task_armored_crustacean",
+                "description": "Отберите прочное ракообразное.",
+                "reward_money": 300,
+                "reward_rating": 35,
+                "difficulty_code": "HARD",
+                "task_status": "ACTIVE",
+            },
+            {
+                "task_id": 6,
+                "task_name": "task_future_unknown",
+                "task_display_name": "task_future_unknown",
+                "description": "Особая цель клиента.",
+                "reward_money": 100,
+                "reward_rating": 10,
+                "difficulty_code": "EASY",
+                "task_status": "ACTIVE",
+            },
+        ]
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/tasks")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Бронированный ракообразный".encode(), response.data)
+        self.assertIn("Специальный заказ".encode(), response.data)
+        self.assertNotIn(b"task_armored_crustacean", response.data)
+        self.assertNotIn(b"task_future_unknown", response.data)
+
 
 if __name__ == "__main__":
     unittest.main()

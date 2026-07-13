@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from web_client.services.display_service import creature_visual, genotype_view, phenotype_items
+from web_client.services.display_service import TASK_LABELS, creature_visual, genotype_view, phenotype_items, task_view
 
 
 def visual(species: str, summary: str) -> dict[str, str]:
@@ -128,8 +128,8 @@ class GenotypeDisplayTests(unittest.TestCase):
         self.assertEqual(rendered["nutrition_type"]["result_label"], "смешанное")
         self.assertEqual(rendered["size"]["result_label"], "промежуточный между компактным и средним")
         self.assertEqual(rendered["fin_shape"]["result_label"], "заострённый плавник")
-        self.assertEqual(rendered["color"]["technical_pair_label"], "20 / 70")
-        self.assertEqual(rendered["has_wings"]["technical_pair_label"], "1 / 0")
+        self.assertNotIn("technical_pair_label", rendered["color"])
+        self.assertEqual(rendered["color"]["pair_label"], "Аллели: синий / белый")
 
     def test_cartilaginous_green_winged_medium_crescent(self) -> None:
         rendered = self.render(
@@ -177,7 +177,26 @@ class GenotypeDisplayTests(unittest.TestCase):
         self.assertEqual(crustacean["size"]["result_label"], "крупный")
         self.assertEqual(crustacean["claw_form"]["result_label"], "крючковатые клешни")
         self.assertEqual(crustacean["shell_armor"]["result_label"], "толстый панцирь")
-        self.assertNotIn(".0", " ".join(item["technical_pair_label"] for item in crustacean.values()))
+
+
+class TaskDisplayTests(unittest.TestCase):
+    def test_armored_crustacean_has_player_facing_name(self) -> None:
+        task = task_view({"task_name": "task_armored_crustacean", "task_display_name": "task_armored_crustacean"})
+        self.assertEqual(task["display_name"], "Бронированный ракообразный")
+        self.assertIsNone(task["unknown_task_code"])
+
+    def test_all_known_tasks_have_nontechnical_names(self) -> None:
+        self.assertEqual(len(TASK_LABELS), 21)
+        for code, expected in TASK_LABELS.items():
+            with self.subTest(code=code):
+                task = task_view({"task_name": code, "task_display_name": code})
+                self.assertEqual(task["display_name"], expected)
+                self.assertFalse(task["display_name"].lower().startswith("task_"))
+
+    def test_unknown_internal_task_uses_safe_fallback_and_keeps_diagnostic_code(self) -> None:
+        task = task_view({"task_name": "task_future_unknown", "task_display_name": "task_future_unknown"})
+        self.assertEqual(task["display_name"], "Специальный заказ")
+        self.assertEqual(task["unknown_task_code"], "task_future_unknown")
 
 
 if __name__ == "__main__":
