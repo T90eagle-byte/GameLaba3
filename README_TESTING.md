@@ -131,6 +131,25 @@ docker compose up --build -d
 Запустите Docker Desktop и убедитесь, что выбран режим Linux containers. Затем
 проверьте `docker info`.
 
+### Ошибка загрузки Oracle
+
+Если Docker сообщает `denied`, `unauthorized` или требует авторизацию, откройте
+`container-registry.oracle.com` в браузере, войдите в собственную учётную запись Oracle,
+откройте репозиторий Database Free и примите применимые условия. Затем выполните:
+
+```powershell
+docker login container-registry.oracle.com
+```
+
+Используйте только собственные реквизиты или auth token согласно указаниям Oracle Registry.
+После успешного входа повторите:
+
+```powershell
+docker compose up --build -d
+```
+
+Не передавайте другим людям пароль разработчика или заранее выгруженный Oracle image.
+
 ### Порт 8000 занят
 
 Измените `WEB_PORT` в `.env`, например:

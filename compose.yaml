@@ -2,7 +2,7 @@ name: biosborka-game
 
 services:
   db:
-    image: container-registry.oracle.com/database/free:latest-lite
+    image: container-registry.oracle.com/database/free:latest-lite@sha256:481dbb4a1ea7cac6aadd354ff42b48fb7e4df955725158f237ad58c8fca1f458
     environment:
       ORACLE_PWD: ${ORACLE_SYS_PASSWORD:?Create .env from .env.example and set ORACLE_SYS_PASSWORD}
       ORACLE_CHARACTERSET: AL32UTF8
@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
 
   db-init:
-    image: container-registry.oracle.com/database/free:latest-lite
+    image: container-registry.oracle.com/database/free:latest-lite@sha256:481dbb4a1ea7cac6aadd354ff42b48fb7e4df955725158f237ad58c8fca1f458
     entrypoint: ["/bin/bash", "/workspace/docker/db-init.sh"]
     environment:
       ORACLE_HOST: db
