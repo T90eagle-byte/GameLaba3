@@ -61,7 +61,7 @@ Web-этап 1–2 начат: создан минимальный Flask/Jinja s
 Реализован web-интерфейс `/crossbreed`:
 - выбор двух родителей из текущей лаборатории;
 - preview ровно 3 вариантов потомства через `preview_offspring_options`;
-- отображение phenotype/genotype preview, probability и `PREVIEW_ONLY`;
+- отображение phenotype/genotype preview как примеров возможного потомства без вероятности полного генотипа;
 - реальное создание потомка через `crossbreed` отдельной кнопкой;
 - preview не меняет состояние лаборатории.
 

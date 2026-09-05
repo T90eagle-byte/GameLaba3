@@ -61,7 +61,7 @@ Web не считает генетику, задания, рейтинг или 
 
 Ветка `web-client-crossbreed-preview` добавляет route `/crossbreed` и service `crossbreed_service`:
 - `preview_offspring_options` вызывается напрямую из package и возвращает 3 preview-варианта;
-- preview показывается в браузере как stateless результат `PREVIEW_ONLY`;
+- preview показывается в браузере как stateless примеры возможного потомства `PREVIEW_SAMPLE`, без фиктивной вероятности полного генотипа;
 - `crossbreed` создаёт реального потомка через package и возвращает `offspring_id`;
 - Flask не проверяет совместимость родителей как источник истины и не считает генетику.
 

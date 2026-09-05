@@ -159,10 +159,10 @@ DECLARE
             IF v_option_no IS NULL
                OR v_species_type IS NULL
                OR v_species_label IS NULL
-               OR v_probability IS NULL
+               OR v_probability IS NOT NULL
                OR v_phenotype_summary IS NULL
                OR v_genotype_summary IS NULL
-               OR v_source_note <> 'PREVIEW_ONLY' THEN
+               OR v_source_note <> 'PREVIEW_SAMPLE' THEN
                 v_bad_rows := v_bad_rows + 1;
             END IF;
         END LOOP;
@@ -170,7 +170,7 @@ DECLARE
         close v_cursor;
 
         assert_true(v_row_count = p_expected_rows, p_test_prefix || ' returns expected row count', 'actual=' || v_row_count || ', expected=' || p_expected_rows);
-        assert_true(v_bad_rows = 0, p_test_prefix || ' rows contain required fields', 'bad_rows=' || v_bad_rows);
+        assert_true(v_bad_rows = 0, p_test_prefix || ' rows are samples without a fake probability', 'bad_rows=' || v_bad_rows);
     EXCEPTION
         WHEN OTHERS THEN
             close_preview_cursor;

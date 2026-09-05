@@ -19,8 +19,8 @@ Species-specific traits are stored in the same `genes` / `alleles` / `genotypes`
 ## Crossbreeding
 - The player selects two parents.
 - Backend checks session, lab access, parent ownership and compatibility.
-- `calculate_punnett_probabilities` returns probability data for selected genes.
-- `preview_offspring_options` returns stateless offspring previews and returns 3 options by default.
+- `calculate_punnett_probabilities` returns inheritance probabilities for one selected gene.
+- `preview_offspring_options` returns three stateless random examples of possible offspring by default. It does not calculate or claim a joint probability for a complete offspring genotype.
 - Preview does not create creatures, genotypes, experiments and does not change wallet/rating or lab state.
 - `crossbreed` creates the real offspring and records the experiment.
 

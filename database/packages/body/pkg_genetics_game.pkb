@@ -1758,7 +1758,7 @@ end hash_password_sha256;
                 o.option_no,
                 v_parent1_species_type as species_type,
                 rst.display_name as species_label,
-                round(1 / v_options_count, 6) as probability,
+                cast(null as number) as probability,
                 substr(
                     listagg(eg.gene_name || '=' || eg.effective_description, '; ')
                         within group (order by eg.species_type, eg.gene_name, eg.gene_id),
@@ -1771,7 +1771,7 @@ end hash_password_sha256;
                     1,
                     4000
                 ) as genotype_summary,
-                'PREVIEW_ONLY' as source_note
+                'PREVIEW_SAMPLE' as source_note
               from options o
               join ref_species_types rst
                 on rst.species_type = v_parent1_species_type

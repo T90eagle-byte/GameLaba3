@@ -721,23 +721,12 @@ def genotype_view(
     return formatted
 
 
-def _probability_label(value: Any) -> str:
-    try:
-        number = float(value or 0)
-    except (TypeError, ValueError):
-        return "не указана"
-    if number <= 1:
-        number *= 100
-    return f"{number:.1f}%"
-
-
 def preview_view(row: dict[str, Any]) -> dict[str, Any]:
     view = creature_view(row)
+    view.pop("probability", None)
     view["option_no"] = row.get("option_no")
-    view["probability"] = row.get("probability")
-    view["probability_label"] = _probability_label(row.get("probability"))
     view["genotype_summary"] = _text(row.get("genotype_summary"))
-    view["source_note"] = "Предпросмотр"
+    view["source_note"] = "Пример возможного потомства"
     view["display_name"] = f"Вариант {row.get('option_no')}"
     return view
 

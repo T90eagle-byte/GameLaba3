@@ -153,6 +153,9 @@ def main() -> None:
             follow_redirects=True,
         )
         require(response.status_code == 200, "crossbreed preview route failed")
+        preview_html = response.get_data(as_text=True)
+        require("Три примера возможного потомства" in preview_html, "preview is not marked as samples")
+        require("Вероятность:" not in preview_html and "33.3%" not in preview_html, "preview shows a fake probability")
         after_preview_count = len(creature_service.get_creatures(token, lab_id))
         require(before_count == after_preview_count, "preview changed creature count")
         response = client.post(

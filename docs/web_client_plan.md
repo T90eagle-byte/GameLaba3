@@ -267,7 +267,7 @@ http://127.0.0.1:8000
 Сделан слой скрещивания:
 - `web_client/services/crossbreed_service.py` вызывает `preview_offspring_options` и `crossbreed`;
 - `/crossbreed` показывает форму выбора родителей и имени потомка;
-- preview выводит 3 карточки с phenotype/genotype summary, probability и source note;
+- preview выводит 3 карточки-примера с phenotype/genotype summary и source note `PREVIEW_SAMPLE`; вероятность полного генотипа не заявляется;
 - реальное создание потомка выполняется отдельной POST-кнопкой через backend package;
 - после создания web переходит на карточку потомка.
 

@@ -319,7 +319,7 @@ This smoke-test validates the explainable wallet/rating event log:
 
 This smoke-test validates the stateless offspring preview added for level-4 hardening:
 - `preview_offspring_options` returns 3 options by default;
-- option rows include species, probability, phenotype summary and genotype summary;
+- option rows include species, phenotype summary, genotype summary and the `PREVIEW_SAMPLE` marker; they deliberately do not claim a probability for a complete offspring genotype;
 - preview does not create creatures, genotypes, experiments, or change wallet/rating;
 - custom option counts are bounded safely;
 - normal `crossbreed` still works after preview;
