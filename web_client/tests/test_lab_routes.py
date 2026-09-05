@@ -65,6 +65,18 @@ class LabServiceTests(unittest.TestCase):
             ("pkg_genetics_game.rename_lab", ["token", 321, "Новая мастерская"]),
         )
 
+    def test_recover_lab_access_uses_selected_package_operation(self) -> None:
+        cursor = FakeCursor()
+        connection = FakeConnection(cursor)
+
+        with patch.object(lab_service, "run_db", side_effect=lambda action: action(connection)):
+            lab_service.recover_lab_access("token", 42)
+
+        self.assertEqual(
+            cursor.calls,
+            [("pkg_genetics_game.recover_lab_access", ["token", 42])],
+        )
+
 
 class LabRouteTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -79,10 +91,11 @@ class LabRouteTests(unittest.TestCase):
     def conflict() -> ServiceError:
         return ServiceError(LAB_SESSION_CONFLICT_MESSAGE)
 
-    @patch.object(app_module.lab_service, "reset_other_user_sessions")
     @patch.object(app_module.lab_service, "load_lab")
-    def test_open_recovers_once_from_old_session(self, load_lab: Mock, reset: Mock) -> None:
-        load_lab.side_effect = [self.conflict(), None]
+    def test_open_conflict_does_not_close_or_retry_other_sessions(self, load_lab: Mock) -> None:
+        load_lab.side_effect = self.conflict()
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
 
         response = self.client.post(
             "/labs",
@@ -90,21 +103,42 @@ class LabRouteTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(load_lab.call_count, 2)
-        reset.assert_called_once_with("current-token")
+        load_lab.assert_called_once_with("current-token", 42)
         with self.client.session_transaction() as flask_session:
-            self.assertEqual(flask_session["current_lab_id"], 42)
+            self.assertEqual(flask_session["current_lab_id"], 7)
+            self.assertEqual(flask_session["pending_recovery_lab_id"], 42)
 
-    @patch.object(app_module.lab_service, "list_user_labs", return_value=[])
-    @patch.object(app_module.lab_service, "reset_other_user_sessions")
+    @patch.object(app_module.lab_service, "list_user_labs")
     @patch.object(app_module.lab_service, "load_lab")
-    def test_open_surfaces_second_error_without_more_retries(
+    def test_conflict_page_offers_recovery_for_selected_lab_only(
         self,
         load_lab: Mock,
-        reset: Mock,
-        _list_labs: Mock,
+        list_user_labs: Mock,
     ) -> None:
-        load_lab.side_effect = [self.conflict(), ServiceError("Повторная ошибка открытия.")]
+        load_lab.side_effect = self.conflict()
+        list_user_labs.return_value = [
+            {"lab_id": 42, "lab_name": "Занятая лаборатория"},
+            {"lab_id": 43, "lab_name": "Другая лаборатория"},
+        ]
+
+        response = self.client.post(
+            "/labs",
+            data={"action": "open", "lab_id": "42"},
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.count("Восстановить доступ".encode()), 1)
+        self.assertIn(b'name="lab_id" value="42"', response.data)
+
+    @patch.object(app_module.lab_service, "list_user_labs", return_value=[])
+    @patch.object(app_module.lab_service, "load_lab")
+    def test_inactive_session_error_is_not_treated_as_lab_conflict(
+        self,
+        load_lab: Mock,
+        _list_user_labs: Mock,
+    ) -> None:
+        load_lab.side_effect = ServiceError("Сессия не активна. Выполните вход заново.")
 
         response = self.client.post(
             "/labs",
@@ -112,14 +146,44 @@ class LabRouteTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(load_lab.call_count, 2)
-        reset.assert_called_once_with("current-token")
-        self.assertIn("Повторная ошибка открытия".encode(), response.data)
+        load_lab.assert_called_once_with("current-token", 42)
+        self.assertIn("Сессия не активна".encode(), response.data)
+        with self.client.session_transaction() as flask_session:
+            self.assertNotIn("pending_recovery_lab_id", flask_session)
 
-    @patch.object(app_module.lab_service, "reset_other_user_sessions")
+    @patch.object(app_module.lab_service, "recover_lab_access")
+    def test_explicit_recovery_transfers_only_selected_lab(
+        self,
+        recover_lab_access: Mock,
+    ) -> None:
+        response = self.client.post(
+            "/labs",
+            data={
+                "action": "recover",
+                "lab_id": "42",
+                "confirm_recovery": "yes",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        recover_lab_access.assert_called_once_with("current-token", 42)
+        with self.client.session_transaction() as flask_session:
+            self.assertEqual(flask_session["current_lab_id"], 42)
+            self.assertNotIn("pending_recovery_lab_id", flask_session)
+
+    @patch.object(app_module.lab_service, "recover_lab_access")
+    def test_recovery_requires_explicit_confirmation(self, recover_lab_access: Mock) -> None:
+        response = self.client.post(
+            "/labs",
+            data={"action": "recover", "lab_id": "42"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        recover_lab_access.assert_not_called()
+
     @patch.object(app_module.lab_service, "delete_lab")
-    def test_delete_recovers_once_from_old_session(self, delete_lab: Mock, reset: Mock) -> None:
-        delete_lab.side_effect = [self.conflict(), None]
+    def test_delete_conflict_requires_selected_recovery(self, delete_lab: Mock) -> None:
+        delete_lab.side_effect = self.conflict()
 
         response = self.client.post(
             "/labs",
@@ -127,8 +191,43 @@ class LabRouteTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(delete_lab.call_count, 2)
-        reset.assert_called_once_with("current-token")
+        delete_lab.assert_called_once_with("current-token", 51)
+        with self.client.session_transaction() as flask_session:
+            self.assertEqual(flask_session["pending_recovery_lab_id"], 51)
+
+    @patch.object(app_module.lab_service, "list_user_labs", return_value=[])
+    @patch.object(app_module.lab_service, "recover_lab_access")
+    def test_recovery_surfaces_its_own_error_without_retry(
+        self,
+        recover_lab_access: Mock,
+        _list_labs: Mock,
+    ) -> None:
+        recover_lab_access.side_effect = ServiceError("Не удалось передать лабораторию.")
+
+        response = self.client.post(
+            "/labs",
+            data={
+                "action": "recover",
+                "lab_id": "42",
+                "confirm_recovery": "yes",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        recover_lab_access.assert_called_once_with("current-token", 42)
+        self.assertIn("Не удалось передать лабораторию".encode(), response.data)
+
+    @patch.object(app_module.lab_service, "rename_lab")
+    def test_rename_keeps_flask_selection_in_sync_with_package(self, rename_lab: Mock) -> None:
+        response = self.client.post(
+            "/labs",
+            data={"action": "rename", "lab_id": "42", "lab_name": "Новое имя"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        rename_lab.assert_called_once_with("current-token", 42, "Новое имя")
+        with self.client.session_transaction() as flask_session:
+            self.assertEqual(flask_session["current_lab_id"], 42)
 
     @patch.object(app_module.lab_service, "list_user_labs")
     def test_labs_page_displays_package_backed_name(self, list_labs: Mock) -> None:

@@ -21,6 +21,7 @@ create or replace package pkg_genetics_game as
     procedure reset_other_user_sessions(
         p_session_token in varchar2
     );
+    -- Legacy broad maintenance operation; do not use for a normal lab conflict.
 
     function resolve_user_id_by_token(
         p_session_token in varchar2
@@ -51,6 +52,11 @@ create or replace package pkg_genetics_game as
     );
 
     procedure load_lab(
+        p_session_token in varchar2,
+        p_lab_id        in number
+    );
+
+    procedure recover_lab_access(
         p_session_token in varchar2,
         p_lab_id        in number
     );

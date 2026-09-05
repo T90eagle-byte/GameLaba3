@@ -90,6 +90,8 @@ Web должен:
 - Logout вызывает `pkg_genetics_game.logout_user` и очищает Flask session.
 - Route guards проверяют наличие `session_token`.
 - Чужая лаборатория блокируется backend package, а не только Flask-логикой.
+- Обычный конфликт занятой лаборатории не завершает другие сессии. Пользователь может явно подтвердить передачу только выбранной собственной лаборатории через `recover_lab_access`.
+- Разные web-сессии одного аккаунта могут одновременно работать с разными лабораториями; смена освобождает только прежнюю лабораторию текущей сессии.
 - Ошибка устаревшей/невалидной session ведет на `/login` с понятным сообщением.
 
 ## 6. Карта страниц и маршрутов
@@ -100,7 +102,7 @@ Web должен:
 | Регистрация | `/register` | `register_user` | Форма создания пользователя | Auth |
 | Вход | `/login` | `login_user` | Форма входа | Auth |
 | Выход | `/logout` | `logout_user` | Завершение session | Auth |
-| Лаборатории | `/labs` | `list_user_labs`, `start_new_lab`, `load_lab`, `switch_lab`, `delete_lab` | Список лабораторий, создание, открытие, удаление | Labs |
+| Лаборатории | `/labs` | `list_user_labs`, `start_new_lab`, `load_lab`, `recover_lab_access`, `switch_lab`, `delete_lab` | Список лабораторий, создание, открытие, точечное восстановление, удаление | Labs |
 | Dashboard | `/dashboard` | `get_lab_stats`, `get_tasks_cursor`, `get_rating_events_cursor` | Статистика, активные заказы, последние события | Demo |
 | Существа | `/creatures` | `get_creatures_cursor` | Коллекция существ | Уровень 3 |
 | Карточка существа | `/creatures/<creature_id>` | `get_genotype_cursor`, phenotype fields | Генотип, фенотип, признаки | Уровень 3/4 |

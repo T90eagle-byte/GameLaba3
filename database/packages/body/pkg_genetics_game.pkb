@@ -186,6 +186,109 @@ end hash_password_sha256;
             raise_application_error(-20020, 'Active session not found.');
     end get_active_session;
 
+    procedure lock_active_session(
+        p_session_token in varchar2,
+        p_session_id    out number,
+        p_user_id       out number,
+        p_error_code    in number default -20020
+    ) is
+        v_locked_user_id users.user_id%type;
+    begin
+        begin
+            select s.session_id, s.user_id
+              into p_session_id, p_user_id
+              from sessions s
+             where s.session_token = p_session_token;
+        exception
+            when no_data_found then
+                raise_application_error(p_error_code, 'Active session not found.');
+        end;
+
+        -- Serialize lab lock transitions for one owner while leaving other users independent.
+        select u.user_id
+          into v_locked_user_id
+          from users u
+         where u.user_id = p_user_id
+         for update;
+
+        begin
+            select s.session_id, s.user_id
+              into p_session_id, p_user_id
+              from sessions s
+             where s.session_token = p_session_token
+               and s.status = 'ACTIVE'
+             for update;
+        exception
+            when no_data_found then
+                raise_application_error(p_error_code, 'Active session not found.');
+        end;
+    end lock_active_session;
+
+    procedure activate_lab(
+        p_session_token  in varchar2,
+        p_lab_id         in number,
+        p_allow_takeover in boolean
+    ) is
+        v_session_id     sessions.session_id%type;
+        v_user_id        users.user_id%type;
+        v_lab_user_id    labs.user_id%type;
+        v_lab_session_id labs.session_id%type;
+        v_holder_status  sessions.status%type;
+    begin
+        lock_active_session(
+            p_session_token => p_session_token,
+            p_session_id    => v_session_id,
+            p_user_id       => v_user_id
+        );
+
+        begin
+            select l.user_id, l.session_id
+              into v_lab_user_id, v_lab_session_id
+              from labs l
+             where l.lab_id = p_lab_id
+             for update;
+        exception
+            when no_data_found then
+                raise_application_error(-20023, 'Lab not found or access denied.');
+        end;
+
+        if v_lab_user_id <> v_user_id then
+            raise_application_error(-20023, 'Lab not found or access denied.');
+        end if;
+
+        if v_lab_session_id is not null and v_lab_session_id <> v_session_id then
+            begin
+                select s.status
+                  into v_holder_status
+                  from sessions s
+                 where s.session_id = v_lab_session_id;
+            exception
+                when no_data_found then
+                    v_holder_status := 'CLOSED';
+            end;
+
+            if v_holder_status = 'ACTIVE' and not p_allow_takeover then
+                raise_application_error(-20072, 'Lab is already opened in another active session.');
+            end if;
+        end if;
+
+        update labs l
+           set l.session_id = null
+         where l.session_id = v_session_id
+           and l.lab_id <> p_lab_id;
+
+        update labs l
+           set l.session_id = v_session_id
+         where l.lab_id = p_lab_id;
+
+        set_current_session_context(
+            p_user_id       => v_user_id,
+            p_session_id    => v_session_id,
+            p_session_token => p_session_token
+        );
+        g_current_lab_id := p_lab_id;
+    end activate_lab;
+
     function resolve_user_id_by_token(
         p_session_token in varchar2
     ) return number is
@@ -425,18 +528,14 @@ end hash_password_sha256;
         p_session_token in varchar2
     ) is
         v_session_id sessions.session_id%type;
+        v_user_id    users.user_id%type;
     begin
-        begin
-            select s.session_id
-              into v_session_id
-              from sessions s
-             where s.session_token = p_session_token
-               and s.status = 'ACTIVE'
-             for update;
-        exception
-            when no_data_found then
-                raise_application_error(-20021, 'Active session not found.');
-        end;
+        lock_active_session(
+            p_session_token => p_session_token,
+            p_session_id    => v_session_id,
+            p_user_id       => v_user_id,
+            p_error_code    => -20021
+        );
 
         update labs l
            set l.session_id = null
@@ -458,7 +557,7 @@ end hash_password_sha256;
         v_current_session_id sessions.session_id%type;
         v_user_id            users.user_id%type;
     begin
-        get_active_session(
+        lock_active_session(
             p_session_token => p_session_token,
             p_session_id    => v_current_session_id,
             p_user_id       => v_user_id
@@ -545,16 +644,10 @@ end hash_password_sha256;
         v_completed_task_count number;
         v_experiment_count     number;
     begin
-        get_active_session(
+        lock_active_session(
             p_session_token => p_session_token,
             p_session_id    => v_session_id,
             p_user_id       => v_user_id
-        );
-
-        set_current_session_context(
-            p_user_id       => v_user_id,
-            p_session_id    => v_session_id,
-            p_session_token => p_session_token
         );
 
         p_lab_id := labs_seq.nextval;
@@ -565,6 +658,10 @@ end hash_password_sha256;
         elsif length(v_lab_name) > 60 then
             raise_application_error(-20078, 'Lab name is too long.');
         end if;
+
+        update labs l
+           set l.session_id = null
+         where l.session_id = v_session_id;
 
         insert into labs (
             lab_id,
@@ -594,6 +691,11 @@ end hash_password_sha256;
             p_lab_id => p_lab_id
         );
 
+        set_current_session_context(
+            p_user_id       => v_user_id,
+            p_session_id    => v_session_id,
+            p_session_token => p_session_token
+        );
         g_current_lab_id := p_lab_id;
 
         generate_starting_creatures(
@@ -627,61 +729,25 @@ end hash_password_sha256;
         p_session_token in varchar2,
         p_lab_id        in number
     ) is
-        v_session_id     number;
-        v_user_id        number;
-        v_lab_user_id    number;
-        v_lab_session_id number;
-        v_holder_status  sessions.status%type;
     begin
-        get_active_session(
-            p_session_token => p_session_token,
-            p_session_id    => v_session_id,
-            p_user_id       => v_user_id
+        activate_lab(
+            p_session_token  => p_session_token,
+            p_lab_id         => p_lab_id,
+            p_allow_takeover => false
         );
-
-        set_current_session_context(
-            p_user_id       => v_user_id,
-            p_session_id    => v_session_id,
-            p_session_token => p_session_token
-        );
-
-        begin
-            select l.user_id, l.session_id
-              into v_lab_user_id, v_lab_session_id
-              from labs l
-             where l.lab_id = p_lab_id
-             for update;
-        exception
-            when no_data_found then
-                raise_application_error(-20023, 'Lab not found or access denied.');
-        end;
-
-        if v_lab_user_id <> v_user_id then
-            raise_application_error(-20023, 'Lab not found or access denied.');
-        end if;
-
-        if v_lab_session_id is not null and v_lab_session_id <> v_session_id then
-            begin
-                select s.status
-                  into v_holder_status
-                  from sessions s
-                 where s.session_id = v_lab_session_id;
-            exception
-                when no_data_found then
-                    v_holder_status := 'CLOSED';
-            end;
-
-            if v_holder_status = 'ACTIVE' then
-                raise_application_error(-20072, 'Lab is already opened in another active session.');
-            end if;
-        end if;
-
-        update labs l
-           set l.session_id = v_session_id
-         where l.lab_id = p_lab_id;
-
-        g_current_lab_id := p_lab_id;
     end load_lab;
+
+    procedure recover_lab_access(
+        p_session_token in varchar2,
+        p_lab_id        in number
+    ) is
+    begin
+        activate_lab(
+            p_session_token  => p_session_token,
+            p_lab_id         => p_lab_id,
+            p_allow_takeover => true
+        );
+    end recover_lab_access;
 
     procedure switch_lab(
         p_session_token in varchar2,
@@ -849,7 +915,16 @@ end hash_password_sha256;
     procedure exit_lab(
         p_lab_id in number
     ) is
+        v_locked_user_id users.user_id%type;
     begin
+        require_current_session();
+
+        select u.user_id
+          into v_locked_user_id
+          from users u
+         where u.user_id = g_current_user_id
+         for update;
+
         assert_lab_access(p_lab_id => p_lab_id);
 
         update labs l

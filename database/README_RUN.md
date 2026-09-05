@@ -406,9 +406,15 @@ order by object_type;
 ```
 
 
-## DEV-only: unlock stale ACTIVE sessions (after old GUI crash)
+## Recovery after a client/browser crash
 
-If you still have a stale lab lock (`ORA-20072`) from an old GUI version that was closed without logout, you can close stale sessions for a specific user in dev environment:
+The web client handles a stale lab lock through explicit `recover_lab_access` confirmation for one selected own laboratory. This operation transfers only that lab, leaves both authentication sessions active, and does not affect another user's sessions or any other laboratory.
+
+Normal `load_lab` never performs recovery automatically: an occupied lab returns `-20072`. Session and lab-row locking keeps the check and transfer atomic for concurrent Oracle connections.
+
+### DEV-only: close all stale ACTIVE sessions for one user
+
+The broad maintenance script remains available for old clients that cannot call the selected-lab recovery API:
 
 ```sql
 @database/scripts/dev_unlock_stale_sessions.sql
@@ -418,7 +424,7 @@ Notes:
 - This script is **DEV ONLY** and is not part of mandatory smoke-tests.
 - It only closes `sessions.status='ACTIVE'` for the chosen login.
 - It does **not** delete labs/creatures/genotypes/experiments/lab_tasks/lab_mutations.
-- With current GUI close handling, this should no longer occur in normal flow.
+- It is not used by the web client's normal conflict flow.
 
 ## Full smoke-test order
 
@@ -439,3 +445,9 @@ After DDL, seed, package spec, and package body are applied, run smoke-tests in 
 ```
 
 When deploying into a fresh schema, run the seed before smoke-tests.
+
+The SQL runner uses one Oracle connection. Run the additional test below to verify simultaneous attempts from independent physical connections, selected-lab takeover, and abandoned-browser recovery:
+
+```powershell
+.\.venv\Scripts\python.exe database\tests\test_multiuser_session_concurrency.py
+```

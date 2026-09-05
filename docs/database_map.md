@@ -94,7 +94,9 @@ Each reference table includes `display_name`.
 
 `labs.wallet` and `labs.rating` remain the current aggregate state. Detailed explanations for changes are stored in `rating_events`.
 
-`labs.session_id` is an active lock, not permanent ownership. `exit_lab` and `logout_user` release it, while `reset_other_user_sessions` closes only the caller's other active sessions and releases their labs. Ownership remains defined by `labs.user_id`.
+`labs.session_id` is an active lock, not permanent ownership. `exit_lab` and `logout_user` release it. `load_lab`, `switch_lab`, and `start_new_lab` atomically release only the previous lab of the current session before activating another one. An occupied lab returns `-20072` without closing any session. Explicit `recover_lab_access` transfers only the selected own lab to the current session; the previous holder remains signed in and keeps its other labs. Ownership remains defined by `labs.user_id`.
+
+Lab lock transitions are serialized in Oracle per owner and completed while the selected lab row is locked. The older `reset_other_user_sessions` API remains for compatibility, but the web client does not use it as conflict recovery because it has a wider scope.
 
 `start_new_lab` keeps its original signature and also has a named overload. `rename_lab` validates the active session and ownership; `list_user_labs` is the source of current names for both the laboratory list and dashboard.
 

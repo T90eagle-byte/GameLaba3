@@ -100,7 +100,8 @@ Flask не строит последствия и не считает deltas; о
 
 - `labs.session_id` is nullable and represents only an active session lock.
 - `exit_lab` and `logout_user` persistently release held laboratories.
-- `reset_other_user_sessions` safely closes only other active sessions of the same user; the current and foreign-user sessions remain active.
-- The web client invokes that recovery API only after an exact `-20072` conflict, retries the requested open/delete action once, and has no manual old-session panel.
+- `load_lab`, `switch_lab`, and `start_new_lab` release only the previous lab of their current session; separate sessions of one user can keep different labs open.
+- A normal `-20072` conflict never closes sessions. The web client offers an explicit confirmed `recover_lab_access` action that atomically transfers only the selected own lab.
+- After transfer, the previous session stays active but loses access to that lab; other labs and other users are unaffected.
 - `labs.lab_name` is required after migration `02_add_lab_names.sql`; the legacy `start_new_lab` signature remains supported alongside the named overload and `rename_lab`.
 - Existing local schemas use `database/migrations/01_release_lab_session_bindings.sql` with the application stopped.

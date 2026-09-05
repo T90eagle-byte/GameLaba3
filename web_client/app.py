@@ -127,24 +127,14 @@ def create_app() -> Flask:
     def labs() -> Any:
         token = str(session["session_token"])
 
-        def run_with_session_recovery(action: Callable[[], None]) -> bool:
-            try:
-                action()
-                return False
-            except ServiceError as exc:
-                if str(exc) != LAB_SESSION_CONFLICT_MESSAGE:
-                    raise
-                lab_service.reset_other_user_sessions(token)
-                action()
-                return True
-
-        def close_current_lab() -> int | None:
-            current_lab_id = selected_lab_id()
-            if not current_lab_id:
-                return None
-            lab_service.exit_lab(token, current_lab_id)
-            session.pop("current_lab_id", None)
-            return current_lab_id
+        def remember_lab_conflict(lab_id: int) -> None:
+            session["pending_recovery_lab_id"] = lab_id
+            flash(
+                "Лаборатория занята другой вашей сессией. "
+                "Обычное открытие не прерывает её работу. "
+                "При необходимости подтвердите передачу доступа только к этой лаборатории.",
+                "warning",
+            )
 
         if request.method == "POST":
             action = request.form.get("action")
@@ -153,6 +143,7 @@ def create_app() -> Flask:
                     lab_name = request.form.get("lab_name", "").strip()
                     lab_id = lab_service.start_new_lab(token, lab_name or None)
                     session["current_lab_id"] = lab_id
+                    session.pop("pending_recovery_lab_id", None)
                     flash(f"Лаборатория #{lab_id} создана.", "success")
                     return redirect(url_for("dashboard"))
 
@@ -162,16 +153,31 @@ def create_app() -> Flask:
                     if current_lab_id == lab_id:
                         flash(f"Лаборатория #{lab_id} уже открыта.", "success")
                         return redirect(url_for("dashboard"))
-                    if current_lab_id:
-                        close_current_lab()
-                    recovered = run_with_session_recovery(
-                        lambda: lab_service.load_lab(token, lab_id)
-                    )
+                    try:
+                        lab_service.load_lab(token, lab_id)
+                    except ServiceError as exc:
+                        if str(exc) == LAB_SESSION_CONFLICT_MESSAGE:
+                            remember_lab_conflict(lab_id)
+                            return redirect(url_for("labs"))
+                        raise
                     session["current_lab_id"] = lab_id
-                    if recovered:
-                        flash("Старая сессия завершена. Лаборатория открыта.", "success")
-                    else:
-                        flash(f"Лаборатория #{lab_id} открыта.", "success")
+                    session.pop("pending_recovery_lab_id", None)
+                    flash(f"Лаборатория #{lab_id} открыта.", "success")
+                    return redirect(url_for("dashboard"))
+
+                if action == "recover":
+                    lab_id = int(request.form.get("lab_id", "0"))
+                    if lab_id <= 0 or request.form.get("confirm_recovery") != "yes":
+                        flash("Подтвердите передачу доступа к выбранной лаборатории.", "warning")
+                        return redirect(url_for("labs"))
+                    lab_service.recover_lab_access(token, lab_id)
+                    session["current_lab_id"] = lab_id
+                    session.pop("pending_recovery_lab_id", None)
+                    flash(
+                        "Доступ к лаборатории передан этой сессии. "
+                        "Другие лаборатории и сессии не затронуты.",
+                        "success",
+                    )
                     return redirect(url_for("dashboard"))
 
                 if action == "close_active":
@@ -179,7 +185,18 @@ def create_app() -> Flask:
                     if not lab_id:
                         flash("Активная лаборатория уже закрыта.", "warning")
                         return redirect(url_for("labs"))
-                    lab_service.exit_lab(token, lab_id)
+                    try:
+                        lab_service.exit_lab(token, lab_id)
+                    except ServiceError as exc:
+                        if str(exc) == LAB_SESSION_CONFLICT_MESSAGE:
+                            session.pop("current_lab_id", None)
+                            flash(
+                                "Эта лаборатория уже передана другой сессии. "
+                                "Локальный выбор очищен.",
+                                "warning",
+                            )
+                            return redirect(url_for("labs"))
+                        raise
                     session.pop("current_lab_id", None)
                     flash(f"Лаборатория #{lab_id} закрыта. Теперь можно открыть или удалить другую лабораторию.", "success")
                     return redirect(url_for("labs"))
@@ -188,15 +205,16 @@ def create_app() -> Flask:
                     lab_id = int(request.form.get("lab_id", "0"))
                     if lab_id <= 0:
                         raise ValueError
-                    if selected_lab_id():
-                        close_current_lab()
-                    recovered = run_with_session_recovery(
-                        lambda: lab_service.delete_lab(token, lab_id)
-                    )
-                    if recovered:
-                        flash("Старая сессия завершена. Лаборатория удалена.", "success")
-                    else:
-                        flash(f"Лаборатория #{lab_id} удалена.", "success")
+                    try:
+                        lab_service.delete_lab(token, lab_id)
+                    except ServiceError as exc:
+                        if str(exc) == LAB_SESSION_CONFLICT_MESSAGE:
+                            remember_lab_conflict(lab_id)
+                            return redirect(url_for("labs"))
+                        raise
+                    session.pop("current_lab_id", None)
+                    session.pop("pending_recovery_lab_id", None)
+                    flash(f"Лаборатория #{lab_id} удалена.", "success")
                     return redirect(url_for("labs"))
 
                 if action == "rename":
@@ -204,7 +222,15 @@ def create_app() -> Flask:
                     lab_name = request.form.get("lab_name", "")
                     if lab_id <= 0:
                         raise ValueError
-                    lab_service.rename_lab(token, lab_id, lab_name)
+                    try:
+                        lab_service.rename_lab(token, lab_id, lab_name)
+                    except ServiceError as exc:
+                        if str(exc) == LAB_SESSION_CONFLICT_MESSAGE:
+                            remember_lab_conflict(lab_id)
+                            return redirect(url_for("labs"))
+                        raise
+                    session["current_lab_id"] = lab_id
+                    session.pop("pending_recovery_lab_id", None)
                     flash("Название лаборатории обновлено.", "success")
                     return redirect(url_for("labs"))
 
@@ -229,7 +255,19 @@ def create_app() -> Flask:
             ),
             None,
         )
-        return render_template("labs.html", labs=labs_rows, current_lab=current_lab)
+        pending_recovery_lab_id = session.get("pending_recovery_lab_id")
+        if not any(
+            str(lab["lab_id"]) == str(pending_recovery_lab_id)
+            for lab in labs_rows
+        ):
+            session.pop("pending_recovery_lab_id", None)
+            pending_recovery_lab_id = None
+        return render_template(
+            "labs.html",
+            labs=labs_rows,
+            current_lab=current_lab,
+            pending_recovery_lab_id=pending_recovery_lab_id,
+        )
 
     @app.route("/dashboard")
     @login_required

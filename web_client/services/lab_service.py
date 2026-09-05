@@ -74,6 +74,17 @@ def load_lab(session_token: str, lab_id: int) -> None:
     run_db(action)
 
 
+def recover_lab_access(session_token: str, lab_id: int) -> None:
+    def action(connection: oracledb.Connection) -> None:
+        with connection.cursor() as cursor:
+            cursor.callproc(
+                "pkg_genetics_game.recover_lab_access",
+                [session_token, lab_id],
+            )
+
+    run_db(action)
+
+
 def switch_lab(session_token: str, lab_id: int) -> None:
     def action(connection: oracledb.Connection) -> None:
         with connection.cursor() as cursor:
@@ -113,14 +124,6 @@ def exit_lab(session_token: str, lab_id: int) -> None:
         with connection.cursor() as cursor:
             cursor.callproc("pkg_genetics_game.load_lab", [session_token, lab_id])
             cursor.callproc("pkg_genetics_game.exit_lab", [lab_id])
-
-    run_db(action)
-
-
-def reset_other_user_sessions(session_token: str) -> None:
-    def action(connection: oracledb.Connection) -> None:
-        with connection.cursor() as cursor:
-            cursor.callproc("pkg_genetics_game.reset_other_user_sessions", [session_token])
 
     run_db(action)
 

@@ -17,7 +17,7 @@
       <p class="eyebrow">Активная сессия</p>
       <h2>Сейчас открыта {{ current_lab.lab_name if current_lab else 'лаборатория' }}</h2>
       <p class="muted">Лаборатория #{{ current_lab_id }}</p>
-      <p class="muted">Перед открытием или удалением другой лаборатории закройте активную лабораторию. Это обычное безопасное действие: оно закрывает текущую лабораторию и освобождает выбор другой.</p>
+      <p class="muted">При открытии другой свободной лаборатории текущая закроется автоматически. Можно закрыть её заранее этой кнопкой.</p>
     </div>
     <div class="button-row active-lab-actions">
       <a class="button" href="{{ url_for('dashboard') }}">Перейти в обзор</a>
@@ -43,9 +43,6 @@
   </article>
   <article class="panel">
     <h2>Ваши лаборатории</h2>
-    {% if current_lab_id %}
-      <p class="session-hint">Если действие с другой лабораторией заблокировано, сначала нажмите «Закрыть активную лабораторию», затем повторите открытие или удаление.</p>
-    {% endif %}
     {% if labs %}
       <div class="lab-list">
         {% for lab in labs %}
@@ -76,6 +73,21 @@
                   <button type="submit">Сохранить</button>
                 </form>
               </details>
+              {% if pending_recovery_lab_id and lab.lab_id|string == pending_recovery_lab_id|string %}
+                <details class="lab-recovery">
+                  <summary>Восстановить доступ</summary>
+                  <p class="muted">Передача отключит эту лабораторию в прежней сессии. Другие лаборатории и сессии продолжат работу.</p>
+                  <form method="post" class="compact-form">
+                    <input type="hidden" name="action" value="recover">
+                    <input type="hidden" name="lab_id" value="{{ lab.lab_id }}">
+                    <label class="confirm-field">
+                      <input type="checkbox" name="confirm_recovery" value="yes" required>
+                      Передать лабораторию этой сессии
+                    </label>
+                    <button class="warning" type="submit">Подтвердить передачу</button>
+                  </form>
+                </details>
+              {% endif %}
             </div>
           </div>
         {% endfor %}

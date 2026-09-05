@@ -12,6 +12,8 @@ declare
     v_user1_id number;
     v_user2_id number;
     v_lab1_id number;
+    v_lab1b_id number;
+    v_lab1c_id number;
     v_lab2_id number;
     v_creature1_id number;
     v_creature2_id number;
@@ -116,20 +118,20 @@ declare
     procedure direct_cleanup is
     begin
         begin
-            delete from rating_events where lab_id in (v_lab1_id, v_lab2_id);
-            delete from lab_tasks where lab_id in (v_lab1_id, v_lab2_id);
-            delete from lab_mutations where lab_id in (v_lab1_id, v_lab2_id);
-            delete from experiments where lab_id in (v_lab1_id, v_lab2_id);
+            delete from rating_events where lab_id in (v_lab1_id, v_lab1b_id, v_lab1c_id, v_lab2_id);
+            delete from lab_tasks where lab_id in (v_lab1_id, v_lab1b_id, v_lab1c_id, v_lab2_id);
+            delete from lab_mutations where lab_id in (v_lab1_id, v_lab1b_id, v_lab1c_id, v_lab2_id);
+            delete from experiments where lab_id in (v_lab1_id, v_lab1b_id, v_lab1c_id, v_lab2_id);
 
             delete from genotypes
              where creature_id in (
                     select c.creature_id
                       from creatures c
-                     where c.lab_id in (v_lab1_id, v_lab2_id)
+                     where c.lab_id in (v_lab1_id, v_lab1b_id, v_lab1c_id, v_lab2_id)
              );
 
-            delete from creatures where lab_id in (v_lab1_id, v_lab2_id);
-            delete from labs where lab_id in (v_lab1_id, v_lab2_id);
+            delete from creatures where lab_id in (v_lab1_id, v_lab1b_id, v_lab1c_id, v_lab2_id);
+            delete from labs where lab_id in (v_lab1_id, v_lab1b_id, v_lab1c_id, v_lab2_id);
 
             delete from sessions where user_id in (v_user1_id, v_user2_id);
             delete from users where user_id in (v_user1_id, v_user2_id);
@@ -350,6 +352,13 @@ begin
     );
     assert_true(v_session1b is not null, 'login user1 session2');
 
+    pkg_genetics_game.start_new_lab(
+        p_session_token => v_session1b,
+        p_lab_name      => 'Independent session lab',
+        p_lab_id        => v_lab1b_id
+    );
+    assert_true(v_lab1b_id is not null, 'same user session2 starts independent lab');
+
     begin
         pkg_genetics_game.load_lab(v_session1b, v_lab1_id);
         expect_error('same lab blocked in second active session', -20072);
@@ -362,6 +371,15 @@ begin
             end if;
     end;
 
+    select count(*)
+      into v_tmp
+      from labs l
+     where l.lab_id = v_lab1b_id
+       and l.session_id = (
+           select s.session_id from sessions s where s.session_token = v_session1b
+       );
+    assert_true(v_tmp = 1, 'opening conflict keeps session2 independent lab locked');
+
     pkg_genetics_game.load_lab(v_session1, v_lab1_id);
     pkg_genetics_game.exit_lab(v_lab1_id);
 
@@ -373,7 +391,15 @@ begin
     assert_true(v_tmp = 1, 'exit_lab releases persistent lab session binding');
 
     pkg_genetics_game.load_lab(v_session1b, v_lab1_id);
-    pass_test('session2 can open lab after exit_lab');
+    pass_test('session2 can switch to lab after exit_lab');
+
+    select count(*)
+      into v_tmp
+      from labs l
+     where l.lab_id = v_lab1b_id
+       and l.session_id is null;
+    assert_true(v_tmp = 1, 'switching releases only previous lab of current session');
+
     pkg_genetics_game.exit_lab(v_lab1_id);
 
     pkg_genetics_game.load_lab(v_session1, v_lab1_id);
@@ -396,39 +422,73 @@ begin
     );
     assert_true(v_session1c is not null, 'login user1 recovery session');
 
-    pkg_genetics_game.reset_other_user_sessions(v_session1c);
-    pass_test('reset other user sessions');
+    pkg_genetics_game.start_new_lab(
+        p_session_token => v_session1c,
+        p_lab_name      => 'Recovery session lab',
+        p_lab_id        => v_lab1c_id
+    );
+    assert_true(v_lab1c_id is not null, 'recovery session starts independent lab');
+
+    begin
+        pkg_genetics_game.load_lab(v_session1c, v_lab1_id);
+        expect_error('ordinary load does not take lab from active session', -20072);
+    exception
+        when others then
+            if sqlcode = -20072 then
+                pass_test('ordinary load does not take lab from active session');
+            else
+                fail_test('ordinary load does not take lab from active session', sqlcode || ' / ' || sqlerrm);
+            end if;
+    end;
 
     select count(*)
       into v_tmp
-      from sessions s
-     where s.session_token = v_session1b
-       and s.status = 'CLOSED';
-    assert_true(v_tmp = 1, 'reset closes another active session of same user');
+      from labs l
+     where l.lab_id = v_lab1c_id
+       and l.session_id = (
+           select s.session_id from sessions s where s.session_token = v_session1c
+       );
+    assert_true(v_tmp = 1, 'ordinary conflict preserves recovery session current lab');
+
+    pkg_genetics_game.recover_lab_access(v_session1c, v_lab1_id);
+    pass_test('selected lab access recovered explicitly');
 
     select count(*)
       into v_tmp
       from sessions s
      where s.session_token = v_session1c
        and s.status = 'ACTIVE';
-    assert_true(v_tmp = 1, 'reset keeps current session active');
+    assert_true(v_tmp = 1, 'recovery keeps current session active');
+
+    select count(*)
+      into v_tmp
+      from sessions s
+     where s.session_token = v_session1b
+       and s.status = 'ACTIVE';
+    assert_true(v_tmp = 1, 'recovery does not close previous holder session');
 
     select count(*)
       into v_tmp
       from sessions s
      where s.session_token = v_session2
        and s.status = 'ACTIVE';
-    assert_true(v_tmp = 1, 'reset does not close another user session');
+    assert_true(v_tmp = 1, 'recovery does not close another user session');
 
     select count(*)
       into v_tmp
       from labs l
      where l.lab_id = v_lab1_id
-       and l.session_id is null;
-    assert_true(v_tmp = 1, 'reset releases labs held by old sessions');
+       and l.session_id = (
+           select s.session_id from sessions s where s.session_token = v_session1c
+       );
+    assert_true(v_tmp = 1, 'recovery transfers only selected lab lock');
 
-    pkg_genetics_game.load_lab(v_session1c, v_lab1_id);
-    pass_test('current session can load released lab after reset');
+    select count(*)
+      into v_tmp
+      from labs l
+     where l.lab_id = v_lab1c_id
+       and l.session_id is null;
+    assert_true(v_tmp = 1, 'recovery releases previous lab of current session');
 
     pkg_genetics_game.get_lab_stats(
         p_lab_id               => v_lab1_id,
@@ -439,19 +499,31 @@ begin
         p_completed_task_count => v_completed_task_count,
         p_experiment_count     => v_experiment_count
     );
-    pass_test('gameplay works in current session after reset');
+    pass_test('gameplay works in current session after recovery');
 
     begin
         pkg_genetics_game.load_lab(v_session1b, v_lab1_id);
-        expect_error('reset old session cannot reopen lab', -20020);
+        expect_error('previous holder cannot reopen recovered lab', -20072);
     exception
         when others then
-            if sqlcode = -20020 then
-                pass_test('reset old session cannot reopen lab');
+            if sqlcode = -20072 then
+                pass_test('previous holder cannot reopen recovered lab');
             else
-                fail_test('reset old session cannot reopen lab', sqlcode || ' / ' || sqlerrm);
+                fail_test('previous holder cannot reopen recovered lab', sqlcode || ' / ' || sqlerrm);
             end if;
     end;
+
+    pkg_genetics_game.load_lab(v_session1b, v_lab1b_id);
+    pass_test('previous holder session remains usable with another lab');
+
+    select count(*)
+      into v_tmp
+      from labs l
+     where l.lab_id = v_lab1_id
+       and l.session_id = (
+           select s.session_id from sessions s where s.session_token = v_session1c
+       );
+    assert_true(v_tmp = 1, 'other session activity does not disturb recovered lab');
 
     begin
         pkg_genetics_game.rename_lab(v_session2, v_lab1_id, 'Чужая лаборатория');
@@ -470,6 +542,8 @@ begin
     dbms_output.put_line('Failed: ' || v_failed);
 
     safe_delete_lab(v_session1c, v_lab1_id);
+    safe_delete_lab(v_session1b, v_lab1b_id);
+    safe_delete_lab(v_session1c, v_lab1c_id);
     safe_delete_lab(v_session2, v_lab2_id);
     safe_logout(v_session1b);
     safe_logout(v_session1c);
@@ -484,6 +558,8 @@ exception
         dbms_output.put_line('[ERROR] Unhandled exception in 08_multiuser_sessions_smoke_test: ' || sqlcode || ' / ' || sqlerrm);
 
         safe_delete_lab(v_session1c, v_lab1_id);
+        safe_delete_lab(v_session1b, v_lab1b_id);
+        safe_delete_lab(v_session1c, v_lab1c_id);
         safe_delete_lab(v_session2, v_lab2_id);
         safe_logout(v_session1);
         safe_logout(v_session1b);
@@ -494,4 +570,3 @@ exception
         raise;
 end;
 /
-
