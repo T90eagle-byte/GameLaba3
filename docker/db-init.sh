@@ -127,6 +127,7 @@ set define off serveroutput on size unlimited verify off
 @/workspace/database/migrations/01_release_lab_session_bindings.sql
 @/workspace/database/migrations/02_add_lab_names.sql
 @/workspace/database/seeds/01_seed_core_game_data.sql
+@/workspace/database/migrations/03_align_task_requirement_descriptions.sql
 @/workspace/database/packages/spec/pkg_genetics_game.pks
 @/workspace/database/packages/body/pkg_genetics_game.pkb
 

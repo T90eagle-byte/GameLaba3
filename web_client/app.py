@@ -16,7 +16,8 @@ from flask import (
 
 from config import load_config
 from services import auth_service, creature_service, crossbreed_service, display_service, history_service, lab_service, mutation_service, rating_service, task_service
-from services.oracle import LAB_SESSION_CONFLICT_MESSAGE, ServiceError, check_connection
+from services.oracle import LAB_SESSION_CONFLICT_MESSAGE, ServiceError
+from services.readiness_service import runtime_readiness
 
 
 ViewFunc = TypeVar("ViewFunc", bound=Callable[..., Any])
@@ -624,9 +625,13 @@ def create_app() -> Flask:
         return render_template("rating_events.html", events=display_service.rating_event_views(rows), lab_id=lab_id)
     @app.route("/health")
     def health() -> Any:
-        database = check_connection()
-        status = 200 if database["ok"] else 503
-        return jsonify({"app": "ok", "database": database}), status
+        report = runtime_readiness()
+        status = 200 if report["database"]["connected"] and report["schema"]["ready"] else 503
+        return jsonify(report), status
+
+    @app.route("/health/live")
+    def health_live() -> Any:
+        return jsonify({"app": {"ok": True}}), 200
 
     @app.errorhandler(404)
     def not_found(_: Exception) -> Any:

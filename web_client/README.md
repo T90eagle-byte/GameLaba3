@@ -52,7 +52,8 @@ http://127.0.0.1:8000
 
 ## Маршруты
 
-- `/health` — проверка приложения и Oracle.
+- `/health` — полная readiness-проверка Oracle и игровой схемы; `200` означает готовность, `503` — web жив, но Oracle или схема требуют внимания.
+- `/health/live` — liveness web-процесса без обращения к Oracle.
 - `/register`, `/login`, `/logout` — регистрация, вход и выход.
 - `/labs` — создание, открытие, переименование и удаление лаборатории. Занятая лаборатория не прерывает другие сессии: передачу доступа только к ней нужно подтвердить отдельно.
 - `/dashboard` — обзор выбранной лаборатории с её актуальным названием и быстрый маршрут защиты.
@@ -83,6 +84,20 @@ http://127.0.0.1:8000
 ```
 
 Скрипт использует Flask test client и package-backed service wrappers. Он не использует gameplay SQL и создаёт тестового пользователя/лабораторию в настроенной Oracle DB.
+
+## Readiness перед защитой
+
+```powershell
+.\.venv\Scripts\python.exe database\scripts\check_runtime_readiness.py
+```
+
+Команда завершается с кодом `0`, только если Oracle доступна, обязательные таблицы и seed-данные существуют, миграционные инварианты соблюдены, package spec/body имеют статус `VALID`, в `user_errors` нет ошибок package и присутствуют все вызовы API, используемые web-клиентом. Проверка demo-набора ЛР3 остаётся отдельной:
+
+```powershell
+.\.venv\Scripts\python.exe database\scripts\check_lr3_demo_data.py
+```
+
+Если `/health/live` отвечает, а `/health` или readiness-check возвращают `503`/ненулевой код, сначала проверьте `.env`, Oracle/Docker и `database\scripts\run_tests.py`. Для существующей схемы примените недостающие миграции из `database\migrations` при остановленном приложении, затем повторите readiness-check.
 
 ## Troubleshooting
 
