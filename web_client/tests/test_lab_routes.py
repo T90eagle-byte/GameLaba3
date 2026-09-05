@@ -335,6 +335,36 @@ class LabRouteTests(unittest.TestCase):
         self.assertNotIn(b"task_armored_crustacean", response.data)
         self.assertNotIn(b"task_future_unknown", response.data)
 
+    @patch.object(app_module.creature_service, "get_creatures", return_value=[])
+    @patch.object(app_module.task_service, "get_tasks")
+    def test_tasks_page_explains_that_orders_check_carrier_alleles(
+        self,
+        get_tasks: Mock,
+        _get_creatures: Mock,
+    ) -> None:
+        get_tasks.return_value = [
+            {
+                "task_id": 2,
+                "task_name": "task_winged_specimen",
+                "task_display_name": "task_winged_specimen",
+                "description": "Найдите существо с крыльями.",
+                "reward_money": 120,
+                "reward_rating": 12,
+                "difficulty_code": "EASY",
+                "task_status": "ACTIVE",
+            }
+        ]
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/tasks")
+
+        self.assertEqual(response.status_code, 200)
+        markup = response.get_data(as_text=True)
+        self.assertIn("Генетическое условие", markup)
+        self.assertIn("внешние крылья могут не проявиться", markup.lower())
+        self.assertIn("хотя бы в одной из двух копий гена", markup)
+
 
 if __name__ == "__main__":
     unittest.main()

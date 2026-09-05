@@ -58,6 +58,26 @@ declare
     v_secondary_task_id           number;
     v_completion_done             number := 0;
 
+    v_marker_task_id               number;
+    v_multi_marker_task_id         number;
+    v_marker_lab_task_id           number;
+    v_multi_marker_lab_task_id     number;
+    v_wings_gene_id                number;
+    v_wings_allele_id              number;
+    v_no_wings_allele_id           number;
+    v_color_gene_id                number;
+    v_green_allele_id              number;
+    v_red_allele_id                number;
+    v_wings_genotype_id            number;
+    v_color_genotype_id            number;
+    v_wings_original_allele1_id    number;
+    v_wings_original_allele2_id    number;
+    v_color_original_allele1_id    number;
+    v_color_original_allele2_id    number;
+    v_marker_phenotype             varchar2(4000);
+    v_wallet_after_marker_complete number;
+    v_wallet_after_marker_repeat   number;
+
     v_active_task_count_before    number := 0;
     v_active_task_count_after     number := 0;
     v_total_task_count_before     number := 0;
@@ -98,6 +118,34 @@ declare
 
     procedure cleanup_test_data is
     begin
+        begin
+            if v_wings_genotype_id is not null then
+                update genotypes
+                   set allele1_id = v_wings_original_allele1_id,
+                       allele2_id = v_wings_original_allele2_id
+                 where genotype_id = v_wings_genotype_id;
+            end if;
+
+            if v_color_genotype_id is not null then
+                update genotypes
+                   set allele1_id = v_color_original_allele1_id,
+                       allele2_id = v_color_original_allele2_id
+                 where genotype_id = v_color_genotype_id;
+            end if;
+
+            delete from rating_events
+             where task_id in (v_marker_task_id, v_multi_marker_task_id);
+            delete from lab_tasks
+             where task_id in (v_marker_task_id, v_multi_marker_task_id);
+            delete from task_markers
+             where task_id in (v_marker_task_id, v_multi_marker_task_id);
+            delete from tasks
+             where task_id in (v_marker_task_id, v_multi_marker_task_id);
+        exception
+            when others then
+                dbms_output.put_line('[WARN] cleanup marker semantics: ' || sqlcode || ' / ' || sqlerrm);
+        end;
+
         if v_session_token is not null and v_secondary_lab_id is not null then
             begin
                 pkg_genetics_game.delete_lab(
@@ -587,6 +635,155 @@ begin
                         'unexpected sqlcode=' || to_char(sqlcode) || ' message=' || sqlerrm
                     );
                 end if;
+        end;
+    end if;
+
+    -- Controlled LR2 marker semantics: each required allele may be in either genotype slot.
+    if v_lab_id is not null and v_probe_creature_id is not null then
+        begin
+            select
+                g.gene_id,
+                max(case when a.description = 'wings' then a.allele_id end),
+                max(case when a.description = 'no_wings' then a.allele_id end)
+              into v_wings_gene_id, v_wings_allele_id, v_no_wings_allele_id
+              from genes g
+              join alleles a
+                on a.gene_id = g.gene_id
+             where g.gene_name = 'has_wings'
+               and g.species_type = 0
+             group by g.gene_id;
+
+            select
+                g.gene_id,
+                max(case when a.description = 'green_color' then a.allele_id end),
+                max(case when a.description = 'red_color' then a.allele_id end)
+              into v_color_gene_id, v_green_allele_id, v_red_allele_id
+              from genes g
+              join alleles a
+                on a.gene_id = g.gene_id
+             where g.gene_name = 'color'
+               and g.species_type = 0
+             group by g.gene_id;
+
+            select genotype_id, allele1_id, allele2_id
+              into v_wings_genotype_id, v_wings_original_allele1_id, v_wings_original_allele2_id
+              from genotypes
+             where creature_id = v_probe_creature_id
+               and gene_id = v_wings_gene_id;
+
+            select genotype_id, allele1_id, allele2_id
+              into v_color_genotype_id, v_color_original_allele1_id, v_color_original_allele2_id
+              from genotypes
+             where creature_id = v_probe_creature_id
+               and gene_id = v_color_gene_id;
+
+            v_marker_task_id := tasks_seq.nextval;
+            insert into tasks (
+                task_id, task_name, description, money_reward, rating_reward, difficulty_code, created_at
+            ) values (
+                v_marker_task_id,
+                'task_marker_slot_' || substr(v_login, 2, 12),
+                'Controlled task-marker semantics test',
+                7, 3, 'EASY', systimestamp
+            );
+            insert into task_markers (task_marker_id, task_id, allele_id)
+            values (task_markers_seq.nextval, v_marker_task_id, v_wings_allele_id);
+            v_marker_lab_task_id := lab_tasks_seq.nextval;
+            insert into lab_tasks (lab_task_id, lab_id, task_id, task_status, assigned_at, completed_at)
+            values (v_marker_lab_task_id, v_lab_id, v_marker_task_id, 'ACTIVE', systimestamp, null);
+
+            update genotypes
+               set allele1_id = v_wings_allele_id,
+                   allele2_id = v_wings_allele_id
+             where genotype_id = v_wings_genotype_id;
+            v_check_result := pkg_genetics_game.check_task(v_lab_id, v_marker_task_id, v_probe_creature_id);
+            assert_true(v_check_result = 1, 'marker allele in both slots completes task', 'actual=' || v_check_result);
+
+            update genotypes
+               set allele1_id = v_wings_allele_id,
+                   allele2_id = v_no_wings_allele_id
+             where genotype_id = v_wings_genotype_id;
+            v_check_result := pkg_genetics_game.check_task(v_lab_id, v_marker_task_id, v_probe_creature_id);
+            v_marker_phenotype := pkg_genetics_game.get_phenotype(v_probe_creature_id);
+            assert_true(v_check_result = 1, 'marker allele in one slot completes task', 'actual=' || v_check_result);
+            assert_true(instr(v_marker_phenotype, 'has_wings=no_wings') > 0,
+                'recessive wings carrier keeps non-winged phenotype', v_marker_phenotype);
+
+            update genotypes
+               set allele1_id = v_no_wings_allele_id,
+                   allele2_id = v_no_wings_allele_id
+             where genotype_id = v_wings_genotype_id;
+            v_check_result := pkg_genetics_game.check_task(v_lab_id, v_marker_task_id, v_probe_creature_id);
+            assert_true(v_check_result = 0, 'missing marker allele does not complete task', 'actual=' || v_check_result);
+
+            v_multi_marker_task_id := tasks_seq.nextval;
+            insert into tasks (
+                task_id, task_name, description, money_reward, rating_reward, difficulty_code, created_at
+            ) values (
+                v_multi_marker_task_id,
+                'task_marker_multi_' || substr(v_login, 2, 12),
+                'Controlled multi-marker semantics test',
+                9, 4, 'MEDIUM', systimestamp
+            );
+            insert into task_markers (task_marker_id, task_id, allele_id)
+            values (task_markers_seq.nextval, v_multi_marker_task_id, v_wings_allele_id);
+            insert into task_markers (task_marker_id, task_id, allele_id)
+            values (task_markers_seq.nextval, v_multi_marker_task_id, v_green_allele_id);
+            v_multi_marker_lab_task_id := lab_tasks_seq.nextval;
+            insert into lab_tasks (lab_task_id, lab_id, task_id, task_status, assigned_at, completed_at)
+            values (v_multi_marker_lab_task_id, v_lab_id, v_multi_marker_task_id, 'ACTIVE', systimestamp, null);
+
+            update genotypes
+               set allele1_id = v_wings_allele_id,
+                   allele2_id = v_no_wings_allele_id
+             where genotype_id = v_wings_genotype_id;
+            update genotypes
+               set allele1_id = v_green_allele_id,
+                   allele2_id = v_green_allele_id
+             where genotype_id = v_color_genotype_id;
+            v_check_result := pkg_genetics_game.check_task(v_lab_id, v_multi_marker_task_id, v_probe_creature_id);
+            assert_true(v_check_result = 1, 'all task markers must match together', 'actual=' || v_check_result);
+
+            update genotypes
+               set allele1_id = v_red_allele_id,
+                   allele2_id = v_red_allele_id
+             where genotype_id = v_color_genotype_id;
+            v_check_result := pkg_genetics_game.check_task(v_lab_id, v_multi_marker_task_id, v_probe_creature_id);
+            assert_true(v_check_result = 0, 'one missing marker blocks multi-marker task', 'actual=' || v_check_result);
+
+            update genotypes
+               set allele1_id = v_wings_allele_id,
+                   allele2_id = v_wings_allele_id
+             where genotype_id = v_wings_genotype_id;
+            select wallet into v_wallet_before from labs where lab_id = v_lab_id;
+            pkg_genetics_game.complete_task(
+                v_lab_id, v_marker_task_id, v_probe_creature_id,
+                v_is_completed, v_wallet_after, v_rating_after
+            );
+            select wallet into v_wallet_after_marker_complete from labs where lab_id = v_lab_id;
+            assert_true(v_is_completed = 1 and v_wallet_after_marker_complete > v_wallet_before,
+                'marker task reward is issued once');
+
+            begin
+                pkg_genetics_game.complete_task(
+                    v_lab_id, v_marker_task_id, v_probe_creature_id,
+                    v_is_completed, v_wallet_after, v_rating_after
+                );
+                fail_test('marker task repeat completion is blocked', 'expected -20064');
+            exception
+                when others then
+                    if sqlcode = -20064 then
+                        pass_test('marker task repeat completion is blocked');
+                    else
+                        fail_test('marker task repeat completion is blocked', sqlcode || ' / ' || sqlerrm);
+                    end if;
+            end;
+            select wallet into v_wallet_after_marker_repeat from labs where lab_id = v_lab_id;
+            assert_true(v_wallet_after_marker_repeat = v_wallet_after_marker_complete,
+                'repeat completion does not duplicate marker task reward');
+        exception
+            when others then
+                fail_test('controlled task-marker semantics', sqlcode || ' / ' || sqlerrm);
         end;
     end if;
 

@@ -109,6 +109,16 @@ the application stopped and run the next migration separately:
 It fills existing rows with `Био-мастерская #<lab_id>` and then makes
 `labs.lab_name` mandatory. Do not rerun an already applied migration.
 
+For an existing schema with legacy phenotype-oriented task descriptions, run
+the idempotent data migration after stopping the application:
+
+```sql
+@database/migrations/03_align_task_requirement_descriptions.sql
+```
+
+It only clarifies task text. Task markers and the genotype-based `check_task`
+rule are unchanged.
+
 ## 2) Run core seed data
 
 ```sql

@@ -25,7 +25,7 @@ Species-specific traits are stored in the same `genes` / `alleles` / `genotypes`
 - `crossbreed` creates the real offspring and records the experiment.
 
 ## Tasks as Client Orders
-Tasks are marker-based backend checks. A task describes the requested organism, task markers define required traits, and `check_task` / `complete_task` validate the creature against those markers.
+Tasks are marker-based backend checks. A task marker is a required allele: `check_task` accepts it when it is present in either allele slot of the matching genotype, and all markers of one task must match. A carrier of a recessive allele can therefore complete an order even when the corresponding phenotype is not visible.
 
 For defense and future web UI, the task screen should be presented as “Заказы клиента”. Current backend verifies the final traits; it does not yet enforce strict provenance such as “this exact creature must have been created by a specific crossbreed operation”.
 

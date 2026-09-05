@@ -5,7 +5,7 @@
   <div>
     <p class="eyebrow">Доска заказов</p>
     <h1>Заказы клиентов</h1>
-    <p class="lead">Каждый заказ описывает организм с нужными признаками. Выберите существо, проверьте соответствие и сдайте заказ, когда цель достигнута.</p>
+    <p class="lead">Заказы проверяются по генетическим вариантам: достаточно, чтобы каждый нужный аллель был хотя бы в одной из двух копий гена. Внешний признак может не проявиться.</p>
   </div>
 </section>
 {% macro order_card(task, completed=False) %}
@@ -17,6 +17,7 @@
       </div>
       <span class="badge {{ task.status_class }}">{{ task.status_label }}</span>
     </div>
+    <p class="eyebrow">{{ task.requirement_label }}</p>
     <p class="summary">{{ task.description_text }}</p>
     <div class="badge-row">
       <span class="badge">Сложность: {{ task.difficulty_label }}</span>

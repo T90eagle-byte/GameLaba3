@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from web_client.services.display_service import TASK_LABELS, creature_visual, genotype_view, phenotype_items, task_view
+from web_client.services.display_service import TASK_DESCRIPTIONS, TASK_LABELS, creature_visual, genotype_view, phenotype_items, task_view
 
 
 def visual(species: str, summary: str) -> dict[str, str]:
@@ -192,6 +192,19 @@ class TaskDisplayTests(unittest.TestCase):
                 task = task_view({"task_name": code, "task_display_name": code})
                 self.assertEqual(task["display_name"], expected)
                 self.assertFalse(task["display_name"].lower().startswith("task_"))
+
+    def test_all_known_tasks_explain_genetic_carrier_condition(self) -> None:
+        self.assertEqual(set(TASK_DESCRIPTIONS), set(TASK_LABELS))
+        for code in TASK_LABELS:
+            with self.subTest(code=code):
+                task = task_view({"task_name": code, "description": "устаревшая фенотипическая формулировка"})
+                self.assertIn("носительство", task["description_text"].lower())
+                self.assertEqual(task["requirement_label"], "Генетическое условие")
+
+    def test_wings_order_explains_recessive_carrier_case(self) -> None:
+        task = task_view({"task_name": "task_winged_specimen"})
+        self.assertEqual(task["display_name"], "Носитель аллеля крыльев")
+        self.assertIn("могут не проявиться", task["description_text"])
 
     def test_unknown_internal_task_uses_safe_fallback_and_keeps_diagnostic_code(self) -> None:
         task = task_view({"task_name": "task_future_unknown", "task_display_name": "task_future_unknown"})

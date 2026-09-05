@@ -104,7 +104,7 @@ DOMINANCE_LABELS = {
 
 TASK_LABELS = {
     "task_green_specimen": "Зелёное существо",
-    "task_winged_specimen": "Крылатое существо",
+    "task_winged_specimen": "Носитель аллеля крыльев",
     "task_fast_turtle": "Быстрая черепаха",
     "task_predator_fish_line": "Линия хищных рыб",
     "task_armored_crustacean": "Бронированный ракообразный",
@@ -117,7 +117,7 @@ TASK_LABELS = {
     "task_mammal_short_fur": "Короткошёрстное млекопитающее",
     "task_red_specimen": "Красное существо",
     "task_medium_specimen": "Существо среднего размера",
-    "task_winged_red_specimen": "Красное крылатое существо",
+    "task_winged_red_specimen": "Носитель аллелей крыльев и красного окраса",
     "task_crescent_fin_cartilaginous": "Хрящевая рыба с серповидным плавником",
     "task_ribbon_fin_bony": "Костная рыба с ленточным плавником",
     "task_hooked_crustacean": "Ракообразное с крючковатыми клешнями",
@@ -127,10 +127,27 @@ TASK_LABELS = {
 }
 
 TASK_DESCRIPTIONS = {
-    "task_green_specimen": "Клиент просит вывести существо с зелёным окрасом.",
-    "task_winged_specimen": "Клиенту нужен организм с крыльями.",
-    "task_fast_turtle": "Нужно получить быструю черепаху для специального заказа.",
-    "task_predator_fish_line": "Отберите костную рыбу с хищным типом питания и развивайте линию через скрещивание и мутации.",
+    "task_green_specimen": "Требуется носительство генетического варианта «зелёный окрас».",
+    "task_winged_specimen": "Требуется носительство генетического варианта «крылья». Внешние крылья могут не проявиться.",
+    "task_fast_turtle": "Требуется носительство обоих генетических вариантов: «быстрая скорость» и «гладкий панцирь».",
+    "task_predator_fish_line": "Требуется носительство обоих генетических вариантов: «хищное питание» и «раздвоенный плавник».",
+    "task_armored_crustacean": "Требуется носительство генетических вариантов: «толстый панцирь», «длинные клешни» и «крупный размер».",
+    "task_dense_fur_mammal": "Требуется носительство генетических вариантов: «густая шерсть» и «зелёный окрас».",
+    "task_cartilaginous_fin_line": "Требуется носительство генетических вариантов: «широкий плавник» и «хищное питание».",
+    "task_mollusk_sharp_profile": "Требуется носительство генетических вариантов: «острый клюв» и «зелёный окрас».",
+    "task_large_specimen": "Требуется носительство генетического варианта «крупный размер».",
+    "task_herbivore_line": "Требуется носительство генетического варианта «травоядное питание».",
+    "task_spiked_turtle": "Требуется носительство генетических вариантов: «шипастый панцирь» и «быстрая скорость».",
+    "task_mammal_short_fur": "Требуется носительство генетических вариантов: «короткая шерсть» и «компактный размер».",
+    "task_red_specimen": "Требуется носительство генетического варианта «красный окрас».",
+    "task_medium_specimen": "Требуется носительство генетического варианта «средний размер».",
+    "task_winged_red_specimen": "Требуется носительство обоих генетических вариантов: «крылья» и «красный окрас». Внешние крылья могут не проявиться.",
+    "task_crescent_fin_cartilaginous": "Требуется носительство генетических вариантов: «серповидный плавник» и «хищное питание».",
+    "task_ribbon_fin_bony": "Требуется носительство генетических вариантов: «ленточный плавник» и «крупный размер».",
+    "task_hooked_crustacean": "Требуется носительство генетических вариантов: «крючковатые клешни» и «ребристый панцирь».",
+    "task_spiral_mollusk": "Требуется носительство генетических вариантов: «спиральный профиль» и «фиолетовый окрас».",
+    "task_plated_turtle": "Требуется носительство генетических вариантов: «пластинчатый панцирь» и «быстрая скорость».",
+    "task_soft_fur_mammal": "Требуется носительство генетических вариантов: «мягкая шерсть» и «белый окрас».",
 }
 
 MUTATION_LABELS = {
@@ -751,7 +768,7 @@ def task_view(row: dict[str, Any]) -> dict[str, Any]:
     description = _text(row.get("description") or row.get("task_description") or row.get("goal_description"))
     if not description or code in TASK_DESCRIPTIONS:
         description = TASK_DESCRIPTIONS.get(code, f"Клиент просит организм: {name.lower()}.")
-    return {**row, "display_name": name, "unknown_task_code": unknown_task_code, "description_text": description, "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status), "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral", "difficulty_label": humanize_code(difficulty)}
+    return {**row, "display_name": name, "unknown_task_code": unknown_task_code, "description_text": description, "requirement_label": "Генетическое условие" if code in TASK_DESCRIPTIONS else "Условие заказа", "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status), "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral", "difficulty_label": humanize_code(difficulty)}
 
 
 def task_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
