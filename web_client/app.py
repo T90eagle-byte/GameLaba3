@@ -330,11 +330,22 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("creatures"))
 
+        highlight = session.pop("genotype_highlight", None)
+        changed_slots: dict[str, list[str]] = {}
+        if isinstance(highlight, dict) and highlight.get("creature_id") == creature_id:
+            candidate = highlight.get("changed_slots")
+            if isinstance(candidate, dict):
+                changed_slots = {
+                    str(gene): [str(slot) for slot in slots]
+                    for gene, slots in candidate.items()
+                    if isinstance(slots, list)
+                }
+
         creature_view = display_service.creature_view(creature)
         return render_template(
             "creature_detail.html",
             creature=creature_view,
-            genotype=display_service.genotype_view(genotype, creature_view["phenotype_items"]),
+            genotype=display_service.genotype_view(genotype, creature_view["phenotype_items"], changed_slots),
             lab_id=lab_id,
         )
 
@@ -515,7 +526,13 @@ def create_app() -> Flask:
                     mutation_id = int(request.form.get("mutation_id", "0"))
                     if creature_id <= 0 or mutation_id <= 0:
                         raise ValueError
+                    before_genotype = creature_service.get_genotype(token, creature_id, lab_id)
                     mutation_service.apply_mutation(token, lab_id, creature_id, mutation_id)
+                    after_genotype = creature_service.get_genotype(token, creature_id, lab_id)
+                    session["genotype_highlight"] = {
+                        "creature_id": creature_id,
+                        "changed_slots": display_service.genotype_change_slots(before_genotype, after_genotype),
+                    }
                     flash("Мутация применена. Откройте карточку существа, чтобы увидеть изменения.", "success")
                     return redirect(url_for("creature_detail", creature_id=creature_id))
 
@@ -524,9 +541,15 @@ def create_app() -> Flask:
                     mutagen_type = request.form.get("mutagen_type", "").strip().upper()
                     if creature_id <= 0 or mutagen_type not in {"RADIATION", "CHEMICAL"}:
                         raise ValueError
+                    before_genotype = creature_service.get_genotype(token, creature_id, lab_id)
                     new_creature_id = mutation_service.apply_mutagen(token, lab_id, creature_id, mutagen_type)
                     flash("Мутагент применён. Проверьте изменения рейтинга, денег и список существ.", "success")
                     if new_creature_id:
+                        after_genotype = creature_service.get_genotype(token, new_creature_id, lab_id)
+                        session["genotype_highlight"] = {
+                            "creature_id": new_creature_id,
+                            "changed_slots": display_service.genotype_change_slots(before_genotype, after_genotype),
+                        }
                         return redirect(url_for("creature_detail", creature_id=new_creature_id))
                     return redirect(url_for("mutations"))
 

@@ -156,6 +156,9 @@ input, select { width: 100%; min-height: 42px; border: 1px solid var(--line); bo
 .gene-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .75rem; }
 .gene-card { padding: .9rem; border-radius: 16px; border: 1px solid var(--line); background: linear-gradient(180deg, #fffdf7, #f4f1e7); }
 .allele-pair { font-weight: 800; color: var(--leaf-dark); }
+.gene-card-changed { border-color: rgba(232, 184, 91, .78); background: linear-gradient(180deg, #fffdf7, rgba(252, 241, 202, .82)); }
+.gene-change-note { display: inline-flex; margin-top: .45rem; padding: .24rem .45rem; border-radius: 999px; background: rgba(232, 184, 91, .26); color: #765414; font-size: .75rem; font-weight: 800; }
+.allele-changed { display: inline-block; padding: .1rem .34rem; border-radius: .4rem; background: rgba(232, 184, 91, .34); color: var(--ink); }
 .gene-result { display: grid; gap: .2rem; margin: .7rem 0; }
 .gene-result span { color: var(--muted); font-size: .8rem; font-weight: 700; text-transform: uppercase; }
 

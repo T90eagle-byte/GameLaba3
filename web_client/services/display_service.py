@@ -81,8 +81,11 @@ TRAIT_LABELS = {
     "ridged_armor": "ребристый панцирь",
     "smooth_shell": "гладкий панцирь",
     "plated_shell": "пластинчатый панцирь",
+    "spiked_shell": "шипастый панцирь",
+    "light_armor": "лёгкий панцирь",
     "rounded_nose": "округлый профиль",
     "spiral_profile": "спиральный профиль",
+    "sharp_beak": "острый профиль",
     "fast_speed": "быстрый",
     "slow_speed": "медленный",
     "short_fur": "короткая шерсть",
@@ -196,6 +199,14 @@ EVENT_LABELS = {
     "MUTAGEN_PENALTY": "Риск мутагена",
     "MUTATION_EFFECT": "Эффект мутации",
     "RARE_TRAIT_BONUS": "Бонус редкого признака",
+    "SYSTEM_ADJUSTMENT": "Корректировка результата",
+}
+
+USER_TEXT_REPLACEMENTS = {
+    "system adjustment": "Корректировка результата",
+    "spiked shell": "шипастый панцирь",
+    "light armor": "лёгкий панцирь",
+    "sharp beak": "острый профиль",
 }
 
 EXPERIMENT_LABELS = {
@@ -316,6 +327,8 @@ def translate_free_text(value: Any) -> str:
     replacements.update(TRAIT_LABELS)
     replacements.update(TASK_LABELS)
     replacements.update(MUTATION_LABELS)
+    replacements.update(EVENT_LABELS)
+    replacements.update(USER_TEXT_REPLACEMENTS)
     for raw, label in sorted(replacements.items(), key=lambda item: len(item[0]), reverse=True):
         if raw:
             text = re.sub(re.escape(raw), label, text, flags=re.IGNORECASE)
@@ -442,6 +455,8 @@ def humanize_code(value: Any) -> str:
         return SPECIES_LABELS[code]
     if code in DOMINANCE_LABELS:
         return DOMINANCE_LABELS[code]
+    if code.upper() in EVENT_LABELS:
+        return EVENT_LABELS[code.upper()]
     return _title_fallback(code)
 
 
@@ -720,15 +735,54 @@ def parent_creature_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [parent_creature_view(row) for row in rows]
 
 
+def _genotype_gene_key(row: dict[str, Any]) -> str:
+    gene_id = row.get("gene_id")
+    if gene_id is not None:
+        return f"id:{gene_id}"
+    return _clean_code(row.get("gene_name") or row.get("gene_type"))
+
+
+def _allele_identity(row: dict[str, Any], slot: int) -> tuple[str, str]:
+    for suffix in ("id", "trait_value", "display_name", "description"):
+        value = row.get(f"allele{slot}_{suffix}")
+        if value is not None:
+            return suffix, _text(value)
+    return "missing", ""
+
+
+def genotype_change_slots(
+    before_rows: list[dict[str, Any]],
+    after_rows: list[dict[str, Any]],
+) -> dict[str, list[str]]:
+    """Compare package cursor rows and return only actually changed allele slots."""
+    before = {_genotype_gene_key(row): row for row in before_rows}
+    changes: dict[str, list[str]] = {}
+    for after_row in after_rows:
+        previous = before.get(_genotype_gene_key(after_row))
+        if previous is None:
+            continue
+        slots = [
+            f"allele{slot}"
+            for slot in (1, 2)
+            if _allele_identity(previous, slot) != _allele_identity(after_row, slot)
+        ]
+        gene_code = _clean_code(after_row.get("gene_name") or after_row.get("gene_type"))
+        if slots and gene_code:
+            changes[gene_code] = slots
+    return changes
+
+
 def genotype_view(
     rows: list[dict[str, Any]],
     phenotype: list[dict[str, str]] | None = None,
+    changed_slots: dict[str, list[str]] | None = None,
 ) -> list[dict[str, Any]]:
     phenotype_by_gene = {
         _clean_code(item.get("key")): item
         for item in (phenotype or [])
     }
     formatted = []
+    changed_slots = changed_slots or {}
     for row in rows:
         gene = row.get("gene_name") or row.get("gene_type") or row.get("gene_display_name")
         dominance = row.get("dominance_type") or row.get("dominance_display_name")
@@ -740,6 +794,7 @@ def genotype_view(
         result_item = phenotype_by_gene.get(gene_code)
         result_label = result_item.get("detail_value") if result_item else "не указан"
         inheritance = dominance_label(dominance)
+        row_changed_slots = changed_slots.get(gene_code, [])
         formatted.append({
             **row,
             "gene_label": gene_label(gene),
@@ -752,6 +807,9 @@ def genotype_view(
             "inheritance_label": inheritance,
             "result_label": result_label,
             "pair_label": f"Аллели: {allele1_semantic} / {allele2_semantic}",
+            "allele1_changed": "allele1" in row_changed_slots,
+            "allele2_changed": "allele2" in row_changed_slots,
+            "gene_changed": bool(row_changed_slots),
         })
     return formatted
 

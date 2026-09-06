@@ -2,7 +2,18 @@ from __future__ import annotations
 
 import unittest
 
-from web_client.services.display_service import TASK_DESCRIPTIONS, TASK_LABELS, creature_visual, genotype_view, phenotype_items, task_view
+from web_client.services.display_service import (
+    TASK_DESCRIPTIONS,
+    TASK_LABELS,
+    creature_visual,
+    genotype_change_slots,
+    genotype_view,
+    phenotype_items,
+    rating_event_view,
+    task_view,
+    trait_label,
+    translate_free_text,
+)
 
 
 def visual(species: str, summary: str) -> dict[str, str]:
@@ -177,6 +188,61 @@ class GenotypeDisplayTests(unittest.TestCase):
         self.assertEqual(crustacean["size"]["result_label"], "крупный")
         self.assertEqual(crustacean["claw_form"]["result_label"], "крючковатые клешни")
         self.assertEqual(crustacean["shell_armor"]["result_label"], "толстый панцирь")
+
+
+class GenotypeChangeTests(unittest.TestCase):
+    @staticmethod
+    def row(gene_id: int, gene_name: str, allele1_id: int, allele2_id: int) -> dict[str, object]:
+        return {
+            "gene_id": gene_id,
+            "gene_name": gene_name,
+            "allele1_id": allele1_id,
+            "allele2_id": allele2_id,
+        }
+
+    def test_marks_only_allele1_that_changed(self) -> None:
+        before = [self.row(1, "color", 10, 20)]
+        after = [self.row(1, "color", 30, 20)]
+        self.assertEqual(genotype_change_slots(before, after), {"color": ["allele1"]})
+
+    def test_marks_only_allele2_that_changed(self) -> None:
+        before = [self.row(1, "shell_armor", 10, 20)]
+        after = [self.row(1, "shell_armor", 10, 30)]
+        self.assertEqual(genotype_change_slots(before, after), {"shell_armor": ["allele2"]})
+
+    def test_marks_both_slots_when_both_changed(self) -> None:
+        before = [self.row(1, "size", 10, 20)]
+        after = [self.row(1, "size", 30, 40)]
+        self.assertEqual(genotype_change_slots(before, after), {"size": ["allele1", "allele2"]})
+
+    def test_unchanged_genes_are_not_marked(self) -> None:
+        before = [self.row(1, "color", 10, 20), self.row(2, "size", 30, 40)]
+        after = [self.row(1, "color", 10, 20), self.row(2, "size", 30, 50)]
+        self.assertEqual(genotype_change_slots(before, after), {"size": ["allele2"]})
+
+
+class PlayerLocalizationTests(unittest.TestCase):
+    def test_known_trait_and_history_values_are_russian(self) -> None:
+        self.assertEqual(trait_label("spiked_shell"), "шипастый панцирь")
+        self.assertEqual(translate_free_text("System adjustment"), "Корректировка результата")
+        event = rating_event_view({"event_type": "SYSTEM_ADJUSTMENT", "description": "System adjustment"})
+        self.assertEqual(event["type_label"], "Корректировка результата")
+        self.assertEqual(event["description_text"], "Корректировка результата")
+
+    def test_all_current_seed_allele_codes_have_player_facing_labels(self) -> None:
+        seed_codes = (
+            "green_color", "blue_color", "red_color", "yellow_color", "purple_color", "orange_color", "white_color", "black_color",
+            "compact_size", "medium_size", "large_size", "herbivore", "carnivore", "no_wings", "wings",
+            "pointed_fin", "broad_fin", "crescent_fin", "rounded_fin", "forked_fin", "ribbon_fin",
+            "thick_armor", "light_armor", "ridged_armor", "short_claws", "long_claws", "hooked_claws",
+            "rounded_nose", "sharp_beak", "spiral_profile", "smooth_shell", "spiked_shell", "plated_shell",
+            "slow_speed", "fast_speed", "short_fur", "dense_fur", "soft_fur",
+        )
+        for code in seed_codes:
+            with self.subTest(code=code):
+                label = trait_label(code)
+                self.assertNotIn("_", label)
+                self.assertFalse(any("a" <= char.lower() <= "z" for char in label))
 
 
 class TaskDisplayTests(unittest.TestCase):

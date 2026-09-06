@@ -289,11 +289,105 @@ class LabRouteTests(unittest.TestCase):
         response = self.client.get("/creatures/17")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Аллели: зелёный / синий".encode(), response.data)
+        self.assertIn("Аллели:".encode(), response.data)
+        self.assertIn("зелёный".encode(), response.data)
+        self.assertIn("синий".encode(), response.data)
         self.assertIn("Результат".encode(), response.data)
         self.assertIn("зелёный".encode(), response.data)
         self.assertNotIn("Технические значения".encode(), response.data)
         self.assertNotIn(b">10 / 20<", response.data)
+
+    @patch.object(app_module.creature_service, "get_genotype")
+    @patch.object(app_module.creature_service, "get_creature_detail")
+    def test_mutation_highlight_marks_only_changed_allele_and_is_one_time(
+        self,
+        get_detail: Mock,
+        get_genotype: Mock,
+    ) -> None:
+        get_detail.return_value = {
+            "creature_id": 17,
+            "creature_name": "turtle #1",
+            "species_type": "turtle",
+            "phenotype_summary": "shell_armor=spiked_shell; size=medium_size",
+        }
+        get_genotype.return_value = [{
+            "gene_id": 9,
+            "gene_name": "shell_armor",
+            "dominance_type": "FULL",
+            "allele1_id": 10,
+            "allele1_display_name": "smooth_shell",
+            "allele2_id": 20,
+            "allele2_display_name": "spiked_shell",
+        }]
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+            flask_session["genotype_highlight"] = {
+                "creature_id": 17,
+                "changed_slots": {"shell_armor": ["allele2"]},
+            }
+
+        highlighted = self.client.get("/creatures/17")
+        ordinary = self.client.get("/creatures/17")
+
+        self.assertIn(b"gene-card-changed", highlighted.data)
+        self.assertEqual(highlighted.data.count(b"allele-changed"), 1)
+        self.assertIn("шипастый панцирь".encode(), highlighted.data)
+        self.assertNotIn(b"gene-card-changed", ordinary.data)
+        self.assertNotIn(b"allele-changed", ordinary.data)
+
+    @patch.object(app_module.creature_service, "get_genotype")
+    @patch.object(app_module.mutation_service, "apply_mutation")
+    def test_apply_mutation_records_actual_genotype_diff_for_next_detail(
+        self,
+        apply_mutation: Mock,
+        get_genotype: Mock,
+    ) -> None:
+        get_genotype.side_effect = [
+            [{"gene_id": 1, "gene_name": "color", "allele1_id": 10, "allele2_id": 20}],
+            [{"gene_id": 1, "gene_name": "color", "allele1_id": 30, "allele2_id": 20}],
+        ]
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.post("/mutations", data={"action": "apply_mutation", "creature_id": "17", "mutation_id": "5"})
+
+        self.assertEqual(response.status_code, 302)
+        apply_mutation.assert_called_once_with("current-token", 7, 17, 5)
+        with self.client.session_transaction() as flask_session:
+            self.assertEqual(flask_session["genotype_highlight"], {"creature_id": 17, "changed_slots": {"color": ["allele1"]}})
+
+    @patch.object(app_module.creature_service, "get_genotype")
+    @patch.object(app_module.mutation_service, "apply_mutagen", return_value=33)
+    def test_apply_mutagen_records_new_creature_genotype_diff_for_next_detail(
+        self,
+        apply_mutagen: Mock,
+        get_genotype: Mock,
+    ) -> None:
+        get_genotype.side_effect = [
+            [{"gene_id": 2, "gene_name": "size", "allele1_id": 10, "allele2_id": 20}],
+            [{"gene_id": 2, "gene_name": "size", "allele1_id": 10, "allele2_id": 30}],
+        ]
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.post("/mutations", data={"action": "apply_mutagen", "creature_id": "17", "mutagen_type": "RADIATION"})
+
+        self.assertEqual(response.status_code, 302)
+        apply_mutagen.assert_called_once_with("current-token", 7, 17, "RADIATION")
+        with self.client.session_transaction() as flask_session:
+            self.assertEqual(flask_session["genotype_highlight"], {"creature_id": 33, "changed_slots": {"size": ["allele2"]}})
+
+    @patch.object(app_module.rating_service, "get_rating_events")
+    def test_player_pages_do_not_render_known_english_display_values(self, get_rating_events: Mock) -> None:
+        get_rating_events.return_value = [{"event_type": "SYSTEM_ADJUSTMENT", "description": "System adjustment"}]
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/rating-events")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"System adjustment", response.data)
+        self.assertIn("Корректировка результата".encode(), response.data)
 
     @patch.object(app_module.creature_service, "get_creatures", return_value=[])
     @patch.object(app_module.task_service, "get_tasks")
