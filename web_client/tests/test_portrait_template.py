@@ -63,6 +63,34 @@ class PortraitTemplateTests(unittest.TestCase):
                 self.assertIn(expected_class, markup)
                 self.assertIn("nutrition-icons", markup)
 
+    def test_fin_variants_and_size_classes_have_distinct_structural_hooks(self) -> None:
+        crescent = self.render("cartilaginous_fish", "fin_shape=crescent_fin; size=large_size", "crescent")
+        ribbon = self.render("bony_fish", "fin_shape=ribbon_fin; size=compact_size", "ribbon")
+
+        self.assertIn("feature-crescent-fin", crescent)
+        self.assertIn("crescent-fin", crescent)
+        self.assertIn("size-large", crescent)
+        self.assertIn("feature-ribbon-fin", ribbon)
+        self.assertIn("ribbon-fin-detail", ribbon)
+        self.assertIn("size-compact", ribbon)
+        self.assertIn('viewBox="-18 -14 296 188"', crescent)
+
+    def test_wings_have_a_dedicated_layer_and_no_wings_hide_it_by_class(self) -> None:
+        winged = self.render("mammal", "has_wings=has_wings", "winged")
+        wingless = self.render("mammal", "has_wings=no_wings", "wingless")
+
+        self.assertIn("has-wings", winged)
+        self.assertIn("no-wings", wingless)
+        self.assertIn("svg-wings", winged)
+
+    def test_all_six_species_keep_the_safe_viewbox(self) -> None:
+        species = ("cartilaginous_fish", "bony_fish", "crustacean", "mollusk", "turtle", "mammal")
+        for index, species_code in enumerate(species, 1):
+            with self.subTest(species=species_code):
+                markup = self.render(species_code, "color=green_color; size=medium_size", f"species-{index}")
+                self.assertIn('viewBox="-18 -14 296 188"', markup)
+                self.assertIn(f"species-{species_code.replace('_', '-')}", markup)
+
 
 if __name__ == "__main__":
     unittest.main()

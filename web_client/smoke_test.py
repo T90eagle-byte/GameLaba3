@@ -145,7 +145,8 @@ def main() -> None:
     if pair:
         parent1_id, parent2_id = pair
         preview = crossbreed_service.preview_offspring_options(token, lab_id, parent1_id, parent2_id, 3)
-        require(len(preview) == 3, "backend preview did not return 3 options")
+        require(1 <= len(preview) <= 3, "backend preview returned an invalid number of samples")
+        require(len({str(row.get("genotype_summary") or "") for row in preview}) == len(preview), "preview contains duplicate genotypes")
         before_count = len(creature_service.get_creatures(token, lab_id))
         response = client.post(
             "/crossbreed",
@@ -154,7 +155,7 @@ def main() -> None:
         )
         require(response.status_code == 200, "crossbreed preview route failed")
         preview_html = response.get_data(as_text=True)
-        require("Три примера возможного потомства" in preview_html, "preview is not marked as samples")
+        require("Пример возможного потомства" in preview_html, "preview is not marked as samples")
         require("Вероятность:" not in preview_html and "33.3%" not in preview_html, "preview shows a fake probability")
         after_preview_count = len(creature_service.get_creatures(token, lab_id))
         require(before_count == after_preview_count, "preview changed creature count")

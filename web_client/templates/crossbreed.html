@@ -3,6 +3,48 @@
 {% block title %}Скрещивание — БиоСборка{% endblock %}
 {% block content %}
 <section class="hero-panel compact-hero"><div><p class="eyebrow">Генетическая мастерская</p><h1>Скрещивание</h1><p class="lead">Сначала посмотрите три возможных варианта потомства, затем создайте реального потомка отдельным действием.</p></div><a class="button secondary" href="{{ url_for('creatures') }}">К существам</a></section>
-<section class="panel breeding-panel"><form class="form" method="post" action="{{ url_for('crossbreed') }}"><div class="parent-grid">{% for field, selected, label in [('parent1_id', selected_parent1, 'Родитель 1'), ('parent2_id', selected_parent2, 'Родитель 2')] %}<label class="parent-select"><span>{{ label }}</span><select name="{{ field }}" required><option value="">Выберите существо</option>{% for creature in creatures %}<option value="{{ creature.creature_id }}" {% if selected|string == creature.creature_id|string %}selected{% endif %}>#{{ creature.creature_id }} — {{ creature.display_name }} / {{ creature.species_label }}</option>{% endfor %}</select></label>{% endfor %}</div><label><span>Имя потомка</span><input name="offspring_name" value="{{ offspring_name }}" placeholder="Например: Потомок линии A"></label><input type="hidden" name="options_count" value="3"><div class="button-row"><button type="submit" name="action" value="preview">Показать 3 варианта</button><button class="secondary" type="submit" name="action" value="create">Создать потомка</button></div></form><p class="muted">Предпросмотр не создаёт существо и не изменяет деньги/рейтинг. Потомок появляется только после подтверждения скрещивания.</p></section>
-{% if preview_options %}<section class="preview-section"><div class="section-title"><div><p class="eyebrow">Предпросмотр</p><h2>Три примера возможного потомства</h2><p class="muted">Это случайные допустимые варианты, а не вероятность рождения конкретного существа. Вероятности наследования рассчитываются отдельно для каждого гена.</p></div><span class="badge">{{ preview_options|length }} примера</span></div><div class="preview-grid">{% for option in preview_options %}<article class="preview-card {{ option.visual.tone_class }}">{{ creature_portrait(option.visual, 'mini', 'preview-' ~ option.option_no) }}<div class="entity-card-header"><h3>Вариант {{ option.option_no }}</h3><span class="badge">{{ option.species_label }}</span></div><p class="summary">{{ option.phenotype_text }}</p><div class="trait-row">{% for item in option.phenotype_items[:4] %}<span class="trait-pill {{ item.class }}"><small>{{ item.label }}</small>{{ item.value }}</span>{% endfor %}</div><div class="badge-row"><span class="badge source-note">{{ option.source_note }}</span></div></article>{% endfor %}</div></section>{% endif %}
+<section class="panel breeding-panel">
+  <form class="form" method="post" action="{{ url_for('crossbreed') }}">
+    <div class="parent-grid">
+      {% for field, selected, label, slot in [('parent1_id', selected_parent1, 'Родитель 1', 'one'), ('parent2_id', selected_parent2, 'Родитель 2', 'two')] %}
+      <div class="parent-choice">
+        <label class="parent-select"><span>{{ label }}</span><select name="{{ field }}" data-parent-select="{{ slot }}" required><option value="">Выберите существо</option>{% for creature in creatures %}<option value="{{ creature.creature_id }}" {% if selected|string == creature.creature_id|string %}selected{% endif %}>#{{ creature.creature_id }} — {{ creature.display_name }} / {{ creature.species_label }}</option>{% endfor %}</select></label>
+        <div class="parent-card-stack" aria-live="polite">
+          <p class="parent-card-empty" data-parent-empty="{{ slot }}">Выберите существо, чтобы увидеть его признаки.</p>
+          {% for creature in parent_cards %}
+          <article class="parent-preview-card" data-parent-card="{{ slot }}" data-creature-id="{{ creature.creature_id }}" hidden>
+            {{ creature_portrait(creature.visual, 'mini', 'parent-' ~ slot ~ '-' ~ creature.creature_id) }}
+            <div><p class="eyebrow">{{ label }}</p><h3>{{ creature.display_name }}</h3><p class="muted">#{{ creature.creature_id }} · {{ creature.species_label }}</p><div class="trait-row compact-traits">{% for item in creature.parent_traits %}<span class="trait-pill {{ item.class }}"><small>{{ item.label }}</small>{{ item.value }}</span>{% endfor %}</div></div>
+          </article>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <label><span>Имя потомка</span><input name="offspring_name" value="{{ offspring_name }}" placeholder="Например: Потомок линии A"></label>
+    <input type="hidden" name="options_count" value="3">
+    <div class="button-row"><button type="submit" name="action" value="preview">Показать 3 варианта</button><button class="secondary" type="submit" name="action" value="create">Создать потомка</button></div>
+  </form>
+  <p class="muted">Предпросмотр не создаёт существо и не изменяет деньги/рейтинг. Потомок появляется только после подтверждения скрещивания.</p>
+</section>
+{% if preview_options %}<section class="preview-section"><div class="section-title"><div><p class="eyebrow">Предпросмотр</p><h2>{% if preview_options|length == 1 %}Один пример возможного потомства{% elif preview_options|length == 2 %}Два различных примера возможного потомства{% else %}Три различных примера возможного потомства{% endif %}</h2><p class="muted">Это случайные допустимые варианты, а не вероятность рождения конкретного существа. Вероятности наследования рассчитываются отдельно для каждого гена.</p>{% if preview_options|length < 3 %}<p class="muted">В этой выборке показано меньше трёх различных примеров. Повторный предпросмотр может дать другой набор.</p>{% endif %}</div><span class="badge">{{ preview_options|length }} {% if preview_options|length == 1 %}пример{% else %}примера{% endif %}</span></div><div class="preview-grid">{% for option in preview_options %}<article class="preview-card {{ option.visual.tone_class }}">{{ creature_portrait(option.visual, 'mini', 'preview-' ~ option.option_no) }}<div class="entity-card-header"><h3>Вариант {{ option.option_no }}</h3><span class="badge">{{ option.species_label }}</span></div><p class="summary">{{ option.phenotype_text }}</p><div class="trait-row">{% for item in option.phenotype_items[:4] %}<span class="trait-pill {{ item.class }}"><small>{{ item.label }}</small>{{ item.value }}</span>{% endfor %}</div><div class="badge-row"><span class="badge source-note">{{ option.source_note }}</span></div></article>{% endfor %}</div></section>{% endif %}
+<script>
+  (() => {
+    const updateParentCard = (slot) => {
+      const select = document.querySelector(`[data-parent-select="${slot}"]`);
+      if (!select) return;
+      document.querySelectorAll(`[data-parent-card="${slot}"]`).forEach((card) => {
+        card.hidden = card.dataset.creatureId !== select.value;
+      });
+      const empty = document.querySelector(`[data-parent-empty="${slot}"]`);
+      if (empty) empty.hidden = Boolean(select.value);
+    };
+    ["one", "two"].forEach((slot) => {
+      const select = document.querySelector(`[data-parent-select="${slot}"]`);
+      if (!select) return;
+      select.addEventListener("change", () => updateParentCard(slot));
+      updateParentCard(slot);
+    });
+  })();
+</script>
 {% endblock %}

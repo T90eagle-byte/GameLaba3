@@ -702,6 +702,24 @@ def creature_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [creature_view(row) for row in rows]
 
 
+def parent_creature_view(row: dict[str, Any]) -> dict[str, Any]:
+    """Compact, display-only card data for the parent comparison on crossbreed."""
+    view = creature_view(row)
+    core_keys = ("color", "has_wings", "nutrition_type", "size")
+    special_keys = ("fin_shape", "claw_form", "shell_armor", "beak_nose_shape", "speed_level", "fur_density")
+    items = view["phenotype_items"]
+    traits = [item for key in core_keys if (item := _item_by_key(items, key))]
+    special = _item_with_keys(items, special_keys)
+    if special:
+        traits.append(special)
+    view["parent_traits"] = traits[:5]
+    return view
+
+
+def parent_creature_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [parent_creature_view(row) for row in rows]
+
+
 def genotype_view(
     rows: list[dict[str, Any]],
     phenotype: list[dict[str, str]] | None = None,

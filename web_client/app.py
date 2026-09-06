@@ -451,9 +451,9 @@ def create_app() -> Flask:
                     )
                     preview_options = display_service.preview_views(preview_rows)
                     if len(preview_options) == 3:
-                        flash("Показаны 3 варианта потомства. Лаборатория не изменилась.", "success")
+                        flash("Показаны 3 различных примера потомства. Лаборатория не изменилась.", "success")
                     else:
-                        flash(f"Показано вариантов: {len(preview_options)}.", "warning")
+                        flash(f"Показано различных примеров: {len(preview_options)}. Повторите предпросмотр для новой выборки.", "warning")
 
                 elif action == "create":
                     if not offspring_name:
@@ -480,6 +480,7 @@ def create_app() -> Flask:
         return render_template(
             "crossbreed.html",
             creatures=display_service.creature_views(creatures_rows),
+            parent_cards=display_service.parent_creature_views(creatures_rows),
             preview_options=preview_options,
             selected_parent1=selected_parent1,
             selected_parent2=selected_parent2,

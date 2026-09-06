@@ -863,10 +863,10 @@ button,
   transform-origin: center;
   transform: scale(var(--creature-scale));
 }
-.size-compact { --creature-scale: .84; }
+.size-compact { --creature-scale: .82; }
 .size-small { --creature-scale: .9; }
 .size-medium { --creature-scale: 1; }
-.size-large { --creature-scale: 1.08; }
+.size-large { --creature-scale: 1.11; }
 .size-giant { --creature-scale: 1.12; }
 .size-intermediate { --creature-scale: .98; }
 .size-intermediate-compact-medium { --creature-scale: .94; }
@@ -962,18 +962,32 @@ button,
 .nutrition-carnivore .creature-svg .leaf-symbol { display: none; }
 
 .creature-svg .ribbon-fin-detail,
+.creature-svg .crescent-fin,
 .creature-svg .claw-hook,
 .creature-svg .shell-spikes,
 .creature-svg .speed-lines,
 .creature-svg .profile-sharp { display: none; }
 .creature-svg .profile-rounded { fill: none; stroke: rgba(255,255,255,.72); stroke-width: 2.2; }
-.feature-crescent-fin .creature-svg .dorsal { transform-box: fill-box; transform-origin: center; transform: scale(1.08, 1.18); }
+.feature-crescent-fin .creature-svg .dorsal { display: none; }
+.feature-crescent-fin .creature-svg .crescent-fin { display: block; fill: var(--creature-accent); stroke: rgba(35, 76, 58, .46); stroke-width: 2; }
 .feature-broad-fin .creature-svg .dorsal { transform-box: fill-box; transform-origin: center; transform: scale(1.22, 1.04); }
 .feature-pointed-fin .creature-svg .dorsal { transform-box: fill-box; transform-origin: bottom; transform: scale(.86, 1.2); }
 .feature-ribbon-fin .creature-svg .ribbon-fin-detail { display: block; fill: var(--creature-accent); opacity: .82; }
-.feature-ribbon-fin .creature-svg .dorsal { opacity: .2; }
+.feature-ribbon-fin .creature-svg .dorsal { opacity: .08; }
 .feature-forked-fin .creature-svg .tail { transform-box: fill-box; transform-origin: right center; transform: scale(1.08, 1.13); }
 .feature-rounded-fin .creature-svg .dorsal { transform-box: fill-box; transform-origin: center; transform: scale(1.08, .82); }
+
+.parent-choice { min-width: 0; }
+.parent-card-stack { margin-top: .7rem; min-height: 154px; }
+.parent-preview-card { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: .75rem; align-items: center; min-height: 154px; padding: .75rem; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-soft); box-shadow: var(--shadow-soft); }
+.parent-preview-card[hidden], .parent-card-empty[hidden] { display: none; }
+.parent-preview-card .creature-portrait { min-height: 112px; height: 112px; }
+.parent-preview-card h3 { margin: 0; overflow-wrap: anywhere; }
+.parent-preview-card .muted { margin: .2rem 0 .45rem; }
+.compact-traits { gap: .32rem; }
+.compact-traits .trait-pill { min-width: 0; max-width: 11rem; overflow-wrap: anywhere; }
+.parent-card-empty { display: flex; align-items: center; min-height: 154px; margin: 0; padding: .9rem; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); background: rgba(255,255,255,.35); }
+@media (max-width: 620px) { .parent-preview-card { grid-template-columns: 104px minmax(0, 1fr); } .parent-preview-card .creature-portrait { min-height: 96px; height: 96px; } }
 
 .feature-long-claws .creature-svg .claw-pair { transform-box: fill-box; transform-origin: center; transform: scale(1.06); }
 .feature-hooked-claws .creature-svg .claw-hook { display: block; stroke: rgba(255,255,255,.82); stroke-width: 2.7; }
