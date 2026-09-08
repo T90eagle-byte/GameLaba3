@@ -9,7 +9,7 @@ Target: Windows Server 2012 R2 x64, Python 3.12.10 x64, Oracle 12.2.0.1 with
 Install Python 3.12.10 x64, then open PowerShell in the repository root:
 
 ```powershell
-py -3.12 -m venv .venv
+python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r deployment\windows\requirements-windows.txt
 Copy-Item deployment\windows\.env.example deployment\windows\.env
