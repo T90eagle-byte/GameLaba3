@@ -162,6 +162,16 @@ class DeploymentSafetyTests(unittest.TestCase):
         self.assertNotIn("drop user", script)
         self.assertIn("refusing to alter or delete an existing schema", script)
 
+    def test_db_init_has_a_safe_recognized_version_upgrade(self) -> None:
+        script = (WEB_ROOT.parent / "docker" / "db-init.sh").read_text(encoding="utf-8")
+        self.assertIn("CURRENT_SCHEMA_VERSION=2", script)
+        self.assertIn('if (( install_version != 1 )); then', script)
+        self.assertIn("apply_current_schema_files", script)
+        self.assertIn("@/workspace/database/migrations/03_align_task_requirement_descriptions.sql", script)
+        self.assertIn("@/workspace/database/packages/spec/pkg_genetics_game.pks", script)
+        self.assertIn("@/workspace/database/packages/body/pkg_genetics_game.pkb", script)
+        self.assertLess(script.index("validate_schema\n    app_sqlplus <<SQL"), script.index("set install_version = ${CURRENT_SCHEMA_VERSION}"))
+
     def test_university_installers_are_non_destructive(self) -> None:
         installers = WEB_ROOT.parent / "database" / "installers"
         for path in installers.glob("university_*.sql"):
