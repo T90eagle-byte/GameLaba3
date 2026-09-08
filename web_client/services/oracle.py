@@ -30,7 +30,7 @@ def make_dsn(settings: OracleSettings) -> str:
 def get_connection() -> oracledb.Connection:
     settings = load_config().oracle
     if not settings.password:
-        raise ServiceError("Пароль Oracle не задан. Проверьте python_client/.env.")
+        raise ServiceError("Пароль Oracle не задан. Проверьте файл .env.")
     if not settings.service_name and not settings.sid:
         raise ServiceError("В .env должен быть задан ORACLE_SERVICE или ORACLE_SID.")
 

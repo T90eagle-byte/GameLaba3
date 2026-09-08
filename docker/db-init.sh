@@ -96,23 +96,14 @@ user_count="$(tr -d '[:space:]' <<<"${user_count}")"
 
 if [[ "${user_count}" == "1" ]]; then
     if ! app_sqlplus <<<'exit' >/dev/null 2>&1; then
-        fail "Schema user exists but ORACLE_PASSWORD does not match the persisted database. Restore the original .env or run reset-game.cmd."
+        fail "Schema user exists but ORACLE_PASSWORD does not match the persisted database. Restore the original .env. Refusing to modify the existing schema."
     fi
-    log "Removing an incomplete schema installation before a clean retry."
+    fail "Schema user exists but the BioSborka readiness marker is missing or invalid. Refusing to alter or delete an existing schema. Inspect readiness and run the documented manual maintenance path if this is an intentional recovery."
 fi
 
 sys_sqlplus <<SQL
 whenever sqlerror exit sql.sqlcode
 set serveroutput on verify off
-declare
-    v_count number;
-begin
-    select count(*) into v_count from dba_users where username = upper('${APP_USER}');
-    if v_count > 0 then
-        execute immediate 'drop user ${APP_USER} cascade';
-    end if;
-end;
-/
 create user ${APP_USER} identified by "${APP_PASSWORD}";
 grant create session, create table, create sequence, create procedure, create trigger, create view to ${APP_USER};
 grant unlimited tablespace to ${APP_USER};

@@ -11,7 +11,7 @@ except ImportError:  # pragma: no cover - keeps config importable before deps in
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-ENV_PATH = PROJECT_ROOT / "python_client" / ".env"
+DEFAULT_ENV_PATH = PROJECT_ROOT / "python_client" / ".env"
 
 
 @dataclass(frozen=True)
@@ -48,10 +48,12 @@ def _parse_env_file(path: Path) -> dict[str, str]:
 
 
 def _load_env_values() -> dict[str, str]:
+    configured_path = os.getenv("BIOSBORKA_ENV_FILE")
+    env_path = Path(configured_path).expanduser() if configured_path else DEFAULT_ENV_PATH
     if load_dotenv is not None:
-        load_dotenv(ENV_PATH, override=False)
+        load_dotenv(env_path, override=bool(configured_path))
 
-    file_values = _parse_env_file(ENV_PATH)
+    file_values = _parse_env_file(env_path)
     merged = dict(file_values)
     for key in (
         "ORACLE_HOST",
