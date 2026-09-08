@@ -19,6 +19,7 @@ DECLARE
     v_experiment_count         number;
 
     v_creature_id              number;
+    v_linked_creature_id       number;
     v_gene_id                  number;
     v_linkage_group            number;
     v_dominant_allele          varchar2(4000);
@@ -216,19 +217,27 @@ BEGIN
     END;
 
     BEGIN
-        select g.linkage_group
-          into v_linkage_group
-          from genotypes gt
-          join genes g
-            on g.gene_id = gt.gene_id
-         where gt.creature_id = v_creature_id
-           and g.linkage_group is not null
-           and rownum = 1;
+        select creature_id, linkage_group
+          into v_linked_creature_id, v_linkage_group
+          from (
+              select c.creature_id, g.linkage_group
+                from creatures c
+                join genotypes gt
+                  on gt.creature_id = c.creature_id
+                join genes g
+                  on g.gene_id = gt.gene_id
+               where c.lab_id = v_lab_id
+                 and g.linkage_group is not null
+               group by c.creature_id, g.linkage_group
+              having count(distinct g.gene_id) >= 2
+               order by c.creature_id, g.linkage_group
+          )
+         where rownum = 1;
 
         assert_true(v_linkage_group IS NOT NULL, 'seed contains linkage_group for LR2 helper');
 
         v_linked_allele_set := pkg_genetics_game.get_linked_allele_set(
-            p_creature_id   => v_creature_id,
+            p_creature_id   => v_linked_creature_id,
             p_linkage_group => v_linkage_group
         );
         assert_true(v_linked_allele_set IS NOT NULL, 'get_linked_allele_set returns string', 'result is null');
