@@ -55,11 +55,14 @@ create or replace package body pkg_genetics_game as
     begin
         require_current_session();
 
+        -- Keep the ownership check and the protected call in one lab-row lock.
+        -- Lock transitions take user/session first and never reverse that order.
         begin
             select l.user_id, l.session_id
               into v_lab_user_id, v_lab_session_id
               from labs l
-             where l.lab_id = p_lab_id;
+             where l.lab_id = p_lab_id
+             for update;
         exception
             when no_data_found then
                 raise_application_error(-20057, 'Lab not found.');
@@ -587,7 +590,7 @@ end hash_password_sha256;
         );
     end reset_other_user_sessions;
 
-    procedure update_user_profile(
+    procedure update_profile_values(
         p_user_id       in number,
         p_username      in varchar2 default null,
         p_password      in varchar2 default null
@@ -620,6 +623,47 @@ end hash_password_sha256;
         if sql%rowcount = 0 then
             raise_application_error(-20022, 'User not found.');
         end if;
+    end update_profile_values;
+
+    procedure update_user_profile(
+        p_user_id       in number,
+        p_username      in varchar2 default null,
+        p_password      in varchar2 default null
+    ) is
+    begin
+        require_current_session();
+
+        if p_user_id is null or p_user_id <> g_current_user_id then
+            raise_application_error(-20079, 'Access denied for selected user profile.');
+        end if;
+
+        update_profile_values(
+            p_user_id  => g_current_user_id,
+            p_username => p_username,
+            p_password => p_password
+        );
+    end update_user_profile;
+
+    procedure update_user_profile(
+        p_session_token in varchar2,
+        p_username      in varchar2 default null,
+        p_password      in varchar2 default null
+    ) is
+        v_session_id sessions.session_id%type;
+        v_user_id    users.user_id%type;
+    begin
+        lock_active_session(
+            p_session_token => p_session_token,
+            p_session_id    => v_session_id,
+            p_user_id       => v_user_id,
+            p_error_code    => -20020
+        );
+
+        update_profile_values(
+            p_user_id  => v_user_id,
+            p_username => p_username,
+            p_password => p_password
+        );
     end update_user_profile;
 
     function hash_password(
@@ -1557,6 +1601,7 @@ end hash_password_sha256;
         v_parent2_species_type number;
         v_gene_count           number;
         v_options_count        pls_integer;
+        v_preview_seed         varchar2(64);
     begin
         if p_parent1_id is null or p_parent2_id is null then
             raise_application_error(-20031, 'Both parent ids are required.');
@@ -1651,6 +1696,9 @@ end hash_password_sha256;
         end if;
 
         v_options_count := least(greatest(nvl(trunc(p_options_count), 3), 1), 10);
+        -- A stable seed makes each logical option/group/parent choice invariant
+        -- even if Oracle merges or reevaluates the CTE during query execution.
+        v_preview_seed := rawtohex(sys_guid()) || rawtohex(sys_guid());
 
         open v_cursor for
             with options as (
@@ -1681,8 +1729,14 @@ end hash_password_sha256;
                 select
                     side_seed.option_no,
                     side_seed.link_key,
-                    case when dbms_random.value(0, 1) < 0.5 then 1 else 2 end as parent1_side,
-                    case when dbms_random.value(0, 1) < 0.5 then 1 else 2 end as parent2_side
+                    mod(
+                        ora_hash(v_preview_seed || ':P1:' || to_char(side_seed.option_no) || ':' || side_seed.link_key),
+                        2
+                    ) + 1 as parent1_side,
+                    mod(
+                        ora_hash(v_preview_seed || ':P2:' || to_char(side_seed.option_no) || ':' || side_seed.link_key),
+                        2
+                    ) + 1 as parent2_side
                   from (
                         select distinct
                             o.option_no,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import threading
+import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -58,11 +59,37 @@ class Client:
             outputs = [cursor.var(oracledb.DB_TYPE_NUMBER) for _ in range(6)]
             cursor.callproc("pkg_genetics_game.get_lab_stats", [lab_id, *outputs])
 
+    def rename_creature(self, creature_id: int, name: str) -> None:
+        self.call("rename_creature", [creature_id, name])
+
 
 def scalar(connection: oracledb.Connection, sql: str, binds: dict[str, Any]) -> Any:
     with connection.cursor() as cursor:
         cursor.execute(sql, binds)
         return cursor.fetchone()[0]
+
+
+def first_creature(connection: oracledb.Connection, lab_id: int) -> int:
+    return int(scalar(connection, "select min(creature_id) from creatures where lab_id = :id", {"id": lab_id}))
+
+
+def wait_for_lab_lock(connection: oracledb.Connection, lab_id: int, timeout: float = 10.0) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "select lab_id from labs where lab_id = :id for update nowait",
+                    {"id": lab_id},
+                )
+            connection.rollback()
+        except oracledb.DatabaseError as exc:
+            connection.rollback()
+            if oracle_code(exc) == -54:
+                return
+            raise
+        time.sleep(0.05)
+    raise AssertionError(f"lab {lab_id} was not locked by the in-flight operation")
 
 
 def register(connection: oracledb.Connection, login: str) -> int:
@@ -130,6 +157,7 @@ def main() -> int:
     foreign_login = f"n{suffix}"
     clients: list[Client] = []
     user_ids: list[int] = []
+    blocker: oracledb.Connection | None = None
 
     try:
         owner_id = register(admin, owner_login)
@@ -214,13 +242,88 @@ def main() -> int:
         assert scalar(admin, "select session_id from labs where lab_id = :id", {"id": observer_lab}) == observer.session_id
         assert scalar(admin, "select status from sessions where session_id = :id", {"id": foreign.session_id}) == "ACTIVE"
 
+        # Hold a creature row so the old holder reaches the gameplay update while
+        # retaining the lab lock acquired by assert_lab_access.
+        protected_creature = first_creature(admin, race_lab)
+        foreign_creature = first_creature(admin, foreign_lab)
+        current_holder = loser
+        new_holder = winner
+        blocker = create_connection(settings)
+        blocker.autocommit = False
+        with blocker.cursor() as cursor:
+            cursor.execute(
+                "select creature_id from creatures where creature_id = :id for update",
+                {"id": protected_creature},
+            )
+
+        operation_done = threading.Event()
+        takeover_done = threading.Event()
+        operation_error: list[Exception] = []
+        takeover_error: list[Exception] = []
+
+        def delayed_operation() -> None:
+            try:
+                current_holder.rename_creature(protected_creature, "Committed before takeover")
+            except Exception as exc:  # noqa: BLE001 - asserted below
+                operation_error.append(exc)
+            finally:
+                operation_done.set()
+
+        def delayed_takeover() -> None:
+            try:
+                new_holder.recover_lab(race_lab)
+            except Exception as exc:  # noqa: BLE001 - asserted below
+                takeover_error.append(exc)
+            finally:
+                takeover_done.set()
+
+        operation_thread = threading.Thread(target=delayed_operation, daemon=True)
+        operation_thread.start()
+        wait_for_lab_lock(admin, race_lab)
+
+        takeover_thread = threading.Thread(target=delayed_takeover, daemon=True)
+        takeover_thread.start()
+        time.sleep(0.2)
+        assert not takeover_done.is_set(), "takeover bypassed an in-flight protected operation"
+
+        # Unrelated owner/lab remains writable while the target lab is serialized.
+        foreign.rename_creature(foreign_creature, "Independent operation")
+
+        blocker.rollback()
+        blocker.close()
+        blocker = None
+        operation_thread.join(timeout=15)
+        takeover_thread.join(timeout=15)
+        assert not operation_thread.is_alive() and not takeover_thread.is_alive(), "takeover race timed out"
+        assert not operation_error, operation_error
+        assert not takeover_error, takeover_error
+        assert operation_done.is_set() and takeover_done.is_set()
+        assert scalar(
+            admin,
+            "select creature_name from creatures where creature_id = :id",
+            {"id": protected_creature},
+        ) == "Committed before takeover"
+        assert scalar(admin, "select session_id from labs where lab_id = :id", {"id": race_lab}) == new_holder.session_id
+        new_holder.rename_creature(protected_creature, "New holder operation")
+        expect_code(
+            lambda: current_holder.rename_creature(protected_creature, "Stale holder operation"),
+            -20073,
+            "old holder cannot write after takeover",
+        )
+        current_holder.connection.rollback()
+
         print("PASS: create/switch releases only the current session's previous lab")
         print("PASS: independent sessions keep different labs")
         print("PASS: concurrent open has exactly one winner")
         print("PASS: selected recovery transfers one lab without closing sessions")
         print("PASS: abandoned-browser recovery leaves other labs and users untouched")
+        print("PASS: in-flight gameplay finishes before takeover; stale holder is rejected afterwards")
+        print("PASS: unrelated users and labs remain independent during takeover")
         return 0
     finally:
+        if blocker is not None:
+            blocker.rollback()
+            blocker.close()
         for client in clients:
             client.connection.close()
         if user_ids:

@@ -33,6 +33,12 @@ create or replace package pkg_genetics_game as
         p_password      in varchar2 default null
     );
 
+    procedure update_user_profile(
+        p_session_token in varchar2,
+        p_username      in varchar2 default null,
+        p_password      in varchar2 default null
+    );
+
     function hash_password(
         p_password      in varchar2
     ) return varchar2;
