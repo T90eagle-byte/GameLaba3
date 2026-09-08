@@ -262,6 +262,46 @@ class LabRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Прибрежная станция".encode(), response.data)
 
+    @patch.object(app_module.mutation_service, "buy_mutation", return_value=0)
+    def test_failed_mutation_purchase_does_not_flash_success(self, buy_mutation: Mock) -> None:
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.post(
+            "/mutations",
+            data={"action": "buy_mutation", "mutation_id": "5"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        buy_mutation.assert_called_once_with("current-token", 7, 5)
+        with self.client.session_transaction() as flask_session:
+            self.assertIn(
+                ("warning", "Покупка мутации не выполнена: недостаточно денег."),
+                flask_session["_flashes"],
+            )
+
+    @patch.object(app_module.history_service, "get_experiment_history")
+    def test_experiments_links_to_offspring_id_from_history_cursor(self, get_history: Mock) -> None:
+        get_history.return_value = [{
+            "experiment_type": "CROSS",
+            "offspring_id": 73,
+            "created_at": None,
+        }]
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/experiments")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'href="/creatures/73"', response.data)
+
+    def test_mutagen_buttons_use_russian_player_labels(self) -> None:
+        markup = (WEB_ROOT / "templates" / "mutations.html").read_text(encoding="utf-8")
+        self.assertIn("Применить облучение", markup)
+        self.assertIn("Применить химический мутаген", markup)
+        self.assertNotIn(">Применить RADIATION<", markup)
+        self.assertNotIn(">Применить CHEMICAL<", markup)
+
     @patch.object(app_module.creature_service, "get_genotype")
     @patch.object(app_module.creature_service, "get_creature_detail")
     def test_creature_detail_hides_technical_values_and_keeps_backend_result(

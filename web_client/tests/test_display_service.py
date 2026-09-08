@@ -6,6 +6,7 @@ from web_client.services.display_service import (
     TASK_DESCRIPTIONS,
     TASK_LABELS,
     creature_visual,
+    experiment_view,
     genotype_change_slots,
     genotype_view,
     phenotype_items,
@@ -228,6 +229,16 @@ class PlayerLocalizationTests(unittest.TestCase):
         event = rating_event_view({"event_type": "SYSTEM_ADJUSTMENT", "description": "System adjustment"})
         self.assertEqual(event["type_label"], "Корректировка результата")
         self.assertEqual(event["description_text"], "Корректировка результата")
+
+    def test_free_text_preserves_ordinary_numbers_and_localizes_numeric_species_field(self) -> None:
+        self.assertEqual(translate_free_text("Значение 123.45, лимит 60"), "Значение 123.45, лимит 60")
+        translated = translate_free_text("species_type=3")
+        self.assertIn("Ракообразное", translated)
+        self.assertNotIn("3", translated)
+
+    def test_experiment_uses_offspring_id_as_result_creature_id(self) -> None:
+        experiment = experiment_view({"experiment_type": "CROSS", "offspring_id": 73})
+        self.assertEqual(experiment["result_creature_id"], 73)
 
     def test_all_current_seed_allele_codes_have_player_facing_labels(self) -> None:
         seed_codes = (

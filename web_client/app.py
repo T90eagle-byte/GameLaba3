@@ -518,7 +518,7 @@ def create_app() -> Flask:
                     if result:
                         flash("Мутация куплена. Деньги обновлены.", "success")
                     else:
-                        flash("Мутация куплена. Деньги обновлены.", "success")
+                        flash("Покупка мутации не выполнена: недостаточно денег.", "warning")
                     return redirect(url_for("mutations"))
 
                 if action == "apply_mutation":

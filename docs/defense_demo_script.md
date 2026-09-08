@@ -115,7 +115,7 @@ docker compose up -d
 2. Показать магазин мутаций.
 3. Купить мутацию и объяснить, что wallet меняет backend.
 4. Применить мутацию к существу и открыть его карточку.
-5. Применить `RADIATION` и `CHEMICAL` как рискованные мутагены.
+5. Применить облучение и химический мутаген как рискованные воздействия.
 6. Показать, что wallet/rating берутся из backend stats, а web ничего не пересчитывает.
 
 ## Web-demo update: история и последствия
@@ -127,24 +127,12 @@ docker compose up -d
 4. Показать, почему изменились wallet/rating: покупки, штрафы, награды.
 5. Подчеркнуть, что события записывает backend package, а web только отображает.
 
-## Update: `/about-requirements`
-
-The demo route now includes `/about-requirements`.
-
-Use it at the beginning or end of defense:
-
-1. Open `/about-requirements`.
-2. Show "Grade 3 ? covered".
-3. Show "Grade 4 ? covered".
-4. State clearly that grade 5 is roadmap, not implemented.
-
 Final web demo route:
 
 1. `/dashboard` ? lab state and gameplay cycle.
 2. `/creatures` and `/creatures/<id>` ? species, phenotype, genotype.
 3. `/tasks` ? client orders.
 4. `/crossbreed` ? 3-option preview and real offspring.
-5. `/mutations` ? mutations, RADIATION/CHEMICAL and risk.
+5. `/mutations` ? mutations, mutagens and risk.
 6. `/experiments` ? evolution line.
 7. `/rating-events` ? wallet/rating consequences.
-8. `/about-requirements` ? compact requirements map.

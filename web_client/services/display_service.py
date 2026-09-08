@@ -323,7 +323,9 @@ def translate_free_text(value: Any) -> str:
     if not text:
         return ""
     replacements: dict[str, str] = {}
-    replacements.update(SPECIES_LABELS)
+    # Numeric species identifiers need a field boundary. Replacing bare digits
+    # would corrupt ordinary values such as 123.45 or 60 in free-form history.
+    replacements.update({code: label for code, label in SPECIES_LABELS.items() if not code.isdigit()})
     replacements.update(TRAIT_LABELS)
     replacements.update(TASK_LABELS)
     replacements.update(MUTATION_LABELS)
@@ -332,6 +334,16 @@ def translate_free_text(value: Any) -> str:
     for raw, label in sorted(replacements.items(), key=lambda item: len(item[0]), reverse=True):
         if raw:
             text = re.sub(re.escape(raw), label, text, flags=re.IGNORECASE)
+
+    def replace_numeric_species(match: re.Match[str]) -> str:
+        return f"{match.group(1)}{SPECIES_LABELS[match.group(2)]}"
+
+    text = re.sub(
+        r"\b(species(?:_type)?\s*[=:]\s*)([1-6])\b",
+        replace_numeric_species,
+        text,
+        flags=re.IGNORECASE,
+    )
     return text.replace("_", " ")
 
 
@@ -917,8 +929,12 @@ def purchased_mutation_views(events: list[dict[str, Any]]) -> list[dict[str, Any
 def experiment_view(row: dict[str, Any]) -> dict[str, Any]:
     kind = _text(row.get("experiment_type") or row.get("experiment_type_code")).upper()
     description = translate_free_text(row.get("description") or row.get("result_description")) or "Шаг лабораторной линии."
+    result_creature_id = row.get("result_creature_id")
+    if result_creature_id is None:
+        result_creature_id = row.get("offspring_id")
     return {
         **row,
+        "result_creature_id": result_creature_id,
         "type_label": EXPERIMENT_LABELS.get(kind, humanize_code(kind)),
         "type_class": f"event-{kind.lower()}" if kind else "event-neutral",
         "description_text": description,

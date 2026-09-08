@@ -10,6 +10,7 @@ from web_client.services.display_service import creature_visual
 
 
 TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "templates"
+CSS_PATH = Path(__file__).resolve().parents[1] / "static" / "css" / "app.css"
 
 
 class PortraitTemplateTests(unittest.TestCase):
@@ -90,6 +91,13 @@ class PortraitTemplateTests(unittest.TestCase):
                 markup = self.render(species_code, "color=green_color; size=medium_size", f"species-{index}")
                 self.assertIn('viewBox="-18 -14 296 188"', markup)
                 self.assertIn(f"species-{species_code.replace('_', '-')}", markup)
+
+    def test_legacy_portrait_rules_are_limited_to_direct_children(self) -> None:
+        css = CSS_PATH.read_text(encoding="utf-8")
+        self.assertIn(".creature-portrait > .tail", css)
+        self.assertIn(".species-turtle > .head", css)
+        self.assertNotIn(".creature-portrait .tail", css)
+        self.assertNotIn(".species-turtle .head", css)
 
 
 if __name__ == "__main__":

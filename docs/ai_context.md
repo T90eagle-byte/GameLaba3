@@ -92,7 +92,7 @@ Flask не строит последствия и не считает deltas; о
 - `web-client-history` was merged into `main` as `c4642f5`.
 - `web-client-polish-defense` adds the final defense UI layer without backend changes.
 - Web now covers the complete grade 3/4 demo route: labs, dashboard, creatures, genotype/phenotype, client orders, crossbreed, 3-option preview, real offspring, mutations, mutagens, experiments history and rating events.
-- Added `/about-requirements` as a compact requirements coverage page.
+- Требования для защиты подтверждаются маршрутом игры и backend-тестами; отдельная страница требований не используется.
 - Backend remains the source of truth: Flask only calls `pkg_genetics_game` and renders returned data. Direct SQL remains limited to health-check `select 1 from dual`.
 - Next step: final clean run, browser smoke on the defense machine, and only small UX fixes if needed.
 

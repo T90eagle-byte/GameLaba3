@@ -105,7 +105,7 @@ Requirements can now be shown both by backend tests and in the browser:
 
 - Grade 3: `/creatures`, `/creatures/<id>`, `/tasks`, `/crossbreed`.
 - Grade 4: `/mutations`, `/experiments`, `/rating-events`, `/crossbreed`.
-- Summary page: `/about-requirements`.
+- Итоговые показатели и история: `/dashboard`, `/rating-events`.
 
 Short wording:
 

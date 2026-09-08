@@ -45,6 +45,7 @@ declare
     v_event_rating_delta         number;
     v_expected_wallet_delta      number;
     v_expected_rating_delta      number;
+    v_reward_description         varchar2(1000);
 
     v_rc                         sys_refcursor;
     v_re_event_id                number;
@@ -304,6 +305,14 @@ begin
     assert_true(v_event_wallet_delta = v_wallet_after_task - v_wallet_after_buy, 'TASK_REWARD wallet delta matches aggregate');
     assert_true(v_event_rating_delta = v_rating_after_task - v_rating_before, 'TASK_REWARD rating delta matches aggregate');
     assert_true(v_event_wallet_delta >= 0 and v_event_rating_delta >= 0, 'TASK_REWARD deltas are non-negative');
+
+    select max(re.description)
+      into v_reward_description
+      from rating_events re
+     where re.lab_id = v_lab1_id
+       and re.task_id = v_task_id
+       and re.event_type = 'TASK_REWARD';
+    assert_true(v_reward_description = 'Награда за выполненный заказ', 'TASK_REWARD has task-specific description', 'description=' || v_reward_description);
 
     select count(*)
       into v_reward_events_before

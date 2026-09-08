@@ -121,7 +121,7 @@
     <p>Облучение и химикаты могут изменить состояние лаборатории. После применения проверьте обзор, существ, эволюционную линию и историю рейтинга.</p>
     <form class="form" method="post">
       <label><span>Существо</span><select name="creature_id" required>{% for creature in creatures %}<option value="{{ creature.creature_id }}">#{{ creature.creature_id }} — {{ creature.display_name }} · {{ creature.species_label }}</option>{% endfor %}</select></label>
-      <div class="button-row"><button name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='RADIATION'">Применить RADIATION</button><button class="secondary" name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='CHEMICAL'">Применить CHEMICAL</button></div>
+      <div class="button-row"><button name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='RADIATION'">Применить облучение</button><button class="secondary" name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='CHEMICAL'">Применить химический мутаген</button></div>
       <input type="hidden" name="mutagen_type" value="RADIATION">
     </form>
   </article>

@@ -3130,7 +3130,7 @@ end hash_password_sha256;
             p_event_type   => 'TASK_REWARD',
             p_rating_delta => nvl(v_rating_reward, 0),
             p_wallet_delta => nvl(v_money_reward, 0),
-                p_description   => 'Эффект применённой мутации',
+            p_description   => 'Награда за выполненный заказ',
             p_creature_id  => p_creature_id,
             p_task_id      => p_task_id
         );
