@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Заказы клиентов — БиоСборка{% endblock %}
+{% block title %}Задания — БиоСборка{% endblock %}
 {% block content %}
 <section class="hero-panel compact-hero">
   <div>
-    <p class="eyebrow">Доска заказов</p>
-    <h1>Заказы клиентов</h1>
-    <p class="lead">Заказы проверяются по генетическим вариантам: достаточно, чтобы каждый нужный аллель был хотя бы в одной из двух копий гена. Внешний признак может не проявиться.</p>
+    <p class="eyebrow">Доска заданий</p>
+    <h1>Задания</h1>
+    <p class="lead">Задания проверяются по генетическим вариантам: достаточно, чтобы каждый нужный аллель был хотя бы в одной из двух копий гена. Внешний признак может не проявиться.</p>
   </div>
 </section>
 {% macro order_card(task, completed=False) %}
   <article class="order-card {{ task.status_class }}">
     <div class="entity-card-header order-header">
       <div>
-        <p class="eyebrow">Заказ #{{ task.task_id }}</p>
+        <p class="eyebrow">Задание #{{ task.task_id }}</p>
         <h2>{{ task.display_name }}</h2>
       </div>
       <span class="badge {{ task.status_class }}">{{ task.status_label }}</span>
@@ -21,7 +21,7 @@
     <p class="summary">{{ task.description_text }}</p>
     <div class="badge-row">
       <span class="badge">Сложность: {{ task.difficulty_label }}</span>
-      <span class="badge reward">Деньги +{{ task.money_reward or task.reward_money or 0 }}</span>
+      <span class="badge reward">Монеты +{{ task.money_reward or task.reward_money or 0 }}</span>
       <span class="badge reward">Рейтинг +{{ task.rating_reward or task.reward_rating or 0 }}</span>
     </div>
     {% if not completed and creatures %}
@@ -34,13 +34,13 @@
           {% endfor %}
         </select>
         <button class="secondary" name="action" value="check" type="submit">Проверить</button>
-        <button name="action" value="complete" type="submit">Сдать заказ</button>
+        <button name="action" value="complete" type="submit">Выполнить задание</button>
       </form>
     {% endif %}
   </article>
 {% endmacro %}
 {% if active_tasks %}<section class="order-grid">{% for task in active_tasks %}{{ order_card(task) }}{% endfor %}</section>{% endif %}
-{% if completed_tasks %}<section class="section-block"><div class="section-title"><h2>Выполненные заказы</h2><span class="badge">{{ completed_tasks|length }}</span></div><div class="order-grid compact">{% for task in completed_tasks %}{{ order_card(task, True) }}{% endfor %}</div></section>{% endif %}
-{% if other_tasks %}<section class="section-block"><div class="section-title"><h2>Прочие заказы</h2></div><div class="order-grid compact">{% for task in other_tasks %}{{ order_card(task) }}{% endfor %}</div></section>{% endif %}
-{% if not active_tasks and not completed_tasks and not other_tasks %}<section class="panel empty-state"><h2>Заказов пока нет</h2><p>Откройте или создайте лабораторию, чтобы получить первые цели.</p></section>{% endif %}
+{% if completed_tasks %}<section class="section-block"><div class="section-title"><h2>Выполненные задания</h2><span class="badge">{{ completed_tasks|length }}</span></div><div class="order-grid compact">{% for task in completed_tasks %}{{ order_card(task, True) }}{% endfor %}</div></section>{% endif %}
+{% if other_tasks %}<section class="section-block"><div class="section-title"><h2>Прочие задания</h2></div><div class="order-grid compact">{% for task in other_tasks %}{{ order_card(task) }}{% endfor %}</div></section>{% endif %}
+{% if not active_tasks and not completed_tasks and not other_tasks %}<section class="panel empty-state"><h2>Заданий пока нет</h2><p>Откройте или создайте лабораторию, чтобы получить первые цели.</p></section>{% endif %}
 {% endblock %}

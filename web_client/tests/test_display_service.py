@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from web_client.services.display_service import (
+    EVENT_LABELS,
     TASK_DESCRIPTIONS,
     TASK_LABELS,
     creature_visual,
@@ -285,8 +286,13 @@ class TaskDisplayTests(unittest.TestCase):
 
     def test_unknown_internal_task_uses_safe_fallback_and_keeps_diagnostic_code(self) -> None:
         task = task_view({"task_name": "task_future_unknown", "task_display_name": "task_future_unknown"})
-        self.assertEqual(task["display_name"], "Специальный заказ")
+        self.assertEqual(task["display_name"], "Специальное задание")
         self.assertEqual(task["unknown_task_code"], "task_future_unknown")
+        self.assertEqual(task["requirement_label"], "Условие задания")
+        self.assertTrue(task["description_text"].startswith("Цель задания:"))
+
+    def test_task_reward_uses_assignment_terminology(self) -> None:
+        self.assertEqual(EVENT_LABELS["TASK_REWARD"], "Награда за задание")
 
 
 if __name__ == "__main__":

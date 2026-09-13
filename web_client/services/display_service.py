@@ -194,7 +194,7 @@ MUTATION_LABELS = {
 }
 
 EVENT_LABELS = {
-    "TASK_REWARD": "Награда за заказ",
+    "TASK_REWARD": "Награда за задание",
     "MUTATION_PURCHASE": "Покупка мутации",
     "MUTAGEN_PENALTY": "Риск мутагена",
     "MUTATION_EFFECT": "Эффект мутации",
@@ -851,12 +851,12 @@ def task_view(row: dict[str, Any]) -> dict[str, Any]:
     if not name and supplied_name and not is_internal_name:
         name = supplied_name
     if not name:
-        name = "Специальный заказ"
+        name = "Специальное задание"
     unknown_task_code = code if code.startswith("task_") and code not in TASK_LABELS else None
     description = _text(row.get("description") or row.get("task_description") or row.get("goal_description"))
     if not description or code in TASK_DESCRIPTIONS:
-        description = TASK_DESCRIPTIONS.get(code, f"Клиент просит организм: {name.lower()}.")
-    return {**row, "display_name": name, "unknown_task_code": unknown_task_code, "description_text": description, "requirement_label": "Генетическое условие" if code in TASK_DESCRIPTIONS else "Условие заказа", "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status), "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral", "difficulty_label": humanize_code(difficulty)}
+        description = TASK_DESCRIPTIONS.get(code, f"Цель задания: получить организм «{name.lower()}».")
+    return {**row, "display_name": name, "unknown_task_code": unknown_task_code, "description_text": description, "requirement_label": "Генетическое условие" if code in TASK_DESCRIPTIONS else "Условие задания", "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status), "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral", "difficulty_label": humanize_code(difficulty)}
 
 
 def task_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

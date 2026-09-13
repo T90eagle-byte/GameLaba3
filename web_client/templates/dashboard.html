@@ -10,24 +10,24 @@
   <a class="button secondary" href="{{ url_for('labs') }}">Сменить лабораторию</a>
 </section>
 <section class="stat-grid">
-  <article class="stat-card wallet"><span>Деньги</span><strong>{{ stats.wallet_label }}</strong></article>
+  <article class="stat-card wallet"><span>Монеты</span><strong>{{ stats.wallet_label }}</strong></article>
   <article class="stat-card rating"><span>Рейтинг</span><strong>{{ stats.rating_label }}</strong></article>
   <article class="stat-card"><span>Существа</span><strong>{{ stats.creature_count }}</strong></article>
-  <article class="stat-card"><span>Активные заказы</span><strong>{{ stats.active_task_count }}</strong></article>
+  <article class="stat-card"><span>Активные задания</span><strong>{{ stats.active_task_count }}</strong></article>
   <article class="stat-card"><span>Выполнено</span><strong>{{ stats.completed_task_count }}</strong></article>
   <article class="stat-card"><span>Эксперименты</span><strong>{{ stats.experiment_count }}</strong></article>
 </section>
 <section class="workflow-grid">
   <article class="panel feature-panel">
     <p class="eyebrow">Игровой цикл</p>
-    <h2>От заказа клиента к нужному организму</h2>
+    <h2>От задания к нужному организму</h2>
     <ol class="cycle-list">
-      <li><a href="{{ url_for('tasks') }}">Заказы клиентов</a><span>Выберите целевой фенотип.</span></li>
+      <li><a href="{{ url_for('tasks') }}">Задания</a><span>Выберите генетическую цель.</span></li>
       <li><a href="{{ url_for('creatures') }}">Существа</a><span>Изучите фенотип и генотип.</span></li>
       <li><a href="{{ url_for('crossbreed') }}">Предпросмотр потомства</a><span>Сравните три варианта.</span></li>
       <li><a href="{{ url_for('mutations') }}">Мутации и мутагены</a><span>Изменяйте признаки с риском.</span></li>
       <li><a href="{{ url_for('experiments') }}">Эволюционная линия</a><span>Покажите путь лаборатории.</span></li>
-      <li><a href="{{ url_for('rating_events') }}">История</a><span>Объясните изменения денег и рейтинга.</span></li>
+      <li><a href="{{ url_for('rating_events') }}">История</a><span>Проследите изменения монет и рейтинга.</span></li>
     </ol>
   </article>
   <article class="panel defense-panel">
@@ -35,11 +35,11 @@
     <h2>Ключевые разделы</h2>
     <div class="action-grid">
       <a class="button" href="{{ url_for('creatures') }}">Коллекция существ</a>
-      <a class="button" href="{{ url_for('tasks') }}">Заказы клиентов</a>
+      <a class="button" href="{{ url_for('tasks') }}">Задания</a>
       <a class="button" href="{{ url_for('crossbreed') }}">Скрещивание</a>
       <a class="button" href="{{ url_for('mutations') }}">Мутации</a>
       <a class="button" href="{{ url_for('experiments') }}">Эволюционная линия</a>
-      <a class="button secondary" href="{{ url_for('rating_events') }}">История рейтинга и денег</a>
+      <a class="button secondary" href="{{ url_for('rating_events') }}">История рейтинга и монет</a>
     </div>
   </article>
 </section>

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}История рейтинга и денег — БиоСборка{% endblock %}
+{% block title %}История рейтинга и монет — БиоСборка{% endblock %}
 {% block content %}
 <section class="hero-panel compact-hero">
   <div>
     <p class="eyebrow">История решений</p>
-    <h1>История рейтинга и денег</h1>
+    <h1>История рейтинга и монет</h1>
     <p class="lead">Награды, покупки и штрафы собраны в прозрачную ленту событий.</p>
   </div>
 </section>
@@ -19,10 +19,10 @@
         <p>{{ event.description_text }}</p>
         <div class="delta-row">
           <span class="delta {{ event.rating_class }}">Рейтинг {{ event.rating_delta_label }}</span>
-          <span class="delta {{ event.wallet_class }}">Деньги {{ event.wallet_delta_label }}</span>
+          <span class="delta {{ event.wallet_class }}">Монеты {{ event.wallet_delta_label }}</span>
         </div>
         <div class="badge-row">
-          {% if event.task_id %}<span class="badge">Заказ #{{ event.task_id }}</span>{% endif %}
+          {% if event.task_id %}<span class="badge">Задание #{{ event.task_id }}</span>{% endif %}
           {% if event.creature_id %}<a class="badge link-badge" href="{{ url_for('creature_detail', creature_id=event.creature_id) }}">Существо #{{ event.creature_id }}</a>{% endif %}
           {% if event.experiment_id %}<span class="badge">Эксперимент #{{ event.experiment_id }}</span>{% endif %}
         </div>
@@ -32,7 +32,7 @@
 {% else %}
   <section class="panel empty-state">
     <h2>История пока пуста</h2>
-    <p>Сдайте заказ, купите мутацию или примените мутаген, чтобы заполнить историю.</p>
+    <p>Выполните задание, купите мутацию или примените мутаген, чтобы заполнить историю.</p>
   </section>
 {% endif %}
 {% endblock %}

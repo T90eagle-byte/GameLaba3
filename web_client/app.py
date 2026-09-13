@@ -369,7 +369,7 @@ def create_app() -> Flask:
                 if action == "check":
                     result = task_service.check_task(token, lab_id, task_id, creature_id)
                     if result:
-                        flash("Существо подходит под заказ клиента.", "success")
+                        flash("Существо подходит для задания.", "success")
                     else:
                         flash("Пока не подходит: выберите другое существо или продолжите эксперименты.", "warning")
                     return redirect(url_for("tasks"))
@@ -378,17 +378,17 @@ def create_app() -> Flask:
                     result = task_service.complete_task(token, lab_id, task_id, creature_id)
                     if result["is_completed"]:
                         flash(
-                            "Заказ выполнен. Деньги: "
+                            "Задание выполнено. Монеты: "
                             f"{display_service.number_label(result['wallet_after'])}, рейтинг: {display_service.number_label(result['rating_after'])}.",
                             "success",
                         )
                     else:
-                        flash("Выбранное существо не закрывает цель заказа.", "warning")
+                        flash("Выбранное существо не закрывает цель задания.", "warning")
                     return redirect(url_for("tasks"))
 
-                flash("Неизвестное действие с заказом.", "error")
+                flash("Неизвестное действие с заданием.", "error")
             except (TypeError, ValueError):
-                flash("Выберите заказ и существо перед действием.", "error")
+                flash("Выберите задание и существо перед действием.", "error")
             except ServiceError as exc:
                 flash(str(exc), "error")
 
@@ -516,9 +516,9 @@ def create_app() -> Flask:
                         raise ValueError
                     result = mutation_service.buy_mutation(token, lab_id, mutation_id)
                     if result:
-                        flash("Мутация куплена. Деньги обновлены.", "success")
+                        flash("Мутация куплена. Монеты обновлены.", "success")
                     else:
-                        flash("Покупка мутации не выполнена: недостаточно денег.", "warning")
+                        flash("Покупка мутации не выполнена: недостаточно монет.", "warning")
                     return redirect(url_for("mutations"))
 
                 if action == "apply_mutation":
@@ -543,7 +543,7 @@ def create_app() -> Flask:
                         raise ValueError
                     before_genotype = creature_service.get_genotype(token, creature_id, lab_id)
                     new_creature_id = mutation_service.apply_mutagen(token, lab_id, creature_id, mutagen_type)
-                    flash("Мутагент применён. Проверьте изменения рейтинга, денег и список существ.", "success")
+                    flash("Мутагент применён. Проверьте изменения рейтинга, монет и список существ.", "success")
                     if new_creature_id:
                         after_genotype = creature_service.get_genotype(token, new_creature_id, lab_id)
                         session["genotype_highlight"] = {

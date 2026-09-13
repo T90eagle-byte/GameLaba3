@@ -276,7 +276,7 @@ class LabRouteTests(unittest.TestCase):
         buy_mutation.assert_called_once_with("current-token", 7, 5)
         with self.client.session_transaction() as flask_session:
             self.assertIn(
-                ("warning", "Покупка мутации не выполнена: недостаточно денег."),
+                ("warning", "Покупка мутации не выполнена: недостаточно монет."),
                 flask_session["_flashes"],
             )
 
@@ -465,9 +465,13 @@ class LabRouteTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Бронированный ракообразный".encode(), response.data)
-        self.assertIn("Специальный заказ".encode(), response.data)
+        self.assertIn("Специальное задание".encode(), response.data)
+        self.assertIn("Задание #5".encode(), response.data)
+        self.assertIn("Монеты +300".encode(), response.data)
         self.assertNotIn(b"task_armored_crustacean", response.data)
         self.assertNotIn(b"task_future_unknown", response.data)
+        self.assertNotIn("Заказ #".encode(), response.data)
+        self.assertNotIn("Деньги".encode(), response.data)
 
     @patch.object(app_module.creature_service, "get_creatures", return_value=[])
     @patch.object(app_module.task_service, "get_tasks")

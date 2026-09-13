@@ -9,7 +9,7 @@
   </div>
 </section>
 <section class="stat-grid slim">
-  <article class="stat-card wallet"><span>Деньги</span><strong>{{ stats.wallet_label }}</strong></article>
+  <article class="stat-card wallet"><span>Монеты</span><strong>{{ stats.wallet_label }}</strong></article>
   <article class="stat-card rating"><span>Рейтинг</span><strong>{{ stats.rating_label }}</strong></article>
   <article class="stat-card"><span>Существа</span><strong>{{ stats.creature_count }}</strong></article>
   <article class="stat-card"><span>Эксперименты</span><strong>{{ stats.experiment_count }}</strong></article>
@@ -82,7 +82,7 @@
   <div class="section-title"><div><p class="eyebrow">История покупок</p><h2>Купленные мутации</h2></div><span class="badge">{{ purchased_mutations|length }}</span></div>
   {% if purchased_mutations %}
     <div class="purchase-list">
-      {% for purchase in purchased_mutations[:8] %}<article class="purchase-card"><strong>{{ purchase.display_name }}</strong><span>{{ purchase.created_at_label }}</span><span class="delta {{ purchase.wallet_class }}">Деньги {{ purchase.wallet_delta_label }}</span></article>{% endfor %}
+      {% for purchase in purchased_mutations[:8] %}<article class="purchase-card"><strong>{{ purchase.display_name }}</strong><span>{{ purchase.created_at_label }}</span><span class="delta {{ purchase.wallet_class }}">Монеты {{ purchase.wallet_delta_label }}</span></article>{% endfor %}
     </div>
   {% else %}
     <p class="empty">Покупок мутаций пока нет. Остатки появятся после покупки.</p>
