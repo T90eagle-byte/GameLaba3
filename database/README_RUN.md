@@ -119,6 +119,22 @@ the idempotent data migration after stopping the application:
 It only clarifies task text. Task markers and the genotype-based `check_task`
 rule are unchanged.
 
+For the optional lr3-v3 morphology foundation, run the following migration
+separately after the core schema and seed are present:
+
+```sql
+@database/migrations/04_add_creature_archetypes.sql
+```
+
+It creates reference-only archetype tables and 18 empty morphology archetypes.
+It does not alter creatures, genotypes, package behavior, or starter generation.
+The current university installers intentionally do not invoke this optional
+migration; verify it independently with:
+
+```sql
+@database/tests/12_creature_archetypes_smoke_test.sql
+```
+
 ## 2) Run core seed data
 
 ```sql

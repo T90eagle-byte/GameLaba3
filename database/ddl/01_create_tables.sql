@@ -23,6 +23,7 @@ create sequence lab_mutations_seq start with 1 increment by 1 nocache nocycle;
 create sequence lab_tasks_seq start with 1 increment by 1 nocache nocycle;
 create sequence task_markers_seq start with 1 increment by 1 nocache nocycle;
 create sequence rating_events_seq start with 1 increment by 1 nocache nocycle;
+create sequence ref_creature_archetypes_seq start with 1 increment by 1 nocache nocycle;
 
 -- ============================================================================
 -- SECTION 2. AUTHORIZATION AND SESSION TABLES
@@ -139,6 +140,22 @@ comment on table ref_mutation_types is 'Mutation type domain reference.';
 comment on table ref_task_difficulties is 'Task difficulty domain reference.';
 comment on table ref_rating_event_types is 'Rating/economy event type domain reference.';
 
+create table ref_creature_archetypes (
+    archetype_id       number not null,
+    species_type       number(1) not null,
+    archetype_code     varchar2(60 char) not null,
+    display_name       varchar2(100 char) not null,
+    active_flag        char(1 char) default 'Y' not null,
+    constraint pk_ref_creature_archetypes primary key (archetype_id),
+    constraint uq_ref_creature_archetype_code unique (archetype_code),
+    constraint fk_ref_archetype_species foreign key (species_type) references ref_species_types (species_type),
+    constraint ck_ref_archetype_active check (active_flag in ('Y', 'N'))
+);
+
+comment on table ref_creature_archetypes is 'Data-only morphology archetypes; no gameplay behavior is assigned yet.';
+comment on column ref_creature_archetypes.species_type is 'Existing species type code from ref_species_types.';
+comment on column ref_creature_archetypes.active_flag is 'Y for an available reference archetype, N for retired reference data.';
+
 -- ============================================================================
 -- SECTION 4. CORE GAME STATE TABLES
 -- ============================================================================
@@ -211,6 +228,20 @@ create table alleles (
 comment on table alleles is 'Alleles for each gene.';
 comment on column alleles.allele_id is 'Primary key.';
 comment on column alleles.gene_id is 'References the gene this allele belongs to.';
+
+create table ref_archetype_alleles (
+    archetype_id       number not null,
+    gene_id            number not null,
+    allele1_id         number not null,
+    allele2_id         number not null,
+    constraint pk_ref_archetype_alleles primary key (archetype_id, gene_id),
+    constraint fk_ref_arch_alleles_archetype foreign key (archetype_id) references ref_creature_archetypes (archetype_id),
+    constraint fk_ref_arch_alleles_gene foreign key (gene_id) references genes (gene_id),
+    constraint fk_ref_arch_alleles_a1 foreign key (allele1_id, gene_id) references alleles (allele_id, gene_id),
+    constraint fk_ref_arch_alleles_a2 foreign key (allele2_id, gene_id) references alleles (allele_id, gene_id)
+);
+
+comment on table ref_archetype_alleles is 'Optional future genotype templates per creature archetype; intentionally empty in the morphology foundation.';
 
 create table mutations (
     mutation_id         number not null,
