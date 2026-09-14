@@ -276,12 +276,15 @@ begin
     select count(*)
       into v_value
       from task_markers tm
+      join tasks t
+        on t.task_id = tm.task_id
       join alleles a
         on a.allele_id = tm.allele_id
       join genes g
         on g.gene_id = a.gene_id
-     where g.gameplay_enabled = 'N';
-    assert_true(v_value = 0, 'TASK MARKERS reference legacy genes only', 'reference markers=' || v_value);
+     where substr(t.task_name, 1, 8) <> 'task_v3_'
+       and g.gameplay_enabled = 'N';
+    assert_true(v_value = 0, 'HISTORICAL TASK MARKERS reference legacy genes only', 'reference markers=' || v_value);
 
     inspect_preview('LEGACY x LEGACY', v_legacy_id, v_legacy2_id, 0);
     inspect_preview('DUAL x DUAL', v_dual1_id, v_dual2_id, 1);

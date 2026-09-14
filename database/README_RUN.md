@@ -579,3 +579,20 @@ The SQL runner uses one Oracle connection. Run the additional test below to veri
 ```powershell
 .\.venv\Scripts\python.exe database\tests\test_multiuser_session_concurrency.py
 ```
+
+## Versioned task catalogue
+
+`TASKS.GENETICS_VERSION` distinguishes the historical catalogue (`1`) from
+the universal-morphology catalogue (`3`). Migration 11 marks all existing
+tasks as v1 and then seeds 12 v3 catalogue entries. It preserves existing
+`LAB_TASKS`, markers, rewards, and task IDs.
+
+The v3 catalogue is reference data only at this stage. The current package
+assignment and completion flow remains unchanged, so the new v3 entries must
+not be treated as runtime-assigned morphology tasks until the separate
+phenotype-aware evaluator stage is introduced.
+
+```sql
+@database/migrations/11_add_task_genetics_version.sql
+@database/tests/22_versioned_v3_task_catalog_smoke_test.sql
+```

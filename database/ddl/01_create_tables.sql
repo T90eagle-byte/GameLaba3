@@ -306,16 +306,19 @@ create table tasks (
     rating_reward       number(12, 2) default 0 not null,
     money_reward        number(12, 2) default 0 not null,
     difficulty_code     varchar2(30 char) default 'MEDIUM' not null,
+    genetics_version    number(2) default 1 not null,
     created_at          timestamp default systimestamp not null,
     constraint pk_tasks primary key (task_id),
     constraint uq_tasks_name unique (task_name),
     constraint fk_tasks_difficulty_code foreign key (difficulty_code) references ref_task_difficulties (difficulty_code),
-    constraint ck_tasks_money_reward_nonnegative check (money_reward >= 0)
+    constraint ck_tasks_money_reward_nonnegative check (money_reward >= 0),
+    constraint ck_tasks_genetics_version check (genetics_version in (1, 3))
 );
 
 comment on table tasks is 'Client orders with rewards.';
 comment on column tasks.task_id is 'Primary key.';
 comment on column tasks.difficulty_code is 'Task difficulty code from ref_task_difficulties.';
+comment on column tasks.genetics_version is 'Genetics model version the task catalogue entry belongs to: 1 legacy or 3 morphology.';
 
 create table creatures (
     creature_id                  number not null,
