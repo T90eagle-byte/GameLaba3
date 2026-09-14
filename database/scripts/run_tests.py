@@ -36,7 +36,7 @@ PLSQL_START_RE = re.compile(
     r"^(declare|begin|create\s+or\s+replace\s+(package(\s+body)?|procedure|function|trigger|type(\s+body)?))\b",
     re.IGNORECASE,
 )
-AT_DIRECTIVE_RE = re.compile(r"^@(.+)$")
+AT_DIRECTIVE_RE = re.compile(r"^@@?(.+)$")
 
 
 def is_sqlplus_directive(stripped_line: str) -> bool:

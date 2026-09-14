@@ -135,6 +135,22 @@ migration; verify it independently with:
 @database/tests/12_creature_archetypes_smoke_test.sql
 ```
 
+The next optional migration adds a universal morphology dictionary with an
+explicit gameplay gate:
+
+```sql
+@database/migrations/05_add_universal_morphology.sql
+```
+
+It marks all legacy genes as `Y` and adds 18 reference-only morphology genes
+as `N`. The package excludes only `N` genes when forming new starter genotypes;
+existing genotype rows remain valid. The stable university installers do not
+invoke this migration. Verify it independently with:
+
+```sql
+@database/tests/13_universal_morphology_smoke_test.sql
+```
+
 ## 2) Run core seed data
 
 ```sql

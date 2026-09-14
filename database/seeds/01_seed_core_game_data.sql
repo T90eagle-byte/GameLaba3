@@ -951,4 +951,5 @@ end;
 
 commit;
 
+@@02_seed_universal_morphology.sql
 

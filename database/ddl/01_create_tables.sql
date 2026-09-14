@@ -195,6 +195,7 @@ create table genes (
     species_type       number(1) default 0 not null,
     dominance_type     varchar2(20 char) default 'FULL' not null,
     linkage_group      number null,
+    gameplay_enabled   char(1 char) default 'Y' not null,
     gene_name          varchar2(50 char) not null,
     description        varchar2(255 char) null,
     created_at         timestamp default systimestamp not null,
@@ -203,7 +204,8 @@ create table genes (
     constraint fk_genes_species_type foreign key (species_type) references ref_species_types (species_type),
     constraint fk_genes_dominance_type foreign key (dominance_type) references ref_dominance_types (dominance_type),
     constraint ck_genes_species_type check (species_type between 0 and 6),
-    constraint ck_genes_linkage_group check (linkage_group is null or linkage_group > 0)
+    constraint ck_genes_linkage_group check (linkage_group is null or linkage_group > 0),
+    constraint ck_genes_gameplay_enabled check (gameplay_enabled in ('Y', 'N'))
 );
 
 comment on table genes is 'Genes with species scope, dominance type, and linkage group.';
@@ -211,6 +213,7 @@ comment on column genes.gene_id is 'Primary key.';
 comment on column genes.species_type is '0 for universal genes; 1..6 for specific species types.';
 comment on column genes.dominance_type is 'Dominance model: FULL, INCOMPLETE, CODOMINANT.';
 comment on column genes.linkage_group is 'Linked inheritance group identifier; NULL for independent genes.';
+comment on column genes.gameplay_enabled is 'Y when the gene participates in the current gameplay runtime; N for reference-only morphology data.';
 
 create table alleles (
     allele_id           number not null,

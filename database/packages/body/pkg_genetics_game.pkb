@@ -4,6 +4,21 @@ create or replace package body pkg_genetics_game as
     g_current_session_id    number;
     g_current_session_token varchar2(128);
     g_current_lab_id        number;
+    g_gameplay_gate_present  number := null;
+
+    function gameplay_gate_is_present
+    return boolean is
+    begin
+        if g_gameplay_gate_present is null then
+            select count(*)
+              into g_gameplay_gate_present
+              from user_tab_columns
+             where table_name = 'GENES'
+               and column_name = 'GAMEPLAY_ENABLED';
+        end if;
+
+        return g_gameplay_gate_present = 1;
+    end gameplay_gate_is_present;
 
     procedure clear_current_session_context is
     begin
@@ -3219,6 +3234,8 @@ end hash_password_sha256;
         v_allele1_id       number;
         v_allele2_id       number;
         v_summary          varchar2(1000);
+        v_gene_cursor      sys_refcursor;
+        v_gene_id          number;
     begin
         if p_species_type < 1 or p_species_type > 6 then
             raise_application_error(-20027, 'Invalid species_type. Expected value from 1 to 6.');
@@ -3261,19 +3278,33 @@ end hash_password_sha256;
             null
         );
 
-        for g in (
-            select gene_id
-              from genes
-             where species_type in (0, p_species_type)
-             order by gene_id
-        ) loop
+        if gameplay_gate_is_present then
+            open v_gene_cursor for
+                'select gene_id
+                   from genes
+                  where species_type in (0, :species_type)
+                    and gameplay_enabled = ''Y''
+                  order by gene_id'
+                using p_species_type;
+        else
+            open v_gene_cursor for
+                'select gene_id
+                   from genes
+                  where species_type in (0, :species_type)
+                  order by gene_id'
+                using p_species_type;
+        end if;
+
+        loop
+            fetch v_gene_cursor into v_gene_id;
+            exit when v_gene_cursor%notfound;
             begin
                 select allele_id
                   into v_allele1_id
                   from (
                         select a.allele_id
                           from alleles a
-                         where a.gene_id = g.gene_id
+                         where a.gene_id = v_gene_id
                          order by dbms_random.value
                        )
                  where rownum = 1;
@@ -3283,13 +3314,13 @@ end hash_password_sha256;
                   from (
                         select a.allele_id
                           from alleles a
-                         where a.gene_id = g.gene_id
+                         where a.gene_id = v_gene_id
                          order by dbms_random.value
                        )
                  where rownum = 1;
             exception
                 when no_data_found then
-                    raise_application_error(-20029, 'No alleles found for gene_id=' || g.gene_id);
+                    raise_application_error(-20029, 'No alleles found for gene_id=' || v_gene_id);
             end;
 
             insert into genotypes (
@@ -3301,11 +3332,13 @@ end hash_password_sha256;
             ) values (
                 genotypes_seq.nextval,
                 p_creature_id,
-                g.gene_id,
+                v_gene_id,
                 v_allele1_id,
                 v_allele2_id
             );
         end loop;
+
+        close v_gene_cursor;
 
         v_summary := get_phenotype(p_creature_id => p_creature_id);
     end create_creature_of_type;
