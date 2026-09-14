@@ -592,6 +592,18 @@ assignment and completion flow remains unchanged, so the new v3 entries must
 not be treated as runtime-assigned morphology tasks until the separate
 phenotype-aware evaluator stage is introduced.
 
+Task evaluation is version-aware: v1 tasks keep the historical rule that a
+marker allele may appear in either genotype slot, while v3 tasks require the
+marker allele to be the expressed phenotype. The evaluator is selected by
+`TASKS.GENETICS_VERSION`, not by `LABS.GENETICS_VERSION`, during the transition
+before assignment is version-filtered in Task 15.
+
+Current v3 task markers use only `FULL` dominance genes. `nutrition_type`
+remains a canonical v3 gene, but it is `CODOMINANT` and deliberately has no v3
+task markers yet. A future extension must define whether each component of a
+codominant phenotype is separately eligible for a marker before such tasks are
+added.
+
 ```sql
 @database/migrations/11_add_task_genetics_version.sql
 @database/tests/22_versioned_v3_task_catalog_smoke_test.sql

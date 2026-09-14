@@ -178,7 +178,7 @@ begin
     assert_v3_task('task_v3_disc_fish_tail', 2);
     assert_v3_task('task_v3_cetacean_rear_flippers', 2);
     assert_v3_task('task_v3_white_broad_cephalopod', 3);
-    assert_v3_task('task_v3_long_tailed_predator', 3);
+    assert_v3_task('task_v3_long_tailed_pointed', 3);
 
     select count(*)
       into v_value
@@ -199,6 +199,24 @@ begin
      where t.genetics_version = 3
        and g.gene_name in ('color', 'size', 'has_wings', 'fin_shape', 'shell_armor', 'claw_form', 'beak_nose_shape', 'speed_level', 'fur_density');
     assert_true(v_value = 0, 'v3 markers exclude legacy genes', 'actual=' || v_value);
+
+    select count(*)
+      into v_value
+      from task_markers tm
+      join tasks t on t.task_id = tm.task_id
+      join alleles a on a.allele_id = tm.allele_id
+      join genes g on g.gene_id = a.gene_id
+     where t.genetics_version = 3
+       and g.gene_name = 'nutrition_type';
+    assert_true(v_value = 0, 'v3 task markers defer CODOMINANT nutrition_type', 'actual=' || v_value);
+
+    select count(*)
+      into v_value
+      from ref_genetics_model_genes membership
+      join genes g on g.gene_id = membership.gene_id
+     where membership.genetics_version = 3
+       and g.gene_name = 'nutrition_type';
+    assert_true(v_value = 1, 'v3 model membership retains nutrition_type', 'actual=' || v_value);
 
     select count(*)
       into v_value

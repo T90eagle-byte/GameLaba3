@@ -8,6 +8,37 @@ declare
     v_allele_id    number;
     v_match_count  number;
 
+    procedure remove_obsolete_predator_task is
+        v_obsolete_task_id number;
+        v_dependency_count number;
+    begin
+        begin
+            select task_id
+              into v_obsolete_task_id
+              from tasks
+             where task_name = 'task_v3_long_tailed_predator';
+        exception
+            when no_data_found then
+                return;
+        end;
+
+        select
+            (select count(*) from lab_tasks where task_id = v_obsolete_task_id) +
+            (select count(*) from rating_events where task_id = v_obsolete_task_id)
+          into v_dependency_count
+          from dual;
+
+        if v_dependency_count <> 0 then
+            raise_application_error(
+                -20936,
+                'Cannot replace task_v3_long_tailed_predator because it is already referenced by gameplay history.'
+            );
+        end if;
+
+        delete from task_markers where task_id = v_obsolete_task_id;
+        delete from tasks where task_id = v_obsolete_task_id;
+    end remove_obsolete_predator_task;
+
     procedure upsert_task(
         p_task_name       in varchar2,
         p_description     in varchar2,
@@ -122,6 +153,8 @@ declare
             values (task_markers_seq.nextval, source.task_id, source.allele_id);
     end upsert_marker;
 begin
+    remove_obsolete_predator_task;
+
     upsert_task('task_v3_disc_saw', 'Требуется дискообразная форма тела и пилообразное рыло.', 30, 900, 'MEDIUM');
     upsert_task('task_v3_eel_yellow', 'Требуется угреобразная форма тела и жёлтый окрас.', 30, 900, 'MEDIUM');
     upsert_task('task_v3_shrimp_claws', 'Требуется креветкообразная форма тела и клешни.', 35, 1100, 'HARD');
@@ -133,7 +166,7 @@ begin
     upsert_task('task_v3_disc_fish_tail', 'Требуется дискообразная форма тела и рыбный хвост.', 55, 1800, 'HARD');
     upsert_task('task_v3_cetacean_rear_flippers', 'Требуется китообразная форма тела и задние ласты.', 50, 1500, 'HARD');
     upsert_task('task_v3_white_broad_cephalopod', 'Требуется белая головоногая форма тела с широкими пропорциями.', 55, 1700, 'HARD');
-    upsert_task('task_v3_long_tailed_predator', 'Требуется вытянутый хвост, крупный размер и хищное питание.', 60, 2000, 'HARD');
+    upsert_task('task_v3_long_tailed_pointed', 'Требуется вытянутый хвост, крупный размер и заострённая морда.', 60, 2000, 'HARD');
 
     upsert_marker('task_v3_disc_saw', 'body_shape', 'disc');
     upsert_marker('task_v3_disc_saw', 'snout_type', 'saw');
@@ -169,9 +202,9 @@ begin
     upsert_marker('task_v3_white_broad_cephalopod', 'body_color', 'white');
     upsert_marker('task_v3_white_broad_cephalopod', 'body_proportion', 'broad');
 
-    upsert_marker('task_v3_long_tailed_predator', 'tail_type', 'elongated');
-    upsert_marker('task_v3_long_tailed_predator', 'body_size', 'large');
-    upsert_marker('task_v3_long_tailed_predator', 'nutrition_type', 'carnivore');
+    upsert_marker('task_v3_long_tailed_pointed', 'tail_type', 'elongated');
+    upsert_marker('task_v3_long_tailed_pointed', 'body_size', 'large');
+    upsert_marker('task_v3_long_tailed_pointed', 'snout_type', 'pointed');
 
     commit;
 end;

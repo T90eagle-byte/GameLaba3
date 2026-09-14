@@ -3132,14 +3132,117 @@ end hash_password_sha256;
             raise;
     end show_tasks;
 
+    function creature_matches_task(
+        p_creature_id in number,
+        p_task_id     in number
+    ) return number is
+        v_task_version    tasks.genetics_version%type;
+        v_marker_total    number;
+        v_marker_matched  number := 0;
+        v_membership_count number;
+        v_genotype_count  number;
+        v_expressed_code  alleles.description%type;
+    begin
+        select t.genetics_version
+          into v_task_version
+          from tasks t
+         where t.task_id = p_task_id;
+
+        select count(*)
+          into v_marker_total
+          from task_markers tm
+         where tm.task_id = p_task_id;
+
+        if v_marker_total = 0 then
+            raise_application_error(-20062, 'Task has no markers defined.');
+        end if;
+
+        if v_task_version = 1 then
+            -- Preserve the approved legacy rule: a marker only has to be present.
+            select count(*)
+              into v_marker_matched
+              from task_markers tm
+             where tm.task_id = p_task_id
+               and exists (
+                    select 1
+                      from genotypes g
+                     where g.creature_id = p_creature_id
+                       and (
+                            g.allele1_id = tm.allele_id
+                            or g.allele2_id = tm.allele_id
+                       )
+               );
+        elsif v_task_version = 3 then
+            for marker_rec in (
+                select
+                    tm.allele_id,
+                    a.gene_id,
+                    a.description as marker_code,
+                    g.dominance_type
+                  from task_markers tm
+                  join alleles a
+                    on a.allele_id = tm.allele_id
+                  join genes g
+                    on g.gene_id = a.gene_id
+                 where tm.task_id = p_task_id
+                 order by tm.task_marker_id
+            ) loop
+                select count(*)
+                  into v_membership_count
+                  from ref_genetics_model_genes membership
+                 where membership.genetics_version = 3
+                   and membership.gene_id = marker_rec.gene_id;
+
+                if v_membership_count <> 1 then
+                    raise_application_error(
+                        -20085,
+                        'V3 task marker gene is outside the canonical v3 genetics model.'
+                    );
+                end if;
+
+                if marker_rec.dominance_type <> 'FULL' then
+                    raise_application_error(
+                        -20086,
+                        'V3 task marker requires a FULL-dominance gene with one expressed allele.'
+                    );
+                end if;
+
+                select count(*)
+                  into v_genotype_count
+                  from genotypes gt
+                 where gt.creature_id = p_creature_id
+                   and gt.gene_id = marker_rec.gene_id;
+
+                if v_genotype_count = 0 then
+                    return 0;
+                end if;
+
+                v_expressed_code := get_dominant_allele(
+                    p_creature_id => p_creature_id,
+                    p_gene_id     => marker_rec.gene_id
+                );
+
+                if v_expressed_code = marker_rec.marker_code then
+                    v_marker_matched := v_marker_matched + 1;
+                end if;
+            end loop;
+        else
+            raise_application_error(-20087, 'Task has an unsupported genetics_version.');
+        end if;
+
+        if v_marker_matched = v_marker_total then
+            return 1;
+        end if;
+
+        return 0;
+    end creature_matches_task;
+
     function check_task(
         p_lab_id          in number,
         p_task_id         in number,
         p_creature_id     in number
     ) return number is
         v_exists_count    number;
-        v_marker_total    number;
-        v_marker_matched  number;
     begin
         assert_lab_access(p_lab_id => p_lab_id);
 
@@ -3169,34 +3272,10 @@ end hash_password_sha256;
             raise_application_error(-20061, 'Task is not assigned to the selected lab.');
         end if;
 
-        select count(*)
-          into v_marker_total
-          from task_markers tm
-         where tm.task_id = p_task_id;
-
-        if v_marker_total = 0 then
-            raise_application_error(-20062, 'Task has no markers defined.');
-        end if;
-
-        select count(*)
-          into v_marker_matched
-          from task_markers tm
-         where tm.task_id = p_task_id
-           and exists (
-                select 1
-                  from genotypes g
-                 where g.creature_id = p_creature_id
-                   and (
-                        g.allele1_id = tm.allele_id
-                        or g.allele2_id = tm.allele_id
-                   )
-           );
-
-        if v_marker_matched = v_marker_total then
-            return 1;
-        end if;
-
-        return 0;
+        return creature_matches_task(
+            p_creature_id => p_creature_id,
+            p_task_id     => p_task_id
+        );
     end check_task;
 
     procedure complete_task(
