@@ -1243,9 +1243,10 @@ end hash_password_sha256;
                 on g.gene_id = gt.gene_id
               join alleles a1
                 on a1.allele_id = gt.allele1_id
-              join alleles a2
+             join alleles a2
                 on a2.allele_id = gt.allele2_id
              where gt.creature_id = p_creature_id
+               and g.gameplay_enabled = 'Y'
              order by g.species_type, g.gene_name, g.gene_id
         ) loop
             if rec.allele1_id = rec.allele2_id then
@@ -2652,6 +2653,7 @@ end hash_password_sha256;
                               join genes ge
                                 on ge.gene_id = g.gene_id
                              where g.creature_id = p_new_creature_id
+                               and ge.gameplay_enabled = 'Y'
                              order by
                                  case
                                      when ge.species_type = v_species_type then 0
@@ -2682,7 +2684,10 @@ end hash_password_sha256;
                                 g.allele1_id,
                                 g.allele2_id
                               from genotypes g
+                              join genes ge
+                                on ge.gene_id = g.gene_id
                              where g.creature_id = p_new_creature_id
+                               and ge.gameplay_enabled = 'Y'
                              order by dbms_random.value
                       ) gt
                      where rownum = 1;

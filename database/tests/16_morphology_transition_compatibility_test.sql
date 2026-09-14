@@ -13,7 +13,6 @@ set verify off;
 declare
     v_failed_tests            number := 0;
     v_passed_tests            number := 0;
-    v_detected_blockers       number := 0;
     v_value                   number;
     v_user_id                 number;
     v_lab_id                  number;
@@ -40,7 +39,8 @@ declare
     v_after_morph_signature   varchar2(4000);
     v_mutagen_child_id        number;
     v_radiation_attempts      number := 0;
-    v_radiation_morph_hits    number := 0;
+    v_radiation_morph_changes number := 0;
+    v_radiation_enabled_changes number := 0;
     v_chemical_morph_changed  number := 0;
     v_cursor                  sys_refcursor;
     v_option_no               number;
@@ -62,12 +62,6 @@ declare
         v_failed_tests := v_failed_tests + 1;
         dbms_output.put_line('[FAIL] ' || p_test_name || case when p_detail is null then '' else ' -> ' || p_detail end);
     end fail_test;
-
-    procedure blocker(p_component in varchar2, p_detail in varchar2) is
-    begin
-        v_detected_blockers := v_detected_blockers + 1;
-        dbms_output.put_line('[BLOCKER] ' || p_component || ' -> ' || p_detail);
-    end blocker;
 
     procedure assert_true(p_condition in boolean, p_test_name in varchar2, p_detail in varchar2 default null) is
     begin
@@ -116,6 +110,24 @@ declare
            and g.gameplay_enabled = 'N';
         return v_signature;
     end morphology_signature;
+
+    function gameplay_signature(p_creature_id in number) return varchar2 is
+        v_signature varchar2(4000);
+    begin
+        select listagg(g.gene_name || '=' || a1.description || '/' || a2.description, '; ')
+                   within group (order by g.gene_name)
+          into v_signature
+          from genotypes gt
+          join genes g
+            on g.gene_id = gt.gene_id
+          join alleles a1
+            on a1.allele_id = gt.allele1_id
+          join alleles a2
+            on a2.allele_id = gt.allele2_id
+         where gt.creature_id = p_creature_id
+           and g.gameplay_enabled = 'Y';
+        return v_signature;
+    end gameplay_signature;
 
     procedure inspect_preview(
         p_label          in varchar2,
@@ -263,11 +275,14 @@ begin
     v_task_after := pkg_genetics_game.check_task(v_lab_id, v_task_id, v_dual1_id);
 
     assert_true(v_legacy_cache = v_dual_cache, 'PHENOTYPE LEGACY CACHED FIELDS', 'legacy fields stayed unchanged');
-    if instr(v_dual_summary, 'body_shape=') > 0 and v_dual_summary <> v_legacy_summary then
-        blocker('PHENOTYPE LEGACY COMPATIBILITY', 'get_phenotype appends disabled morphology genes to phenotype_summary.');
-    else
-        pass_test('PHENOTYPE LEGACY COMPATIBILITY', 'summary ignored reference morphology rows');
-    end if;
+    dbms_output.put_line('[INFO] phenotype before morphology rows: ' || v_legacy_summary);
+    dbms_output.put_line('[INFO] phenotype after morphology rows:  ' || v_dual_summary);
+    assert_true(
+        instr(v_dual_summary, 'body_shape=') = 0
+        and v_dual_summary = v_legacy_summary,
+        'PHENOTYPE LEGACY COMPATIBILITY',
+        'summary ignored disabled morphology rows'
+    );
 
     assert_true(v_task_before = v_task_after, 'TASK COMPATIBILITY', 'check_task result stayed ' || v_task_after);
     select count(*)
@@ -327,20 +342,29 @@ begin
     v_chemical_morph_changed := case when v_before_morph_signature = v_after_morph_signature then 0 else 1 end;
     assert_true(v_chemical_morph_changed = 0, 'MUTAGEN COMPATIBILITY: CHEMICAL preserves morphology rows for current species priority', 'changed=' || v_chemical_morph_changed);
 
-    for attempt_no in 1 .. 6 loop
-        exit when v_radiation_morph_hits > 0;
+    for attempt_no in 1 .. 8 loop
         v_radiation_attempts := v_radiation_attempts + 1;
+        v_before_morph_signature := morphology_signature(v_dual1_id);
+        v_legacy_summary := gameplay_signature(v_dual1_id);
         pkg_genetics_game.apply_mutagen(v_dual1_id, 'RADIATION', v_mutagen_child_id);
-        if morphology_signature(v_mutagen_child_id) <> morphology_signature(v_dual1_id) then
-            v_radiation_morph_hits := v_radiation_morph_hits + 1;
+        if morphology_signature(v_mutagen_child_id) <> v_before_morph_signature then
+            v_radiation_morph_changes := v_radiation_morph_changes + 1;
+        end if;
+        if gameplay_signature(v_mutagen_child_id) <> v_legacy_summary then
+            v_radiation_enabled_changes := v_radiation_enabled_changes + 1;
         end if;
     end loop;
 
-    if v_radiation_morph_hits > 0 then
-        blocker('MUTAGEN COMPATIBILITY', 'RADIATION selected a disabled morphology row in ' || v_radiation_attempts || ' attempt(s).');
-    else
-        fail_test('MUTAGEN COMPATIBILITY: RADIATION must demonstrate unfiltered candidate selection', 'no morphology mutation in ' || v_radiation_attempts || ' attempts');
-    end if;
+    assert_true(
+        v_radiation_morph_changes = 0,
+        'RADIATION MUTAGEN COMPATIBILITY: disabled morphology rows remain unchanged',
+        'attempts=' || v_radiation_attempts || ', changed=' || v_radiation_morph_changes
+    );
+    assert_true(
+        v_radiation_enabled_changes > 0,
+        'RADIATION MUTAGEN COMPATIBILITY: enabled gameplay gene changed',
+        'changed_attempts=' || v_radiation_enabled_changes
+    );
 
     select count(*)
       into v_value
@@ -358,7 +382,7 @@ begin
     assert_true(v_value = 0, 'Package user_errors remain clean', 'actual=' || v_value);
 
     cleanup_test_data;
-    dbms_output.put_line('Passed: ' || v_passed_tests || ', Failed: ' || v_failed_tests || ', Detected blockers: ' || v_detected_blockers);
+    dbms_output.put_line('Passed: ' || v_passed_tests || ', Failed: ' || v_failed_tests);
     if v_failed_tests > 0 then
         raise_application_error(-20990, 'Morphology transition compatibility audit had ' || v_failed_tests || ' unexpected test failure(s).');
     end if;
