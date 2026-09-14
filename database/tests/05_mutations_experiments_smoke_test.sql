@@ -228,6 +228,11 @@ begin
     end if;
 
     if v_lab_id is not null then
+        -- This historical mutation regression deliberately exercises the v1 path.
+        update labs
+           set genetics_version = 1
+         where lab_id = v_lab_id;
+
         begin
             select count(*)
               into v_initial_creature_count

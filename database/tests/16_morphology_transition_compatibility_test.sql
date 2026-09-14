@@ -36,6 +36,7 @@ declare
     v_offspring_gene_count    number;
     v_mutation_id             number;
     v_buy_result              number;
+    v_mutation_rejection_code number;
     v_before_morph_signature  varchar2(4000);
     v_after_morph_signature   varchar2(4000);
     v_mutagen_child_id        number;
@@ -317,9 +318,16 @@ begin
         v_before_morph_signature := morphology_signature(v_dual1_id);
         v_buy_result := pkg_genetics_game.buy_mutation(v_lab_id, v_mutation_id);
         if v_buy_result = 1 then
-            pkg_genetics_game.apply_mutation(v_dual1_id, v_mutation_id);
+            begin
+                pkg_genetics_game.apply_mutation(v_dual1_id, v_mutation_id);
+                v_mutation_rejection_code := 0;
+            exception
+                when others then
+                    v_mutation_rejection_code := sqlcode;
+            end;
             v_after_morph_signature := morphology_signature(v_dual1_id);
-            assert_true(v_before_morph_signature = v_after_morph_signature, 'MUTATION COMPATIBILITY: ordinary mutation leaves morphology rows unchanged');
+            assert_true(v_mutation_rejection_code = -20088, 'MUTATION COMPATIBILITY: legacy rule is rejected for v3', 'sqlcode=' || v_mutation_rejection_code);
+            assert_true(v_before_morph_signature = v_after_morph_signature, 'MUTATION COMPATIBILITY: rejected legacy rule leaves morphology rows unchanged');
         else
             fail_test('MUTATION COMPATIBILITY: test mutation purchase', 'buy_mutation returned 0');
         end if;
@@ -331,7 +339,7 @@ begin
     pkg_genetics_game.apply_mutagen(v_dual1_id, 'CHEMICAL', v_mutagen_child_id);
     v_after_morph_signature := morphology_signature(v_mutagen_child_id);
     v_chemical_morph_changed := case when v_before_morph_signature = v_after_morph_signature then 0 else 1 end;
-    assert_true(v_chemical_morph_changed = 0, 'MUTAGEN COMPATIBILITY: CHEMICAL preserves morphology rows for current species priority', 'changed=' || v_chemical_morph_changed);
+    assert_true(v_chemical_morph_changed = 1, 'MUTAGEN COMPATIBILITY: CHEMICAL changes canonical morphology rows for v3', 'changed=' || v_chemical_morph_changed);
 
     for attempt_no in 1 .. 8 loop
         v_radiation_attempts := v_radiation_attempts + 1;
@@ -347,13 +355,13 @@ begin
     end loop;
 
     assert_true(
-        v_radiation_morph_changes = 0,
-        'RADIATION MUTAGEN COMPATIBILITY: disabled morphology rows remain unchanged',
+        v_radiation_morph_changes > 0,
+        'RADIATION MUTAGEN COMPATIBILITY: canonical morphology rows can change for v3',
         'attempts=' || v_radiation_attempts || ', changed=' || v_radiation_morph_changes
     );
     assert_true(
-        v_radiation_enabled_changes > 0,
-        'RADIATION MUTAGEN COMPATIBILITY: enabled gameplay gene changed',
+        v_radiation_enabled_changes = 0,
+        'RADIATION MUTAGEN COMPATIBILITY: legacy gameplay genes remain unchanged for v3',
         'changed_attempts=' || v_radiation_enabled_changes
     );
 

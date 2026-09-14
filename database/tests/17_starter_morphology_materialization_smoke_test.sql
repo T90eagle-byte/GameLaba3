@@ -310,7 +310,7 @@ begin
     v_before_signature := morphology_signature(v_parent1_id);
     pkg_genetics_game.apply_mutagen(v_parent1_id, 'CHEMICAL', v_mutagen_child_id);
     v_after_signature := morphology_signature(v_mutagen_child_id);
-    assert_true(v_before_signature = v_after_signature, 'Chemical mutagen preserves disabled morphology rows');
+    assert_true(v_before_signature <> v_after_signature, 'V3 chemical mutagen changes canonical morphology rows');
 
     select count(*) into v_creatures_before from creatures where lab_id = v_lab_id;
     select count(*) into v_genotypes_before from genotypes gt join creatures c on c.creature_id = gt.creature_id where c.lab_id = v_lab_id;

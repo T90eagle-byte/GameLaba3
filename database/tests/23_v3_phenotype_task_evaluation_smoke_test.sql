@@ -34,6 +34,9 @@ declare
     v_v1_task_id         number;
     v_v3_task_id         number;
     v_mutation_id        number;
+    v_fixture_mutation_id number;
+    v_body_color_gene_id  number;
+    v_red_allele_id       number;
     v_snout_gene_id      number;
     v_pointed_allele_id  number;
     v_lab_wallet_before  number;
@@ -132,6 +135,10 @@ declare
             delete from creatures where lab_id = v_lab2_id;
             delete from labs where lab_id = v_lab2_id;
         end if;
+        if v_fixture_mutation_id is not null then
+            delete from mutation_rules where mutation_id = v_fixture_mutation_id;
+            delete from mutations where mutation_id = v_fixture_mutation_id;
+        end if;
         if v_user1_id is not null then
             delete from sessions where user_id = v_user1_id;
             delete from users where user_id = v_user1_id;
@@ -151,7 +158,14 @@ begin
 
     select task_id into v_v1_task_id from tasks where task_name = 'task_winged_specimen' and genetics_version = 1;
     select task_id into v_v3_task_id from tasks where task_name = 'task_v3_long_tailed_pointed' and genetics_version = 3;
-    select mutation_id into v_mutation_id from mutations where mutation_name = 'enhanced_color_mutation';
+    v_body_color_gene_id := gene_id('body_color');
+    v_red_allele_id := allele_id('body_color', 'red');
+    select mutations_seq.nextval into v_fixture_mutation_id from dual;
+    insert into mutations (mutation_id, mutation_name, mutation_type, description, cost, rating_effect, created_at)
+    values (v_fixture_mutation_id, 'task23_v3_color_fixture', null, 'Тестовая мутация цвета тела.', 0, 0, systimestamp);
+    insert into mutation_rules (mutation_rule_id, mutation_id, gene_id, target_allele_id, target_slot, created_at)
+    values (mutation_rules_seq.nextval, v_fixture_mutation_id, v_body_color_gene_id, v_red_allele_id, '1', systimestamp);
+    v_mutation_id := v_fixture_mutation_id;
     v_snout_gene_id := gene_id('snout_type');
     v_pointed_allele_id := allele_id('snout_type', 'pointed');
 
@@ -204,12 +218,14 @@ begin
 
     -- Return to the hidden state and use a normal mutation path to prove auto-complete shares the evaluator.
     set_genotype('tail_type', 'elongated', 'fish');
+    set_genotype('body_color', 'blue', 'blue');
     assert_true(pkg_genetics_game.buy_mutation(v_lab1_id, v_mutation_id) = 1, 'Buy mutation for hidden-marker auto-complete check');
     pkg_genetics_game.apply_mutation(v_creature1_id, v_mutation_id);
     select count(*) into v_value from lab_tasks where lab_id = v_lab1_id and task_id = v_v3_task_id and task_status = 'ACTIVE';
     assert_true(v_value = 1, 'Hidden v3 marker does not auto-complete task', 'active=' || v_value);
 
     set_genotype('tail_type', 'elongated', 'elongated');
+    set_genotype('body_color', 'blue', 'blue');
     assert_true(pkg_genetics_game.buy_mutation(v_lab1_id, v_mutation_id) = 1, 'Buy mutation for matching auto-complete check');
     select wallet into v_lab_wallet_before from labs where lab_id = v_lab1_id;
     pkg_genetics_game.apply_mutation(v_creature1_id, v_mutation_id);
@@ -231,6 +247,7 @@ begin
     end;
 
     delete from lab_tasks where lab_id = v_lab1_id and task_id <> v_v3_task_id;
+    set_genotype('body_color', 'blue', 'blue');
     assert_true(pkg_genetics_game.buy_mutation(v_lab1_id, v_mutation_id) = 1, 'Buy mutation after completed v3 task');
     select wallet into v_lab_wallet_before from labs where lab_id = v_lab1_id;
     pkg_genetics_game.apply_mutation(v_creature1_id, v_mutation_id);

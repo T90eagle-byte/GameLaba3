@@ -247,6 +247,22 @@ the package runtime:
 @database/tests/21_genetics_model_membership_smoke_test.sql
 ```
 
+Mutation runtime is version-aware through `CREATURES.LAB_ID ->
+LABS.GENETICS_VERSION`. Version 1 keeps its existing rule-driven mutation and
+mutagen behavior, including the legacy `GAMEPLAY_ENABLED` candidate set.
+Version 3 mutagens select only the 18 universal morphology genes listed in
+`REF_GENETICS_MODEL_GENES`; `nutrition_type` is deliberately excluded until a
+separate codominant mutation/display policy is approved. Legacy transition
+genes can remain physically present in v3 genotypes but are never mutagen
+targets. Current catalog mutation rules are legacy-only, so their use on a v3
+creature is rejected without changing its genotype or history. A future v3
+directed mutation must contain only canonical morphology rules. Verify both
+paths and cleanup with:
+
+```sql
+@database/tests/26_version_aware_mutation_smoke_test.sql
+```
+
 ## 2) Run core seed data
 
 ```sql

@@ -467,6 +467,58 @@ end hash_password_sha256;
         return 2;
     end pick_random_allele_side;
 
+    function get_lab_genetics_version(
+        p_lab_id in number
+    ) return number is
+        v_genetics_version labs.genetics_version%type;
+    begin
+        select l.genetics_version
+          into v_genetics_version
+          from labs l
+         where l.lab_id = p_lab_id;
+
+        return v_genetics_version;
+    end get_lab_genetics_version;
+
+    function mutation_rules_match_genetics_version(
+        p_mutation_id      in number,
+        p_genetics_version in number
+    ) return boolean is
+        v_rule_count    number;
+        v_allowed_count number;
+    begin
+        if p_genetics_version = 1 then
+            return true;
+        end if;
+
+        if p_genetics_version <> 3 then
+            return false;
+        end if;
+
+        select
+            count(*),
+            nvl(sum(
+                case
+                    when rmg.gene_id is not null
+                     and g.species_type = 0
+                     and g.gene_type = 'morphology'
+                     and g.gene_name <> 'nutrition_type'
+                    then 1
+                    else 0
+                end
+            ), 0)
+          into v_rule_count, v_allowed_count
+          from mutation_rules mr
+          join genes g
+            on g.gene_id = mr.gene_id
+          left join ref_genetics_model_genes rmg
+            on rmg.genetics_version = 3
+           and rmg.gene_id = mr.gene_id
+         where mr.mutation_id = p_mutation_id;
+
+        return v_rule_count > 0 and v_rule_count = v_allowed_count;
+    end mutation_rules_match_genetics_version;
+
     procedure register_user(
         p_username      in varchar2,
         p_login         in varchar2,
@@ -2427,9 +2479,23 @@ end hash_password_sha256;
         p_lab_id          in number,
         p_mutation_id     in number
     ) return sys_refcursor is
-        v_cursor sys_refcursor;
+        v_cursor           sys_refcursor;
+        v_genetics_version labs.genetics_version%type;
     begin
         assert_lab_access(p_lab_id => p_lab_id);
+
+        v_genetics_version := get_lab_genetics_version(p_lab_id => p_lab_id);
+
+        if not mutation_rules_match_genetics_version(
+            p_mutation_id      => p_mutation_id,
+            p_genetics_version => v_genetics_version
+        ) then
+            open v_cursor for
+                select cast(null as number) as creature_id
+                  from dual
+                 where 1 = 0;
+            return v_cursor;
+        end if;
 
         open v_cursor for
             select c.creature_id
@@ -2546,10 +2612,13 @@ end hash_password_sha256;
         p_mutation_id     in number
     ) is
         v_lab_id                 number;
+        v_genetics_version       labs.genetics_version%type;
         v_mutation_rating_effect number(12, 2) := 0;
         v_mutation_stock         number;
         v_rule_count            number := 0;
         v_selected_slot         pls_integer;
+        v_current_allele1_id    number;
+        v_current_allele2_id    number;
         v_summary               varchar2(1000);
         v_experiment_id         number;
         v_rating_before         number(12, 2);
@@ -2563,9 +2632,13 @@ end hash_password_sha256;
         v_completed_task_count  number;
         v_experiment_count      number;
     begin
+        savepoint apply_mutation_savepoint;
+
         v_lab_id := assert_creature_access(
             p_creature_id => p_creature_id
         );
+        v_genetics_version := get_lab_genetics_version(p_lab_id => v_lab_id);
+
         begin
             select nvl(m.rating_effect, 0)
               into v_mutation_rating_effect
@@ -2575,6 +2648,13 @@ end hash_password_sha256;
             when no_data_found then
                 raise_application_error(-20056, 'Mutation not found.');
         end;
+
+        if not mutation_rules_match_genetics_version(
+            p_mutation_id      => p_mutation_id,
+            p_genetics_version => v_genetics_version
+        ) then
+            raise_application_error(-20088, 'Эта мутация недоступна для генетической модели данной лаборатории.');
+        end if;
 
         begin
             select lm.quantity
@@ -2603,6 +2683,34 @@ end hash_password_sha256;
         ) loop
             v_rule_count := v_rule_count + 1;
 
+            if v_genetics_version = 3 then
+                select g.allele1_id, g.allele2_id
+                  into v_current_allele1_id, v_current_allele2_id
+                  from genotypes g
+                 where g.creature_id = p_creature_id
+                   and g.gene_id = rule_rec.gene_id
+                 for update;
+
+                if rule_rec.target_slot = '1'
+                   and rule_rec.target_allele_id = v_current_allele1_id then
+                    raise_application_error(-20089, 'Мутация не может заменить аллель тем же значением.');
+                elsif rule_rec.target_slot = '2'
+                   and rule_rec.target_allele_id = v_current_allele2_id then
+                    raise_application_error(-20089, 'Мутация не может заменить аллель тем же значением.');
+                elsif rule_rec.target_slot = 'ANY' then
+                    if rule_rec.target_allele_id = v_current_allele1_id
+                       and rule_rec.target_allele_id = v_current_allele2_id then
+                        raise_application_error(-20089, 'Мутация не может заменить аллель тем же значением.');
+                    elsif rule_rec.target_allele_id = v_current_allele1_id then
+                        v_selected_slot := 2;
+                    elsif rule_rec.target_allele_id = v_current_allele2_id then
+                        v_selected_slot := 1;
+                    else
+                        v_selected_slot := pick_random_allele_side();
+                    end if;
+                end if;
+            end if;
+
             if rule_rec.target_slot = '1' then
                 update genotypes g
                    set g.allele1_id = rule_rec.target_allele_id
@@ -2612,9 +2720,11 @@ end hash_password_sha256;
                 update genotypes g
                    set g.allele2_id = rule_rec.target_allele_id
                  where g.creature_id = p_creature_id
-                   and g.gene_id = rule_rec.gene_id;
+                       and g.gene_id = rule_rec.gene_id;
             else
-                v_selected_slot := pick_random_allele_side();
+                if v_genetics_version <> 3 then
+                    v_selected_slot := pick_random_allele_side();
+                end if;
                 if v_selected_slot = 1 then
                     update genotypes g
                        set g.allele1_id = rule_rec.target_allele_id
@@ -2718,6 +2828,10 @@ end hash_password_sha256;
             p_completed_task_count => v_completed_task_count,
             p_experiment_count     => v_experiment_count
         );
+    exception
+        when others then
+            rollback to apply_mutation_savepoint;
+            raise;
     end apply_mutation;
 
     procedure apply_mutagen(
@@ -2726,6 +2840,7 @@ end hash_password_sha256;
         p_new_creature_id  out number
     ) is
         v_lab_id                number;
+        v_genetics_version      labs.genetics_version%type;
         v_species_type          number;
         v_source_name           varchar2(255);
         v_new_name              varchar2(255);
@@ -2744,6 +2859,7 @@ end hash_password_sha256;
         v_rating_actual_delta   number(12, 2);
         v_summary               varchar2(1000);
         v_experiment_id         number;
+        v_mutagen_display_name  varchar2(100);
 
         v_wallet                number;
         v_rating                number;
@@ -2752,6 +2868,8 @@ end hash_password_sha256;
         v_completed_task_count  number;
         v_experiment_count      number;
     begin
+        savepoint apply_mutagen_savepoint;
+
         if p_mutagen_type is null or trim(p_mutagen_type) is null then
             raise_application_error(-20048, 'Mutagen type cannot be empty.');
         end if;
@@ -2765,9 +2883,11 @@ end hash_password_sha256;
         if v_mutagen_mode = 'RADIATION' then
             v_wallet_cost := 50;
             v_rating_delta := -5;
+            v_mutagen_display_name := 'Облучение';
         else
             v_wallet_cost := 100;
             v_rating_delta := -2;
+            v_mutagen_display_name := 'Химический мутаген';
         end if;
 
         v_lab_id := assert_creature_access(
@@ -2784,8 +2904,8 @@ end hash_password_sha256;
                 raise_application_error(-20049, 'Source creature not found.');
         end;
 
-        select l.wallet, l.rating
-          into v_lab_wallet, v_lab_rating_before
+        select l.wallet, l.rating, l.genetics_version
+          into v_lab_wallet, v_lab_rating_before, v_genetics_version
           from labs l
          where l.lab_id = v_lab_id
          for update;
@@ -2875,16 +2995,31 @@ end hash_password_sha256;
                                 g.gene_id,
                                 g.allele1_id,
                                 g.allele2_id
-                              from genotypes g
+                             from genotypes g
                               join genes ge
                                 on ge.gene_id = g.gene_id
                              where g.creature_id = p_new_creature_id
-                               and ge.gameplay_enabled = 'Y'
+                               and (
+                                    (v_genetics_version = 1 and ge.gameplay_enabled = 'Y')
+                                    or (
+                                        v_genetics_version = 3
+                                        and ge.species_type = 0
+                                        and ge.gene_type = 'morphology'
+                                        and ge.gene_name <> 'nutrition_type'
+                                        and exists (
+                                            select 1
+                                              from ref_genetics_model_genes rmg
+                                             where rmg.genetics_version = 3
+                                               and rmg.gene_id = ge.gene_id
+                                        )
+                                    )
+                               )
                              order by
                                  case
-                                     when ge.species_type = v_species_type then 0
+                                     when v_genetics_version = 1 and ge.species_type = v_species_type then 0
                                      else 1
                                  end,
+                                 case when v_genetics_version = 3 then ge.gene_name end,
                                  ge.gene_id
                       ) gt
                      where rownum = 1;
@@ -2909,11 +3044,25 @@ end hash_password_sha256;
                                 g.gene_id,
                                 g.allele1_id,
                                 g.allele2_id
-                              from genotypes g
+                             from genotypes g
                               join genes ge
                                 on ge.gene_id = g.gene_id
                              where g.creature_id = p_new_creature_id
-                               and ge.gameplay_enabled = 'Y'
+                               and (
+                                    (v_genetics_version = 1 and ge.gameplay_enabled = 'Y')
+                                    or (
+                                        v_genetics_version = 3
+                                        and ge.species_type = 0
+                                        and ge.gene_type = 'morphology'
+                                        and ge.gene_name <> 'nutrition_type'
+                                        and exists (
+                                            select 1
+                                              from ref_genetics_model_genes rmg
+                                             where rmg.genetics_version = 3
+                                               and rmg.gene_id = ge.gene_id
+                                        )
+                                    )
+                               )
                              order by dbms_random.value
                       ) gt
                      where rownum = 1;
@@ -2939,6 +3088,10 @@ end hash_password_sha256;
                      where rownum = 1;
                 exception
                     when no_data_found then
+                        if v_genetics_version = 3 then
+                            raise_application_error(-20089, 'Мутация не может заменить аллель тем же значением.');
+                        end if;
+
                         select a.allele_id
                           into v_new_allele_id
                           from (
@@ -2968,6 +3121,10 @@ end hash_password_sha256;
                      where rownum = 1;
                 exception
                     when no_data_found then
+                        if v_genetics_version = 3 then
+                            raise_application_error(-20089, 'Мутация не может заменить аллель тем же значением.');
+                        end if;
+
                         select a.allele_id
                           into v_new_allele_id
                           from (
@@ -3015,7 +3172,7 @@ end hash_password_sha256;
             p_event_type    => 'MUTAGEN_PENALTY',
             p_rating_delta  => v_rating_actual_delta,
             p_wallet_delta  => -v_wallet_cost,
-                p_description   => 'Эффект применённой мутации',
+            p_description   => 'Воздействие мутагена: ' || v_mutagen_display_name,
             p_creature_id   => p_new_creature_id,
             p_experiment_id => v_experiment_id
         );
@@ -3034,6 +3191,11 @@ end hash_password_sha256;
             p_completed_task_count => v_completed_task_count,
             p_experiment_count     => v_experiment_count
         );
+    exception
+        when others then
+            rollback to apply_mutagen_savepoint;
+            p_new_creature_id := null;
+            raise;
     end apply_mutagen;
 
     procedure make_experiment(
