@@ -175,11 +175,6 @@ begin
 
     select count(*)
       into v_value
-      from ref_archetype_alleles;
-    assert_true(v_value = 0, 'Archetype allele templates remain empty', 'actual=' || v_value);
-
-    select count(*)
-      into v_value
       from genotypes gt
       join genes g
         on g.gene_id = gt.gene_id

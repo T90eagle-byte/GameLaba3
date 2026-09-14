@@ -151,6 +151,22 @@ invoke this migration. Verify it independently with:
 @database/tests/13_universal_morphology_smoke_test.sql
 ```
 
+The following optional migration fills the reference genotype of every
+archetype after migrations 04 and 05 are installed:
+
+```sql
+@database/migrations/06_add_archetype_templates.sql
+```
+
+It stores 18 homozygous morphology values for each of 18 archetypes
+(324 rows) in `REF_ARCHETYPE_ALLELES`. These are reference templates only;
+the current runtime, phenotype calculation, and starter generation do not
+read them. Verify this separately with:
+
+```sql
+@database/tests/14_archetype_templates_smoke_test.sql
+```
+
 ## 2) Run core seed data
 
 ```sql

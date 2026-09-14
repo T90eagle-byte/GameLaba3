@@ -1,5 +1,5 @@
 -- This smoke test intentionally runs the idempotent migration twice.
--- It verifies that the reference seed remains unique and does not alter genotype templates.
+-- It verifies that the reference archetype seed remains unique.
 
 @../migrations/04_add_creature_archetypes.sql
 @../migrations/04_add_creature_archetypes.sql
@@ -81,11 +81,6 @@ begin
         'sea_turtle', 'sea_snake', 'whale', 'dolphin', 'seal', 'walrus'
      );
     assert_true(v_value = 18, 'All required archetype codes exist', 'actual=' || v_value);
-
-    select count(*)
-      into v_value
-      from ref_archetype_alleles;
-    assert_true(v_value = 0, 'Archetype genotype templates remain empty', 'actual=' || v_value);
 
     dbms_output.put_line('Passed: ' || v_passed_tests || ', Failed: ' || v_failed_tests);
     if v_failed_tests > 0 then
