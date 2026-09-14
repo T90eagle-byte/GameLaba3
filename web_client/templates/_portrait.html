@@ -1,4 +1,9 @@
-{% macro creature_portrait(visual, size='', uid='portrait') -%}
+{% macro creature_portrait(creature, size='', uid='portrait') -%}
+{% set morphology_portrait = render_creature_portrait(creature, uid, size) %}
+{% if morphology_portrait %}
+{{ morphology_portrait }}
+{% else %}
+{% set visual = creature.visual %}
 <div class="creature-portrait {{ size }} {{ visual.species_class }} {{ visual.tone_class }} {{ visual.tone_mode_class }} {{ visual.wings_class }} {{ visual.size_class }} {{ visual.nutrition_class }} {{ visual.feature_classes }}"{% if visual.tone_style %} style="{{ visual.tone_style }}"{% endif %}>
   <svg class="creature-svg" viewBox="-18 -14 296 188" role="img" aria-hidden="true" style="--portrait-body-fill:url(#bodyTone-{{ uid }});--portrait-shade-fill:url(#creatureShade-{{ uid }});--portrait-wing-fill:url(#wingTone-{{ uid }});">
     <defs>
@@ -152,4 +157,5 @@
     </g>
   </svg>
 </div>
+{% endif %}
 {%- endmacro %}

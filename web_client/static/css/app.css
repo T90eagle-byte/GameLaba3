@@ -1019,3 +1019,48 @@ button,
   .creature-portrait.large .creature-svg { max-height: 222px; }
   .creature-portrait.mini { min-height: 132px; }
 }
+
+/* Universal v3 morphology renderer.  It intentionally does not inherit the
+   legacy species, wing, nutrition, or feature selectors above. */
+.morphology-portrait { overflow: hidden; isolation: isolate; }
+.morphology-svg > g,
+.morphology-svg .morph-creature,
+.morphology-svg .morph-body,
+.morphology-svg .morph-cover,
+.morphology-svg .morph-dorsal,
+.morphology-svg .morph-appendages,
+.morphology-svg .morph-head { display: block; }
+.morphology-svg .morph-ground { fill: rgba(35, 59, 48, .09); stroke: none; }
+.morphology-svg .morph-creature { transform-origin: 150px 90px; transform: var(--morph-proportion) scale(var(--morph-scale)); }
+.morphology-svg .morph-body path { stroke: rgba(35, 52, 43, .24); stroke-width: 1.7; vector-effect: non-scaling-stroke; }
+.morphology-svg .morph-tail path,
+.morphology-svg .morph-dorsal > path,
+.morphology-svg .morph-appendage path,
+.morphology-svg .morph-appendage ellipse,
+.morphology-svg .morph-snout { fill: var(--morph-accent, rgba(255,255,255,.44)); stroke: rgba(35, 52, 43, .25); stroke-width: 1.55; vector-effect: non-scaling-stroke; }
+.morphology-svg .morph-tail { transform-box: fill-box; transform-origin: right center; transform: scale(var(--tail-scale, 1)); }
+.morphology-svg .morph-dorsal { transform-box: fill-box; transform-origin: center bottom; transform: scale(var(--dorsal-scale, 1)); }
+.morphology-svg .morph-appendages { transform-box: fill-box; transform-origin: center; transform: scale(var(--appendage-scale, 1)); }
+.morphology-svg .appendage-walking_leg path,
+.morphology-svg .appendage-claw path,
+.morphology-svg .appendage-tentacle path { fill: none; stroke: rgba(46, 76, 60, .8); stroke-width: 4; stroke-linecap: round; }
+.morphology-svg .morph-detail,
+.morphology-svg .morph-saw,
+.morphology-svg .morph-eye-stalk,
+.morphology-svg .morph-mouth,
+.morphology-svg .cover-chitin,
+.morphology-svg .cover-soft { fill: none; stroke: rgba(255,255,255,.7); stroke-width: 1.7; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.morphology-svg .cover-scales circle,
+.morphology-svg .cover-rough circle { fill: rgba(255,255,255,.42); stroke: rgba(35,52,43,.16); stroke-width: 1; }
+.morphology-svg .cover-shell { fill: rgba(255,255,255,.23); stroke: rgba(255,255,255,.65); stroke-width: 2; }
+.morphology-svg .cover-leathery { fill: none; stroke: rgba(55,45,39,.42); stroke-width: 2; stroke-dasharray: 4 3; }
+.morphology-svg .morph-eye { fill: #223128; stroke: #fffdf6; stroke-width: 1.4; }
+.morphology-svg[data-color="gray"] { --morph-accent: #d8e0dc; }
+.morphology-svg[data-color="blue"] { --morph-accent: #b8d9e8; }
+.morphology-svg[data-color="green"] { --morph-accent: #c6dfb9; }
+.morphology-svg[data-color="brown"] { --morph-accent: #e7c29b; }
+.morphology-svg[data-color="red"] { --morph-accent: #f2b3a7; }
+.morphology-svg[data-color="orange"] { --morph-accent: #f7d29f; }
+.morphology-svg[data-color="yellow"] { --morph-accent: #fff1a5; }
+.morphology-svg[data-color="black"] { --morph-accent: #a4b7bd; }
+.morphology-svg[data-color="white"] { --morph-accent: #b9cbbd; }

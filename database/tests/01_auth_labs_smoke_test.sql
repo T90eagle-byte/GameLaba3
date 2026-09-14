@@ -33,6 +33,7 @@ declare
     v_fetch_active_task_count number;
     v_fetch_completed_count   number;
     v_fetch_experiment_count  number;
+    v_fetch_genetics_version  number;
     v_fetch_created_at        timestamp;
     v_fetch_updated_at        timestamp;
     v_labs_count              number := 0;
@@ -166,6 +167,7 @@ begin
                 v_fetch_active_task_count,
                 v_fetch_completed_count,
                 v_fetch_experiment_count,
+                v_fetch_genetics_version,
                 v_fetch_created_at,
                 v_fetch_updated_at;
             exit when v_labs_cursor%notfound;
@@ -341,6 +343,7 @@ begin
                 v_fetch_active_task_count,
                 v_fetch_completed_count,
                 v_fetch_experiment_count,
+                v_fetch_genetics_version,
                 v_fetch_created_at,
                 v_fetch_updated_at;
             exit when v_labs_cursor%notfound;
@@ -397,4 +400,3 @@ exception
         raise;
 end;
 /
-

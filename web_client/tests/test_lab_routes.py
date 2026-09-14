@@ -15,6 +15,33 @@ from services import lab_service  # noqa: E402
 from services.oracle import LAB_SESSION_CONFLICT_MESSAGE, ServiceError  # noqa: E402
 
 
+def v3_creature() -> dict[str, object]:
+    return {
+        "creature_id": 17,
+        "lab_id": 7,
+        "creature_name": "Дельфин",
+        "species_type": "mammal",
+        "genetics_version": 3,
+        "archetype_id": None,
+    }
+
+
+def v3_morphology_rows() -> list[dict[str, str]]:
+    values = {
+        "body_shape": "cetacean", "body_proportion": "fusiform", "body_size": "large",
+        "body_cover": "smooth_skin", "body_color": "blue", "mouth_type": "filter_feeding",
+        "snout_type": "blunt", "eye_type": "lateral", "front_appendage_count": "two",
+        "front_appendage_type": "flipper", "front_appendage_size": "large", "rear_appendage_count": "zero",
+        "rear_appendage_type": "none", "rear_appendage_size": "none", "tail_type": "cetacean",
+        "tail_size": "large", "dorsal_type": "dorsal_fin", "dorsal_size": "medium",
+    }
+    return [
+        {"creature_id": 17, "gene_code": code, "gene_display_name": code,
+         "expressed_allele_code": value, "expressed_display_name": value}
+        for code, value in values.items()
+    ]
+
+
 class FakeVariable:
     def __init__(self, value: int) -> None:
         self.value = value
@@ -86,6 +113,42 @@ class LabRouteTests(unittest.TestCase):
         with self.client.session_transaction() as flask_session:
             flask_session["session_token"] = "current-token"
             flask_session["login"] = "tester"
+
+    @patch.object(app_module.creature_service, "get_lab_morphology", return_value=v3_morphology_rows())
+    @patch.object(app_module.creature_service, "get_creatures", return_value=[v3_creature()])
+    def test_creature_list_uses_one_batch_morphology_read_for_v3_cards(
+        self,
+        get_creatures: Mock,
+        get_lab_morphology: Mock,
+    ) -> None:
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/creatures")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"morphology-svg", response.data)
+        self.assertIn(b'data-shape="cetacean"', response.data)
+        get_creatures.assert_called_once_with("current-token", 7)
+        get_lab_morphology.assert_called_once_with("current-token", 7)
+
+    @patch.object(app_module.creature_service, "get_lab_morphology", return_value=v3_morphology_rows())
+    @patch.object(app_module.creature_service, "get_creatures", return_value=[v3_creature()])
+    def test_crossbreed_parent_card_uses_the_same_batched_v3_read(
+        self,
+        get_creatures: Mock,
+        get_lab_morphology: Mock,
+    ) -> None:
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/crossbreed")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"morphology-svg", response.data)
+        self.assertIn(b'data-tail-type="cetacean"', response.data)
+        get_creatures.assert_called_once_with("current-token", 7)
+        get_lab_morphology.assert_called_once_with("current-token", 7)
 
     @staticmethod
     def conflict() -> ServiceError:

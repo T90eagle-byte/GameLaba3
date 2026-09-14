@@ -7,6 +7,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 from web_client.services.display_service import creature_visual
+from web_client.services.morphology_renderer import render_creature_portrait
 
 
 TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "templates"
@@ -17,10 +18,11 @@ class PortraitTemplateTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         environment = Environment(loader=FileSystemLoader(TEMPLATE_DIR), autoescape=True)
+        environment.globals["render_creature_portrait"] = render_creature_portrait
         cls.macro = environment.get_template("_portrait.html").module.creature_portrait
 
     def render(self, species: str, summary: str, uid: str, size: str = "") -> str:
-        return str(self.macro(creature_visual({"species_type": species, "phenotype_summary": summary}), size, uid))
+        return str(self.macro({"display_model": "legacy", "visual": creature_visual({"species_type": species, "phenotype_summary": summary})}, size, uid))
 
     def test_each_portrait_has_unique_gradient_and_filter_ids(self) -> None:
         first = self.render("turtle", "color=green_color; size=large_size", "turtle-17", "large")

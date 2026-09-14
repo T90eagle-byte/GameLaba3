@@ -1357,6 +1357,73 @@ end hash_password_sha256;
         return v_cursor;
     end get_morphology_cursor;
 
+    function get_lab_morphology_cursor(
+        p_lab_id in number
+    ) return sys_refcursor is
+        v_cursor sys_refcursor;
+    begin
+        assert_lab_access(p_lab_id => p_lab_id);
+
+        open v_cursor for
+            select
+                gt.creature_id,
+                g.gene_name as gene_code,
+                g.description as gene_display_name,
+                a1.description as allele1_code,
+                a2.description as allele2_code,
+                case
+                    when gt.allele1_id = gt.allele2_id then a1.description
+                    when g.dominance_type = 'INCOMPLETE' then
+                        nvl(
+                            (
+                                select max(am.description)
+                                  from alleles am
+                                 where am.gene_id = g.gene_id
+                                   and am.trait_value = (a1.trait_value + a2.trait_value) / 2
+                            ),
+                            'intermediate(' || a1.description || '/' || a2.description || ')'
+                        )
+                    when g.dominance_type = 'CODOMINANT' then a1.description || '/' || a2.description
+                    when a1.dominance > a2.dominance then a1.description
+                    when a2.dominance > a1.dominance then a2.description
+                    else a1.description
+                end as expressed_allele_code,
+                coalesce(a1.display_name, a1.description) as allele1_display_name,
+                coalesce(a2.display_name, a2.description) as allele2_display_name,
+                case
+                    when gt.allele1_id = gt.allele2_id then coalesce(a1.display_name, a1.description)
+                    when g.dominance_type = 'INCOMPLETE' then
+                        nvl(
+                            (
+                                select max(coalesce(am.display_name, am.description))
+                                  from alleles am
+                                 where am.gene_id = g.gene_id
+                                   and am.trait_value = (a1.trait_value + a2.trait_value) / 2
+                            ),
+                            'intermediate(' || coalesce(a1.display_name, a1.description) || '/' || coalesce(a2.display_name, a2.description) || ')'
+                        )
+                    when g.dominance_type = 'CODOMINANT' then coalesce(a1.display_name, a1.description) || '/' || coalesce(a2.display_name, a2.description)
+                    when a1.dominance > a2.dominance then coalesce(a1.display_name, a1.description)
+                    when a2.dominance > a1.dominance then coalesce(a2.display_name, a2.description)
+                    else coalesce(a1.display_name, a1.description)
+                end as expressed_display_name
+              from genotypes gt
+              join creatures c
+                on c.creature_id = gt.creature_id
+              join genes g
+                on g.gene_id = gt.gene_id
+              join alleles a1
+                on a1.allele_id = gt.allele1_id
+              join alleles a2
+                on a2.allele_id = gt.allele2_id
+             where c.lab_id = p_lab_id
+               and g.species_type = 0
+               and g.gene_type = 'morphology'
+             order by gt.creature_id, g.gene_name, g.gene_id;
+
+        return v_cursor;
+    end get_lab_morphology_cursor;
+
     function get_phenotype(
         p_creature_id    in number
     ) return varchar2 is
@@ -1475,9 +1542,13 @@ end hash_password_sha256;
         v_cursor                 sys_refcursor;
         v_creature_id            number;
         v_lab_id                 number;
+        v_genetics_version       number;
         v_species_type           number;
         v_species_display_name   varchar2(4000);
         v_creature_name          varchar2(4000);
+        v_archetype_id           number;
+        v_archetype_code         varchar2(4000);
+        v_archetype_display_name varchar2(4000);
         v_color                  varchar2(4000);
         v_size                   varchar2(4000);
         v_has_wings              varchar2(10);
@@ -1494,9 +1565,13 @@ end hash_password_sha256;
             fetch v_cursor into
                 v_creature_id,
                 v_lab_id,
+                v_genetics_version,
                 v_species_type,
                 v_species_display_name,
                 v_creature_name,
+                v_archetype_id,
+                v_archetype_code,
+                v_archetype_display_name,
                 v_color,
                 v_size,
                 v_has_wings,

@@ -26,9 +26,13 @@ declare
     v_creatures_cursor            sys_refcursor;
     v_c_creature_id               number;
     v_c_lab_id                    number;
+    v_c_genetics_version          number;
     v_c_species_type              number;
     v_c_species_display_name      varchar2(4000);
     v_c_name                      varchar2(4000);
+    v_c_archetype_id              number;
+    v_c_archetype_code            varchar2(4000);
+    v_c_archetype_display_name    varchar2(4000);
     v_c_color                     varchar2(4000);
     v_c_size                      varchar2(4000);
     v_c_has_wings                 char(1);
@@ -282,9 +286,13 @@ begin
                 fetch v_creatures_cursor into
                     v_c_creature_id,
                     v_c_lab_id,
+                    v_c_genetics_version,
                     v_c_species_type,
                     v_c_species_display_name,
                     v_c_name,
+                    v_c_archetype_id,
+                    v_c_archetype_code,
+                    v_c_archetype_display_name,
                     v_c_color,
                     v_c_size,
                     v_c_has_wings,

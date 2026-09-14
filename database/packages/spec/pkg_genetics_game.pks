@@ -133,6 +133,10 @@ create or replace package pkg_genetics_game as
         p_creature_id    in number
     ) return sys_refcursor;
 
+    function get_lab_morphology_cursor(
+        p_lab_id         in number
+    ) return sys_refcursor;
+
     function get_phenotype(
         p_creature_id    in number
     ) return varchar2;

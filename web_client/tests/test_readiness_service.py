@@ -98,6 +98,54 @@ class SchemaReportTests(unittest.TestCase):
         self.assertEqual(readiness_service.classify_oracle_error_code("DPY-6005"), "unavailable")
 
 
+class TaskDescriptionReadinessTests(unittest.TestCase):
+    def test_legacy_schema_keeps_the_original_requirement_for_every_task(self) -> None:
+        self.assertTrue(
+            readiness_service.legacy_task_description_is_aligned(
+                "Требуется носительство генетического варианта.",
+                has_genetics_version=False,
+            )
+        )
+        self.assertFalse(
+            readiness_service.legacy_task_description_is_aligned(
+                "Получите выраженный признак.",
+                has_genetics_version=False,
+            )
+        )
+
+    def test_versioned_schema_checks_only_v1_descriptions(self) -> None:
+        self.assertTrue(
+            readiness_service.legacy_task_description_is_aligned(
+                "Требуется носительство генетического варианта.",
+                genetics_version=1,
+                has_genetics_version=True,
+            )
+        )
+        self.assertTrue(
+            readiness_service.legacy_task_description_is_aligned(
+                "Получите выраженный фенотипический признак.",
+                genetics_version=3,
+                has_genetics_version=True,
+            )
+        )
+
+    def test_versioned_schema_rejects_only_a_broken_v1_description(self) -> None:
+        self.assertFalse(
+            readiness_service.legacy_task_description_is_aligned(
+                "Получите выраженный признак.",
+                genetics_version=1,
+                has_genetics_version=True,
+            )
+        )
+        self.assertTrue(
+            readiness_service.legacy_task_description_is_aligned(
+                "Нормальное описание выраженного признака.",
+                genetics_version=3,
+                has_genetics_version=True,
+            )
+        )
+
+
 class RuntimeReadinessTests(unittest.TestCase):
     @patch.object(readiness_service, "get_connection")
     def test_web_process_reports_database_unavailable_without_crashing(self, get_connection: Mock) -> None:

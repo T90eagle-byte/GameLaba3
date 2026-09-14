@@ -16,6 +16,7 @@ from flask import (
 
 from config import load_config
 from services import auth_service, creature_service, crossbreed_service, display_service, history_service, lab_service, mutation_service, rating_service, task_service
+from services.morphology_renderer import render_creature_portrait
 from services.oracle import LAB_SESSION_CONFLICT_MESSAGE, ServiceError
 from services.readiness_service import runtime_readiness
 
@@ -27,6 +28,7 @@ def create_app() -> Flask:
     config = load_config()
     app = Flask(__name__)
     app.config["SECRET_KEY"] = config.secret_key
+    app.jinja_env.globals["render_creature_portrait"] = render_creature_portrait
 
     def login_required(view: ViewFunc) -> ViewFunc:
         @wraps(view)
@@ -52,6 +54,19 @@ def create_app() -> Flask:
             session.pop("current_lab_id", None)
             return None
         return lab_id or None
+
+    def display_creatures_for_lab(
+        token: str,
+        lab_id: int,
+        rows: list[dict[str, Any]],
+    ) -> tuple[list[dict[str, Any]], dict[int, list[dict[str, Any]]]]:
+        """Build creature cards from one optional lab-wide morphology cursor."""
+        morphology_by_creature: dict[int, list[dict[str, Any]]] = {}
+        if any(display_service.creature_genetics_version(row) == 3 for row in rows):
+            morphology_by_creature = display_service.morphology_rows_by_creature(
+                creature_service.get_lab_morphology(token, lab_id)
+            )
+        return display_service.creature_views(rows, morphology_by_creature), morphology_by_creature
 
     @app.route("/")
     def index() -> Any:
@@ -309,7 +324,12 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("labs"))
 
-        return render_template("creatures.html", creatures=display_service.creature_views(creatures_rows), lab_id=lab_id)
+        try:
+            creature_views, _ = display_creatures_for_lab(token, lab_id, creatures_rows)
+        except ServiceError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("labs"))
+        return render_template("creatures.html", creatures=creature_views, lab_id=lab_id)
 
     @app.route("/creatures/<int:creature_id>")
     @login_required
@@ -493,10 +513,16 @@ def create_app() -> Flask:
             except ServiceError as exc:
                 flash(str(exc), "error")
 
+        try:
+            creature_views, morphology_by_creature = display_creatures_for_lab(token, lab_id, creatures_rows)
+        except ServiceError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("dashboard"))
+
         return render_template(
             "crossbreed.html",
-            creatures=display_service.creature_views(creatures_rows),
-            parent_cards=display_service.parent_creature_views(creatures_rows),
+            creatures=creature_views,
+            parent_cards=display_service.parent_creature_views(creatures_rows, morphology_by_creature),
             preview_options=preview_options,
             selected_parent1=selected_parent1,
             selected_parent2=selected_parent2,

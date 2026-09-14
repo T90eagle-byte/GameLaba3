@@ -837,17 +837,48 @@ def build_creature_view(
     return view
 
 
-def creature_view(row: dict[str, Any]) -> dict[str, Any]:
-    return build_creature_view(row)
+def creature_view(
+    row: dict[str, Any],
+    morphology_rows: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    return build_creature_view(row, morphology_rows)
 
 
-def creature_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [creature_view(row) for row in rows]
+def morphology_rows_by_creature(rows: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
+    grouped: dict[int, list[dict[str, Any]]] = {}
+    for row in rows:
+        try:
+            creature_id = int(row.get("creature_id"))
+        except (TypeError, ValueError):
+            continue
+        grouped.setdefault(creature_id, []).append(row)
+    return grouped
 
 
-def parent_creature_view(row: dict[str, Any]) -> dict[str, Any]:
+def creature_views(
+    rows: list[dict[str, Any]],
+    morphology_by_creature: dict[int, list[dict[str, Any]]] | None = None,
+) -> list[dict[str, Any]]:
+    morphology_by_creature = morphology_by_creature or {}
+    return [
+        creature_view(row, morphology_by_creature.get(int(row["creature_id"]), []))
+        for row in rows
+    ]
+
+
+def parent_creature_view(
+    row: dict[str, Any],
+    morphology_rows: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Compact, display-only card data for the parent comparison on crossbreed."""
-    view = creature_view(row)
+    view = creature_view(row, morphology_rows)
+    if view["display_model"] == "morphology":
+        view["parent_traits"] = [
+            view["morphology"].get(key)
+            for key in ("body_color", "body_size", "body_cover", "tail_type", "dorsal_type")
+            if view["morphology"].get(key)
+        ]
+        return view
     core_keys = ("color", "has_wings", "nutrition_type", "size")
     special_keys = ("fin_shape", "claw_form", "shell_armor", "beak_nose_shape", "speed_level", "fur_density")
     items = view["phenotype_items"]
@@ -859,8 +890,15 @@ def parent_creature_view(row: dict[str, Any]) -> dict[str, Any]:
     return view
 
 
-def parent_creature_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [parent_creature_view(row) for row in rows]
+def parent_creature_views(
+    rows: list[dict[str, Any]],
+    morphology_by_creature: dict[int, list[dict[str, Any]]] | None = None,
+) -> list[dict[str, Any]]:
+    morphology_by_creature = morphology_by_creature or {}
+    return [
+        parent_creature_view(row, morphology_by_creature.get(int(row["creature_id"]), []))
+        for row in rows
+    ]
 
 
 def _genotype_gene_key(row: dict[str, Any]) -> str:

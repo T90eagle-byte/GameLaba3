@@ -56,6 +56,7 @@ REQUIRED_ROUTINES = frozenset(
         "GET_CREATURES_CURSOR",
         "GET_GENOTYPE_CURSOR",
         "GET_MORPHOLOGY_CURSOR",
+        "GET_LAB_MORPHOLOGY_CURSOR",
         "PREVIEW_OFFSPRING_OPTIONS",
         "CROSSBREED",
         "SHOW_MUTATION_SHOP",
@@ -83,6 +84,7 @@ REQUIRED_SIGNATURES: dict[str, tuple[frozenset[str], ...]] = {
     "GET_CREATURES_CURSOR": (frozenset({"P_LAB_ID"}),),
     "GET_GENOTYPE_CURSOR": (frozenset({"P_CREATURE_ID"}),),
     "GET_MORPHOLOGY_CURSOR": (frozenset({"P_CREATURE_ID"}),),
+    "GET_LAB_MORPHOLOGY_CURSOR": (frozenset({"P_LAB_ID"}),),
     "PREVIEW_OFFSPRING_OPTIONS": (
         frozenset({"P_SESSION_TOKEN", "P_LAB_ID", "P_PARENT1_ID", "P_PARENT2_ID", "P_OPTIONS_COUNT"}),
     ),
@@ -130,6 +132,23 @@ def _in_binds(prefix: str, values: list[str]) -> tuple[str, dict[str, str]]:
 def _fetch_names(cursor: oracledb.Cursor, sql: str, **params: object) -> frozenset[str]:
     cursor.execute(sql, params)
     return frozenset(str(row[0]).upper() for row in cursor.fetchall())
+
+
+def legacy_task_description_is_aligned(
+    description: str | None,
+    genetics_version: int | None = None,
+    *,
+    has_genetics_version: bool = False,
+) -> bool:
+    """Apply migration 03 wording only where the task model is legacy.
+
+    Pre-migration schemas have no version column, so every task retains the
+    original migration-03 contract.  Once the column exists, v3 tasks use
+    phenotype wording and are deliberately outside that legacy contract.
+    """
+    if has_genetics_version and genetics_version != 1:
+        return True
+    return bool(description) and "носительств" in description.lower()
 
 
 def collect_schema_snapshot(connection: oracledb.Connection) -> SchemaSnapshot:
@@ -181,9 +200,20 @@ def collect_schema_snapshot(connection: oracledb.Connection) -> SchemaSnapshot:
             cursor.execute(
                 """
                 select count(*)
+                  from user_tab_columns
+                 where table_name = 'TASKS'
+                   and column_name = 'GENETICS_VERSION'
+                """
+            )
+            has_task_genetics_version = bool(cursor.fetchone()[0])
+            description_scope = "and genetics_version = 1" if has_task_genetics_version else ""
+            cursor.execute(
+                f"""
+                select count(*)
                   from tasks
-                 where description is null
-                    or instr(lower(description), 'носительств') = 0
+                 where (description is null
+                    or instr(lower(description), 'носительств') = 0)
+                    {description_scope}
                 """
             )
             legacy_description_count = int(cursor.fetchone()[0] or 0)

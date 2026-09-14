@@ -201,6 +201,16 @@ from `get_morphology_cursor`. The morphology cursor reads `GENOTYPES`, so an
 @database/tests/18_morphology_phenotype_api_smoke_test.sql
 ```
 
+For v3 web card rendering, `get_lab_morphology_cursor(p_lab_id)` returns the
+same canonical 18 morphology rows for every accessible creature in one cursor.
+It is read-only and deliberately does not derive a creature's appearance from
+`archetype_id`; an actual crossbred offspring with a null archetype is covered
+by the dedicated read-model smoke test:
+
+```sql
+@database/tests/25_morphology_render_read_model_smoke_test.sql
+```
+
 Migration 08 adds nullable `ALLELES.DISPLAY_NAME` for player-facing universal
 morphology values while preserving `ALLELES.DESCRIPTION` as the stable
 technical code. It fills only the universal morphology dictionary; legacy

@@ -75,6 +75,27 @@ def get_morphology(
     return run_db(action)
 
 
+def get_lab_morphology(session_token: str, lab_id: int) -> list[dict[str, Any]]:
+    """Read universal morphology for every accessible creature in one cursor."""
+    if not session_token:
+        return []
+
+    def action(connection: oracledb.Connection) -> list[dict[str, Any]]:
+        with connection.cursor() as cursor:
+            cursor.callproc("pkg_genetics_game.load_lab", [session_token, lab_id])
+            ref_cursor = cursor.callfunc(
+                "pkg_genetics_game.get_lab_morphology_cursor",
+                oracledb.DB_TYPE_CURSOR,
+                [lab_id],
+            )
+            try:
+                return rows_from_refcursor(ref_cursor)
+            finally:
+                ref_cursor.close()
+
+    return run_db(action)
+
+
 def get_creature_detail(
     session_token: str,
     lab_id: int,
