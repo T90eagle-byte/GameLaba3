@@ -337,6 +337,58 @@ class LabRouteTests(unittest.TestCase):
         self.assertNotIn("Технические значения".encode(), response.data)
         self.assertNotIn(b">10 / 20<", response.data)
 
+    @patch.object(app_module.creature_service, "get_morphology")
+    @patch.object(app_module.creature_service, "get_genotype")
+    @patch.object(app_module.creature_service, "get_creature_detail")
+    def test_v3_creature_detail_renders_oracle_morphology_not_legacy_fields(
+        self,
+        get_detail: Mock,
+        get_genotype: Mock,
+        get_morphology: Mock,
+    ) -> None:
+        morphology_codes = (
+            "body_shape", "body_proportion", "body_size", "body_cover", "body_color", "mouth_type", "snout_type", "eye_type",
+            "front_appendage_count", "front_appendage_type", "front_appendage_size", "rear_appendage_count", "rear_appendage_type", "rear_appendage_size",
+            "tail_type", "tail_size", "dorsal_type", "dorsal_size",
+        )
+        get_detail.return_value = {
+            "creature_id": 18,
+            "creature_name": "mammal #18",
+            "species_type": "mammal",
+            "genetics_version": 3,
+            "archetype_id": 5,
+            "archetype_code": "whale",
+            "archetype_display_name": "Кит",
+            "phenotype_summary": "color=legacy_green; size=legacy_small; has_wings=wings",
+        }
+        get_morphology.return_value = [
+            {
+                "gene_code": code,
+                "gene_display_name": f"Признак {index + 1}",
+                "expressed_allele_code": "blue" if code == "body_color" else "medium",
+                "expressed_display_name": "Синий" if code == "body_color" else "Средний",
+            }
+            for index, code in enumerate(morphology_codes)
+        ]
+        get_genotype.return_value = [{
+            "gene_name": "body_color",
+            "gene_display_name": "Цвет тела",
+            "dominance_type": "FULL",
+            "allele1_display_name": "blue",
+            "allele2_display_name": "blue",
+        }]
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/creatures/18")
+
+        self.assertEqual(response.status_code, 200)
+        get_morphology.assert_called_once_with("current-token", 18, 7)
+        self.assertIn("Морфология".encode(), response.data)
+        self.assertIn("Синий".encode(), response.data)
+        self.assertNotIn(b"legacy_green", response.data)
+        self.assertNotIn(b"legacy_small", response.data)
+
     @patch.object(app_module.creature_service, "get_genotype")
     @patch.object(app_module.creature_service, "get_creature_detail")
     def test_mutation_highlight_marks_only_changed_allele_and_is_one_time(

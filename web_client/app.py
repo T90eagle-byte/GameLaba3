@@ -326,6 +326,11 @@ def create_app() -> Flask:
                 flash("Существо не найдено в текущей лаборатории.", "warning")
                 return redirect(url_for("creatures"))
             genotype = creature_service.get_genotype(token, creature_id, lab_id)
+            morphology = (
+                creature_service.get_morphology(token, creature_id, lab_id)
+                if display_service.creature_genetics_version(creature) == 3
+                else []
+            )
         except ServiceError as exc:
             flash(str(exc), "error")
             return redirect(url_for("creatures"))
@@ -341,7 +346,7 @@ def create_app() -> Flask:
                     if isinstance(slots, list)
                 }
 
-        creature_view = display_service.creature_view(creature)
+        creature_view = display_service.build_creature_view(creature, morphology)
         return render_template(
             "creature_detail.html",
             creature=creature_view,

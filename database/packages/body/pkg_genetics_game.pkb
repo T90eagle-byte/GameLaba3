@@ -865,6 +865,7 @@ end hash_password_sha256;
                 l.active_task_count,
                 l.completed_task_count,
                 l.experiment_count,
+                l.genetics_version,
                 cast(null as timestamp) as created_at,
                 cast(null as timestamp) as updated_at
               from labs l
@@ -1168,9 +1169,13 @@ end hash_password_sha256;
             select
                 c.creature_id,
                 c.lab_id,
+                l.genetics_version,
                 c.species_type,
                 rst.display_name as species_display_name,
                 c.creature_name,
+                c.archetype_id,
+                rca.archetype_code,
+                rca.display_name as archetype_display_name,
                 c.phenotype_color,
                 c.phenotype_size,
                 c.phenotype_has_wings,
@@ -1179,8 +1184,12 @@ end hash_password_sha256;
                 cast(null as timestamp) as created_at,
                 cast(null as timestamp) as updated_at
               from creatures c
+              join labs l
+                on l.lab_id = c.lab_id
               join ref_species_types rst
                 on rst.species_type = c.species_type
+              left join ref_creature_archetypes rca
+                on rca.archetype_id = c.archetype_id
              where c.lab_id = p_lab_id
              order by c.creature_id;
 

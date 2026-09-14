@@ -258,6 +258,27 @@ SPECIES_CLASS_CODES = {
 
 TECH_SPECIES_PREFIXES = tuple(SPECIES_LABELS.keys())
 
+MORPHOLOGY_GENE_CODES = (
+    "body_shape",
+    "body_proportion",
+    "body_size",
+    "body_cover",
+    "body_color",
+    "mouth_type",
+    "snout_type",
+    "eye_type",
+    "front_appendage_count",
+    "front_appendage_type",
+    "front_appendage_size",
+    "rear_appendage_count",
+    "rear_appendage_type",
+    "rear_appendage_size",
+    "tail_type",
+    "tail_size",
+    "dorsal_type",
+    "dorsal_size",
+)
+
 
 def _text(value: Any) -> str:
     return "" if value is None else str(value).strip()
@@ -715,14 +736,109 @@ def creature_visual(row: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def creature_view(row: dict[str, Any]) -> dict[str, Any]:
+def creature_genetics_version(row: dict[str, Any]) -> int:
+    """Return the package-provided laboratory model version; old cursors stay v1."""
+    try:
+        return 3 if int(row.get("genetics_version")) == 3 else 1
+    except (TypeError, ValueError):
+        return 1
+
+
+def morphology_traits(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Keep Oracle's expressed morphology values keyed by stable gene_code."""
+    by_code = {
+        _clean_code(row.get("gene_code")): row
+        for row in rows
+        if _clean_code(row.get("gene_code")) in MORPHOLOGY_GENE_CODES
+    }
+    traits: list[dict[str, str]] = []
+    for gene_code in MORPHOLOGY_GENE_CODES:
+        row = by_code.get(gene_code)
+        if row is None:
+            continue
+        technical_value = _text(row.get("expressed_allele_code"))
+        display_value = _text(row.get("expressed_display_name")) or technical_value
+        label = _text(row.get("gene_display_name")) or gene_label(gene_code)
+        traits.append({
+            "key": gene_code,
+            "label": label,
+            "value": display_value,
+            "detail_value": display_value,
+            "raw": technical_value,
+            "technical_value": technical_value,
+            "class": color_class(technical_value) if gene_code == "body_color" else "tone-neutral",
+        })
+    return traits
+
+
+def normalize_morphology_visual_state(traits: list[dict[str, str]]) -> dict[str, str]:
+    """Prepare renderer-friendly states without changing the Oracle morphology rows."""
+    visual_state = {
+        _clean_code(trait.get("key")): _clean_code(trait.get("technical_value"))
+        for trait in traits
+    }
+    for count_code, dependent_codes in (
+        ("front_appendage_count", ("front_appendage_type", "front_appendage_size")),
+        ("rear_appendage_count", ("rear_appendage_type", "rear_appendage_size")),
+    ):
+        if visual_state.get(count_code) == "zero":
+            for dependent_code in dependent_codes:
+                visual_state[dependent_code] = "none"
+    if visual_state.get("tail_type") == "none":
+        visual_state["tail_size"] = "none"
+    if visual_state.get("dorsal_type") == "none":
+        visual_state["dorsal_size"] = "none"
+    return visual_state
+
+
+def _archetype_view(row: dict[str, Any]) -> dict[str, Any] | None:
+    archetype_id = row.get("archetype_id")
+    if archetype_id is None:
+        return None
+    return {
+        "archetype_id": archetype_id,
+        "code": _text(row.get("archetype_code")),
+        "display_name": _text(row.get("archetype_display_name")) or _text(row.get("archetype_code")),
+    }
+
+
+def build_creature_view(
+    row: dict[str, Any],
+    morphology_rows: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build one display model selected exclusively by LABS.GENETICS_VERSION."""
     view = dict(row)
     view["display_name"] = creature_name(row)
     view["species_label"] = species_label(row)
-    view["phenotype_items"] = phenotype_items(row)
-    view["phenotype_text"] = phenotype_sentence(row)
+    genetics_version = creature_genetics_version(row)
+    view["genetics_version"] = genetics_version
+    view["archetype"] = _archetype_view(row)
+    if genetics_version == 3:
+        traits = morphology_traits(morphology_rows or [])
+        view["display_model"] = "morphology"
+        view["morphology_traits"] = traits
+        view["morphology"] = {trait["key"]: trait for trait in traits}
+        view["morphology_visual_state"] = normalize_morphology_visual_state(traits)
+        view["phenotype_items"] = traits
+        summary_traits = [
+            view["morphology"].get(code)
+            for code in ("body_shape", "body_color", "body_size")
+            if view["morphology"].get(code)
+        ]
+        view["phenotype_text"] = " · ".join(item["value"] for item in summary_traits) or "Морфология доступна в карточке существа."
+    else:
+        view["display_model"] = "legacy"
+        view["morphology_traits"] = []
+        view["morphology"] = {}
+        view["morphology_visual_state"] = {}
+        view["phenotype_items"] = phenotype_items(row)
+        view["phenotype_text"] = phenotype_sentence(row)
     view["visual"] = creature_visual(row)
     return view
+
+
+def creature_view(row: dict[str, Any]) -> dict[str, Any]:
+    return build_creature_view(row)
 
 
 def creature_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -809,7 +925,7 @@ def genotype_view(
         row_changed_slots = changed_slots.get(gene_code, [])
         formatted.append({
             **row,
-            "gene_label": gene_label(gene),
+            "gene_label": _text(row.get("gene_display_name")) or gene_label(gene),
             "gene_code": gene_code,
             "allele1_label": allele1_semantic,
             "allele2_label": allele2_semantic,
