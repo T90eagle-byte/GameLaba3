@@ -304,6 +304,7 @@ create table creatures (
     creature_id                  number not null,
     lab_id                       number not null,
     species_type                 number(1) not null,
+    archetype_id                 number null,
     creature_name                varchar2(255 char) not null,
     phenotype_color              varchar2(100 char) null,
     phenotype_size               varchar2(100 char) null,
@@ -315,6 +316,7 @@ create table creatures (
     constraint pk_creatures primary key (creature_id),
     constraint fk_creatures_lab_id foreign key (lab_id) references labs (lab_id),
     constraint fk_creatures_species_type foreign key (species_type) references ref_species_types (species_type),
+    constraint fk_creatures_archetype_id foreign key (archetype_id) references ref_creature_archetypes (archetype_id),
     constraint ck_creatures_species_type check (species_type between 1 and 6),
     constraint ck_creatures_has_wings check (phenotype_has_wings in ('Y', 'N') or phenotype_has_wings is null)
 );
@@ -322,6 +324,7 @@ create table creatures (
 comment on table creatures is 'Creatures owned by a lab, with cached phenotype fields for UI.';
 comment on column creatures.creature_id is 'Primary key.';
 comment on column creatures.species_type is 'Species type code from 1 to 6.';
+comment on column creatures.archetype_id is 'Nullable reference archetype for starter creatures; crossbred and historical creatures may have no single archetype.';
 comment on column creatures.phenotype_summary is 'Compact phenotype text for collection screens.';
 
 -- ============================================================================

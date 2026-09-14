@@ -167,6 +167,22 @@ read them. Verify this separately with:
 @database/tests/14_archetype_templates_smoke_test.sql
 ```
 
+The next optional migration adds nullable metadata linking future starter
+creatures to their base archetype:
+
+```sql
+@database/migrations/07_add_creature_archetype.sql
+```
+
+Existing creatures remain `NULL`; crossbred or hybrid creatures may also have
+no single archetype. Starter generation assigns active archetypes cyclically
+by `archetype_code`. The reference morphology templates still are not copied
+to runtime genotypes or read by phenotype logic. Verify this separately with:
+
+```sql
+@database/tests/15_creature_archetype_link_smoke_test.sql
+```
+
 ## 2) Run core seed data
 
 ```sql

@@ -3236,12 +3236,43 @@ end hash_password_sha256;
         v_summary          varchar2(1000);
         v_gene_cursor      sys_refcursor;
         v_gene_id          number;
+        v_archetype_id     number;
+        v_archetype_count  number;
+        v_existing_count   number;
     begin
         if p_species_type < 1 or p_species_type > 6 then
             raise_application_error(-20027, 'Invalid species_type. Expected value from 1 to 6.');
         end if;
 
         assert_lab_access(p_lab_id => p_lab_id);
+
+        select count(*)
+          into v_archetype_count
+          from ref_creature_archetypes
+         where species_type = p_species_type
+           and active_flag = 'Y';
+
+        if v_archetype_count = 0 then
+            raise_application_error(-20079, 'No active reference archetype exists for species_type=' || p_species_type || '.');
+        end if;
+
+        select count(*)
+          into v_existing_count
+          from creatures
+         where lab_id = p_lab_id
+           and species_type = p_species_type
+           and archetype_id is not null;
+
+        select archetype_id
+          into v_archetype_id
+          from (
+                select archetype_id,
+                       row_number() over (order by archetype_code) as archetype_position
+                  from ref_creature_archetypes
+                 where species_type = p_species_type
+                   and active_flag = 'Y'
+               )
+         where archetype_position = mod(v_existing_count, v_archetype_count) + 1;
 
         v_creature_name :=
             case p_species_type
@@ -3260,6 +3291,7 @@ end hash_password_sha256;
             creature_id,
             lab_id,
             species_type,
+            archetype_id,
             creature_name,
             phenotype_color,
             phenotype_size,
@@ -3270,6 +3302,7 @@ end hash_password_sha256;
             p_creature_id,
             p_lab_id,
             p_species_type,
+            v_archetype_id,
             v_creature_name,
             null,
             null,
