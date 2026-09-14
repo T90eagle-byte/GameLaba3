@@ -201,6 +201,17 @@ from `get_morphology_cursor`. The morphology cursor reads `GENOTYPES`, so an
 @database/tests/18_morphology_phenotype_api_smoke_test.sql
 ```
 
+Migration 08 adds nullable `ALLELES.DISPLAY_NAME` for player-facing universal
+morphology values while preserving `ALLELES.DESCRIPTION` as the stable
+technical code. It fills only the universal morphology dictionary; legacy
+alleles may keep a null display name. `get_morphology_cursor` returns both the
+technical and display values, with a technical-code fallback for null names:
+
+```sql
+@database/migrations/08_add_allele_display_names.sql
+@database/tests/19_morphology_display_names_smoke_test.sql
+```
+
 ## 2) Run core seed data
 
 ```sql

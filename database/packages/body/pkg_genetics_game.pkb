@@ -1246,7 +1246,10 @@ end hash_password_sha256;
                     cast(null as varchar2(255 char)) as gene_display_name,
                     cast(null as varchar2(255 char)) as allele1_code,
                     cast(null as varchar2(255 char)) as allele2_code,
-                    cast(null as varchar2(4000 char)) as expressed_allele_code
+                    cast(null as varchar2(4000 char)) as expressed_allele_code,
+                    cast(null as varchar2(255 char)) as allele1_display_name,
+                    cast(null as varchar2(255 char)) as allele2_display_name,
+                    cast(null as varchar2(4000 char)) as expressed_display_name
                   from dual
                  where 1 = 0;
             return v_cursor;
@@ -1281,7 +1284,26 @@ end hash_password_sha256;
                     when a1.dominance > a2.dominance then a1.description
                     when a2.dominance > a1.dominance then a2.description
                     else a1.description
-                end as expressed_allele_code
+                end as expressed_allele_code,
+                coalesce(a1.display_name, a1.description) as allele1_display_name,
+                coalesce(a2.display_name, a2.description) as allele2_display_name,
+                case
+                    when gt.allele1_id = gt.allele2_id then coalesce(a1.display_name, a1.description)
+                    when g.dominance_type = 'INCOMPLETE' then
+                        nvl(
+                            (
+                                select max(coalesce(am.display_name, am.description))
+                                  from alleles am
+                                 where am.gene_id = g.gene_id
+                                   and am.trait_value = (a1.trait_value + a2.trait_value) / 2
+                            ),
+                            'intermediate(' || coalesce(a1.display_name, a1.description) || '/' || coalesce(a2.display_name, a2.description) || ')'
+                        )
+                    when g.dominance_type = 'CODOMINANT' then coalesce(a1.display_name, a1.description) || '/' || coalesce(a2.display_name, a2.description)
+                    when a1.dominance > a2.dominance then coalesce(a1.display_name, a1.description)
+                    when a2.dominance > a1.dominance then coalesce(a2.display_name, a2.description)
+                    else coalesce(a1.display_name, a1.description)
+                end as expressed_display_name
               from genotypes gt
               join genes g
                 on g.gene_id = gt.gene_id

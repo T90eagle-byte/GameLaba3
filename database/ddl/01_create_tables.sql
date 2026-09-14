@@ -220,6 +220,7 @@ create table alleles (
     gene_id             number not null,
     dominance           number(5, 2) default 0 not null,
     description         varchar2(255 char) not null,
+    display_name        varchar2(128 char) null,
     trait_value         number(10, 2) not null,
     created_at          timestamp default systimestamp not null,
     constraint pk_alleles primary key (allele_id),
@@ -231,6 +232,7 @@ create table alleles (
 comment on table alleles is 'Alleles for each gene.';
 comment on column alleles.allele_id is 'Primary key.';
 comment on column alleles.gene_id is 'References the gene this allele belongs to.';
+comment on column alleles.display_name is 'Optional player-facing display value; DESCRIPTION remains the stable technical code.';
 
 create table ref_archetype_alleles (
     archetype_id       number not null,

@@ -41,6 +41,9 @@ declare
     v_allele1_code           varchar2(255);
     v_allele2_code           varchar2(255);
     v_expressed_code          varchar2(4000);
+    v_allele1_display_name    varchar2(255);
+    v_allele2_display_name    varchar2(255);
+    v_expressed_display_name  varchar2(4000);
     v_trait_count            number;
     v_duplicate_codes        number;
     v_missing_gene_displays  number;
@@ -96,7 +99,15 @@ declare
         v_cursor := pkg_genetics_game.get_morphology_cursor(p_creature_id);
         v_cursor_open := true;
         loop
-            fetch v_cursor into v_gene_code, v_gene_display_name, v_allele1_code, v_allele2_code, v_expressed_code;
+            fetch v_cursor into
+                v_gene_code,
+                v_gene_display_name,
+                v_allele1_code,
+                v_allele2_code,
+                v_expressed_code,
+                v_allele1_display_name,
+                v_allele2_display_name,
+                v_expressed_display_name;
             exit when v_cursor%notfound;
             v_trait_count := v_trait_count + 1;
             if instr(v_seen_codes, '|' || v_gene_code || '|') > 0 then
