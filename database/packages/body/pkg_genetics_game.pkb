@@ -342,7 +342,18 @@ end hash_password_sha256;
     procedure assign_starting_tasks(
         p_lab_id in number
     ) is
+        v_lab_genetics_version labs.genetics_version%type;
     begin
+        begin
+            select l.genetics_version
+              into v_lab_genetics_version
+              from labs l
+             where l.lab_id = p_lab_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20057, 'Lab not found.');
+        end;
+
         insert into lab_tasks (
             lab_task_id,
             lab_id,
@@ -361,6 +372,7 @@ end hash_password_sha256;
           from (
                 select t.task_id
                   from tasks t
+                 where t.genetics_version = v_lab_genetics_version
                  order by t.task_id
           ) seeded_tasks
          where rownum <= 3
@@ -376,7 +388,7 @@ end hash_password_sha256;
         p_lab_id         in number,
         p_target_active  in number default 3
     ) is
-        v_lab_exists_count  number;
+        v_lab_genetics_version labs.genetics_version%type;
         v_target_active     number := nvl(p_target_active, 3);
         v_active_count      number;
         v_missing_count     number;
@@ -385,14 +397,15 @@ end hash_password_sha256;
             return;
         end if;
 
-        select count(*)
-          into v_lab_exists_count
-          from labs l
-         where l.lab_id = p_lab_id;
-
-        if v_lab_exists_count = 0 then
-            raise_application_error(-20057, 'Lab not found.');
-        end if;
+        begin
+            select l.genetics_version
+              into v_lab_genetics_version
+              from labs l
+             where l.lab_id = p_lab_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20057, 'Lab not found.');
+        end;
 
         select count(*)
           into v_active_count
@@ -428,7 +441,8 @@ end hash_password_sha256;
               from (
                     select t.task_id
                       from tasks t
-                     where not exists (
+                     where t.genetics_version = v_lab_genetics_version
+                       and not exists (
                             select 1
                               from lab_tasks lt
                              where lt.lab_id = p_lab_id

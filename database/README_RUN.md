@@ -587,16 +587,14 @@ the universal-morphology catalogue (`3`). Migration 11 marks all existing
 tasks as v1 and then seeds 12 v3 catalogue entries. It preserves existing
 `LAB_TASKS`, markers, rewards, and task IDs.
 
-The v3 catalogue is reference data only at this stage. The current package
-assignment and completion flow remains unchanged, so the new v3 entries must
-not be treated as runtime-assigned morphology tasks until the separate
-phenotype-aware evaluator stage is introduced.
-
 Task evaluation is version-aware: v1 tasks keep the historical rule that a
 marker allele may appear in either genotype slot, while v3 tasks require the
 marker allele to be the expressed phenotype. The evaluator is selected by
-`TASKS.GENETICS_VERSION`, not by `LABS.GENETICS_VERSION`, during the transition
-before assignment is version-filtered in Task 15.
+`TASKS.GENETICS_VERSION`, not by `LABS.GENETICS_VERSION`, for compatibility
+with manually assigned historical tasks. The normal runtime assignment policy
+is stricter: a v1 laboratory receives and refills only v1 tasks, while a v3
+laboratory receives and refills only v3 tasks. Thus, standard `LAB_TASKS`
+always have the same genetics version as their laboratory.
 
 Current v3 task markers use only `FULL` dominance genes. `nutrition_type`
 remains a canonical v3 gene, but it is `CODOMINANT` and deliberately has no v3
