@@ -218,6 +218,18 @@ comment on column genes.dominance_type is 'Dominance model: FULL, INCOMPLETE, CO
 comment on column genes.linkage_group is 'Linked inheritance group identifier; NULL for independent genes.';
 comment on column genes.gameplay_enabled is 'Y when the gene participates in the current gameplay runtime; N for reference-only morphology data.';
 
+create table ref_genetics_model_genes (
+    genetics_version   number(2) not null,
+    gene_id            number not null,
+    constraint pk_ref_genetics_model_genes primary key (genetics_version, gene_id),
+    constraint fk_ref_genetics_model_genes_gene foreign key (gene_id) references genes (gene_id),
+    constraint ck_ref_genetics_model_genes_version check (genetics_version in (1, 3))
+);
+
+comment on table ref_genetics_model_genes is 'Explicit canonical gene membership by laboratory genetic-model version.';
+comment on column ref_genetics_model_genes.genetics_version is '1 for the legacy model and 3 for the universal-morphology model.';
+comment on column ref_genetics_model_genes.gene_id is 'Canonical gene for the selected genetic model; resolved from stable gene identity in the shared seed.';
+
 create table alleles (
     allele_id           number not null,
     gene_id             number not null,

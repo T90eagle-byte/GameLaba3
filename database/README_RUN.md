@@ -224,6 +224,19 @@ prevented from generating v3 starter morphology:
 @database/tests/20_lab_genetics_version_smoke_test.sql
 ```
 
+Migration 10 adds `REF_GENETICS_MODEL_GENES`, the explicit canonical gene map
+for each laboratory model. `LABS.GENETICS_VERSION` selects the model, while
+this reference table defines its canonical genes. `GENES.GAMEPLAY_ENABLED`
+remains the independent transition runtime gate. Version 1 contains the exact
+legacy set; version 3 currently contains 18 universal morphology genes plus
+`nutrition_type`. The map is reference-only at this stage and is not read by
+the package runtime:
+
+```sql
+@database/migrations/10_add_genetics_model_membership.sql
+@database/tests/21_genetics_model_membership_smoke_test.sql
+```
+
 ## 2) Run core seed data
 
 ```sql
