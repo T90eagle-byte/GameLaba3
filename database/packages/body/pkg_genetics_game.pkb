@@ -1206,6 +1206,97 @@ end hash_password_sha256;
         return v_cursor;
     end get_genotype_cursor;
 
+    function get_morphology_cursor(
+        p_creature_id in number
+    ) return sys_refcursor is
+        v_cursor                   sys_refcursor;
+        v_lab_id                   number;
+        v_morphology_row_count     number;
+        v_required_morphology_rows number;
+    begin
+        v_lab_id := assert_creature_access(
+            p_creature_id => p_creature_id
+        );
+
+        select
+            count(*),
+            count(
+                case
+                    when g.gene_name in (
+                        'body_shape', 'body_proportion', 'body_size', 'body_cover', 'body_color',
+                        'mouth_type', 'snout_type', 'eye_type',
+                        'front_appendage_count', 'front_appendage_type', 'front_appendage_size',
+                        'rear_appendage_count', 'rear_appendage_type', 'rear_appendage_size',
+                        'tail_type', 'tail_size', 'dorsal_type', 'dorsal_size'
+                    ) then 1
+                end
+            )
+          into v_morphology_row_count, v_required_morphology_rows
+          from genotypes gt
+          join genes g
+            on g.gene_id = gt.gene_id
+         where gt.creature_id = p_creature_id
+           and g.species_type = 0
+           and g.gene_type = 'morphology';
+
+        if v_morphology_row_count = 0 then
+            open v_cursor for
+                select
+                    cast(null as varchar2(50 char)) as gene_code,
+                    cast(null as varchar2(255 char)) as gene_display_name,
+                    cast(null as varchar2(255 char)) as allele1_code,
+                    cast(null as varchar2(255 char)) as allele2_code,
+                    cast(null as varchar2(4000 char)) as expressed_allele_code
+                  from dual
+                 where 1 = 0;
+            return v_cursor;
+        end if;
+
+        if v_morphology_row_count <> 18 or v_required_morphology_rows <> 18 then
+            raise_application_error(
+                -20083,
+                'Creature morphology genotype is incomplete or inconsistent. Expected exactly 18 universal morphology genes.'
+            );
+        end if;
+
+        open v_cursor for
+            select
+                g.gene_name as gene_code,
+                g.description as gene_display_name,
+                a1.description as allele1_code,
+                a2.description as allele2_code,
+                case
+                    when gt.allele1_id = gt.allele2_id then a1.description
+                    when g.dominance_type = 'INCOMPLETE' then
+                        nvl(
+                            (
+                                select max(am.description)
+                                  from alleles am
+                                 where am.gene_id = g.gene_id
+                                   and am.trait_value = (a1.trait_value + a2.trait_value) / 2
+                            ),
+                            'intermediate(' || a1.description || '/' || a2.description || ')'
+                        )
+                    when g.dominance_type = 'CODOMINANT' then a1.description || '/' || a2.description
+                    when a1.dominance > a2.dominance then a1.description
+                    when a2.dominance > a1.dominance then a2.description
+                    else a1.description
+                end as expressed_allele_code
+              from genotypes gt
+              join genes g
+                on g.gene_id = gt.gene_id
+              join alleles a1
+                on a1.allele_id = gt.allele1_id
+              join alleles a2
+                on a2.allele_id = gt.allele2_id
+             where gt.creature_id = p_creature_id
+               and g.species_type = 0
+               and g.gene_type = 'morphology'
+             order by g.gene_name, g.gene_id;
+
+        return v_cursor;
+    end get_morphology_cursor;
+
     function get_phenotype(
         p_creature_id    in number
     ) return varchar2 is

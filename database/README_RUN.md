@@ -190,6 +190,17 @@ failure handling with:
 @database/tests/17_starter_morphology_materialization_smoke_test.sql
 ```
 
+The legacy and universal morphology read APIs intentionally coexist during the
+transition. A legacy creature has a normal `get_phenotype` result and an empty
+`get_morphology_cursor` result. A v3 starter or dual-schema offspring has the
+same legacy-compatible `get_phenotype` plus 18 universal morphology traits
+from `get_morphology_cursor`. The morphology cursor reads `GENOTYPES`, so an
+`archetype_id` is not required after starter materialization. Verify this with:
+
+```sql
+@database/tests/18_morphology_phenotype_api_smoke_test.sql
+```
+
 ## 2) Run core seed data
 
 ```sql

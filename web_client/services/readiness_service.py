@@ -55,6 +55,7 @@ REQUIRED_ROUTINES = frozenset(
         "GET_LAB_STATS",
         "GET_CREATURES_CURSOR",
         "GET_GENOTYPE_CURSOR",
+        "GET_MORPHOLOGY_CURSOR",
         "PREVIEW_OFFSPRING_OPTIONS",
         "CROSSBREED",
         "SHOW_MUTATION_SHOP",
@@ -81,6 +82,7 @@ REQUIRED_SIGNATURES: dict[str, tuple[frozenset[str], ...]] = {
     "LOAD_LAB": (frozenset({"P_SESSION_TOKEN", "P_LAB_ID"}),),
     "GET_CREATURES_CURSOR": (frozenset({"P_LAB_ID"}),),
     "GET_GENOTYPE_CURSOR": (frozenset({"P_CREATURE_ID"}),),
+    "GET_MORPHOLOGY_CURSOR": (frozenset({"P_CREATURE_ID"}),),
     "PREVIEW_OFFSPRING_OPTIONS": (
         frozenset({"P_SESSION_TOKEN", "P_LAB_ID", "P_PARENT1_ID", "P_PARENT2_ID", "P_OPTIONS_COUNT"}),
     ),
