@@ -5,6 +5,7 @@ create or replace package body pkg_genetics_game as
     g_current_session_token varchar2(128);
     g_current_lab_id        number;
     g_gameplay_gate_present  number := null;
+    g_lab_genetics_version_present number := null;
 
     function gameplay_gate_is_present
     return boolean is
@@ -19,6 +20,20 @@ create or replace package body pkg_genetics_game as
 
         return g_gameplay_gate_present = 1;
     end gameplay_gate_is_present;
+
+    function lab_genetics_version_is_present
+    return boolean is
+    begin
+        if g_lab_genetics_version_present is null then
+            select count(*)
+              into g_lab_genetics_version_present
+              from user_tab_columns
+             where table_name = 'LABS'
+               and column_name = 'GENETICS_VERSION';
+        end if;
+
+        return g_lab_genetics_version_present = 1;
+    end lab_genetics_version_is_present;
 
     procedure clear_current_session_context is
     begin
@@ -3348,6 +3363,7 @@ end hash_password_sha256;
     procedure generate_starting_creatures(
         p_lab_id          in number
     ) is
+        v_genetics_version      number := 3;
         v_species_type          number;
         v_variant               number;
         v_creature_id           number;
@@ -3361,10 +3377,29 @@ end hash_password_sha256;
     begin
         assert_lab_access(p_lab_id => p_lab_id);
 
-        select count(*)
-          into v_existing_creatures
-          from creatures c
-         where c.lab_id = p_lab_id;
+        if lab_genetics_version_is_present then
+            begin
+                execute immediate q'[
+                    select l.genetics_version,
+                           count(c.creature_id)
+                      from labs l
+                      left join creatures c
+                        on c.lab_id = l.lab_id
+                     where l.lab_id = :lab_id
+                     group by l.genetics_version
+                ]'
+                into v_genetics_version, v_existing_creatures
+                using p_lab_id;
+            exception
+                when no_data_found then
+                    raise_application_error(-20057, 'Lab not found.');
+            end;
+        else
+            select count(*)
+              into v_existing_creatures
+              from creatures c
+             where c.lab_id = p_lab_id;
+        end if;
 
         if v_existing_creatures > 0 then
             get_lab_stats(
@@ -3377,6 +3412,13 @@ end hash_password_sha256;
                 p_experiment_count     => v_experiment_count
             );
             return;
+        end if;
+
+        if v_genetics_version <> 3 then
+            raise_application_error(
+                -20084,
+                'Legacy laboratory cannot create universal-morphology starters.'
+            );
         end if;
 
         for v_species_type in 1 .. 6 loop

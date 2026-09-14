@@ -165,6 +165,7 @@ create table labs (
     user_id               number not null,
     lab_name              varchar2(60 char) not null,
     session_id            number null,
+    genetics_version      number(2) default 3 not null,
     wallet                number(12, 2) default 1000 not null,
     rating                number(12, 2) default 0 not null,
     creature_count        number default 0 not null,
@@ -177,6 +178,7 @@ create table labs (
     constraint fk_labs_user_id foreign key (user_id) references users (user_id),
     constraint fk_labs_session_id foreign key (session_id) references sessions (session_id),
     constraint fk_labs_session_user foreign key (session_id, user_id) references sessions (session_id, user_id),
+    constraint ck_labs_genetics_version check (genetics_version in (1, 3)),
     constraint ck_labs_wallet_nonnegative check (wallet >= 0),
     constraint ck_labs_creature_count check (creature_count >= 0),
     constraint ck_labs_active_task_count check (active_task_count >= 0),
@@ -188,6 +190,7 @@ comment on table labs is 'Player laboratory state and aggregated counters.';
 comment on column labs.lab_id is 'Primary key.';
 comment on column labs.lab_name is 'Player-facing laboratory name (trimmed, up to 60 characters).';
 comment on column labs.session_id is 'Current active session holding the lab; NULL when the lab is released.';
+comment on column labs.genetics_version is '1 for historical legacy laboratories; 3 for new universal-morphology laboratories.';
 
 create table genes (
     gene_id            number not null,

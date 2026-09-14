@@ -212,6 +212,18 @@ technical and display values, with a technical-code fallback for null names:
 @database/tests/19_morphology_display_names_smoke_test.sql
 ```
 
+Migration 09 introduces an explicit laboratory model boundary. Existing
+laboratories are marked `genetics_version = 1` (historical legacy model), while
+laboratories created after the migration and fresh installs use
+`genetics_version = 3` (universal-morphology model). The migration does not
+backfill creatures or genotypes. An empty legacy laboratory is deliberately
+prevented from generating v3 starter morphology:
+
+```sql
+@database/migrations/09_add_lab_genetics_version.sql
+@database/tests/20_lab_genetics_version_smoke_test.sql
+```
+
 ## 2) Run core seed data
 
 ```sql
