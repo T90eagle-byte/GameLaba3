@@ -20,6 +20,7 @@ declare
     v_login                   varchar2(20) := 't' || lower(substr(rawtohex(sys_guid()), 1, 19));
     v_password                varchar2(100) := 'transition_audit_123';
     v_legacy_id               number;
+    v_legacy2_id              number;
     v_dual1_id                number;
     v_dual2_id                number;
     v_legacy_summary          varchar2(1000);
@@ -71,27 +72,6 @@ declare
             fail_test(p_test_name, p_detail);
         end if;
     end assert_true;
-
-    procedure add_template_genotype(p_creature_id in number) is
-    begin
-        insert into genotypes (
-            genotype_id, creature_id, gene_id, allele1_id, allele2_id
-        )
-        select
-            genotypes_seq.nextval,
-            p_creature_id,
-            taa.gene_id,
-            taa.allele1_id,
-            taa.allele2_id
-          from creatures c
-          join ref_archetype_alleles taa
-            on taa.archetype_id = c.archetype_id
-         where c.creature_id = p_creature_id;
-
-        if sql%rowcount <> 18 then
-            raise_application_error(-20960, 'Expected 18 reference morphology rows, got ' || sql%rowcount || '.');
-        end if;
-    end add_template_genotype;
 
     function morphology_signature(p_creature_id in number) return varchar2 is
         v_signature varchar2(4000);
@@ -244,11 +224,21 @@ begin
     v_session_token := pkg_genetics_game.login_user(v_login, v_password);
     pkg_genetics_game.start_new_lab(v_session_token, v_lab_id);
 
-    select min(creature_id), min(creature_id) + 1, min(creature_id) + 2
-      into v_legacy_id, v_dual1_id, v_dual2_id
+    select min(creature_id), min(creature_id) + 3, min(creature_id) + 1, min(creature_id) + 2
+      into v_legacy_id, v_legacy2_id, v_dual1_id, v_dual2_id
       from creatures
      where lab_id = v_lab_id
        and species_type = 1;
+
+    delete from genotypes gt
+     where gt.creature_id in (v_legacy_id, v_legacy2_id)
+       and exists (
+            select 1
+              from genes g
+             where g.gene_id = gt.gene_id
+               and g.gameplay_enabled = 'N'
+       );
+    assert_true(sql%rowcount = 36, 'Temporary legacy controls omit their 18 morphology rows', 'actual=' || sql%rowcount);
 
     v_legacy_summary := pkg_genetics_game.get_phenotype(v_dual1_id);
     select nvl(phenotype_color, '<null>') || '|' || nvl(phenotype_size, '<null>') || '|' ||
@@ -264,8 +254,6 @@ begin
        and task_status = 'ACTIVE';
     v_task_before := pkg_genetics_game.check_task(v_lab_id, v_task_id, v_dual1_id);
 
-    add_template_genotype(v_dual1_id);
-    add_template_genotype(v_dual2_id);
     v_dual_summary := pkg_genetics_game.get_phenotype(v_dual1_id);
     select nvl(phenotype_color, '<null>') || '|' || nvl(phenotype_size, '<null>') || '|' ||
            nvl(phenotype_has_wings, '<null>') || '|' || nvl(phenotype_nutrition_type, '<null>')
@@ -295,12 +283,12 @@ begin
      where g.gameplay_enabled = 'N';
     assert_true(v_value = 0, 'TASK MARKERS reference legacy genes only', 'reference markers=' || v_value);
 
-    inspect_preview('LEGACY x LEGACY', v_legacy_id, v_legacy_id + 3, 0);
+    inspect_preview('LEGACY x LEGACY', v_legacy_id, v_legacy2_id, 0);
     inspect_preview('DUAL x DUAL', v_dual1_id, v_dual2_id, 1);
     inspect_preview('LEGACY x DUAL', v_legacy_id, v_dual1_id, 0);
     inspect_preview('DUAL x LEGACY', v_dual1_id, v_legacy_id, 0);
 
-    inspect_crossbreed('LEGACY x LEGACY', v_legacy_id, v_legacy_id + 3, 0);
+    inspect_crossbreed('LEGACY x LEGACY', v_legacy_id, v_legacy2_id, 0);
     inspect_crossbreed('DUAL x DUAL', v_dual1_id, v_dual2_id, 1);
     inspect_crossbreed('LEGACY x DUAL', v_legacy_id, v_dual1_id, 0);
     inspect_crossbreed('DUAL x LEGACY', v_dual1_id, v_legacy_id, 0);

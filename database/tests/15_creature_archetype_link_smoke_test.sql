@@ -210,7 +210,7 @@ begin
             on g.gene_id = gt.gene_id
          where gt.creature_id = v_parent1_id
            and g.gameplay_enabled = 'N';
-        assert_true(v_value = 0, 'Reference morphology genes are not copied into starter genotypes', 'actual=' || v_value);
+        assert_true(v_value = 18, 'Starter genotype materializes all reference morphology genes', 'actual=' || v_value);
 
         select count(*)
           into v_runtime_gene_count
@@ -221,7 +221,11 @@ begin
           into v_creature_gene_count
           from genotypes
          where creature_id = v_parent1_id;
-        assert_true(v_creature_gene_count = v_runtime_gene_count, 'Legacy starter genotype remains unchanged', 'actual=' || v_creature_gene_count || ', expected=' || v_runtime_gene_count);
+        assert_true(
+            v_creature_gene_count = v_runtime_gene_count + 18,
+            'Starter genotype combines runtime genes with its morphology template',
+            'actual=' || v_creature_gene_count || ', expected=' || (v_runtime_gene_count + 18)
+        );
     end if;
 
     if v_lab2_id is not null then

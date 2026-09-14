@@ -175,14 +175,6 @@ begin
 
     select count(*)
       into v_value
-      from genotypes gt
-      join genes g
-        on g.gene_id = gt.gene_id
-     where g.gameplay_enabled = 'N';
-    assert_true(v_value = 0, 'Existing genotypes were not assigned reference-only genes', 'actual=' || v_value);
-
-    select count(*)
-      into v_value
       from user_constraints
      where constraint_name in ('PK_GENES', 'PK_ALLELES', 'UQ_ALLELES_ALLELE_GENE', 'FK_ALLELES_GENE_ID', 'CK_GENES_GAMEPLAY_ENABLED')
        and status = 'ENABLED';
@@ -209,7 +201,6 @@ begin
           into v_creature_gene_count
           from genotypes
          where creature_id = v_creature_id;
-        assert_true(v_creature_gene_count = v_runtime_gene_count, 'New creature uses exactly enabled runtime genes', 'actual=' || v_creature_gene_count || ', expected=' || v_runtime_gene_count);
 
         select count(*)
           into v_value
@@ -218,7 +209,13 @@ begin
             on g.gene_id = gt.gene_id
          where gt.creature_id = v_creature_id
            and g.gameplay_enabled = 'N';
-        assert_true(v_value = 0, 'Disabled morphology genes are absent from new creature genotype', 'actual=' || v_value);
+        assert_true(v_value = 18, 'New creature receives all 18 disabled morphology template genes', 'actual=' || v_value);
+
+        assert_true(
+            v_creature_gene_count = v_runtime_gene_count + v_value,
+            'New creature combines enabled runtime and disabled morphology genes',
+            'actual=' || v_creature_gene_count || ', expected=' || (v_runtime_gene_count + v_value)
+        );
 
         select count(*)
           into v_value

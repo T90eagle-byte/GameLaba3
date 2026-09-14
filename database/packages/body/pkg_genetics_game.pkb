@@ -3173,6 +3173,65 @@ end hash_password_sha256;
         p_is_completed := 1;
     end complete_task;
 
+    procedure materialize_archetype_morphology(
+        p_creature_id  in number,
+        p_archetype_id in number
+    ) is
+        v_creature_species_type creatures.species_type%type;
+        v_archetype_species_type ref_creature_archetypes.species_type%type;
+        v_template_row_count number;
+        v_morphology_row_count number;
+    begin
+        begin
+            select c.species_type, r.species_type
+              into v_creature_species_type, v_archetype_species_type
+              from creatures c
+              join ref_creature_archetypes r
+                on r.archetype_id = p_archetype_id
+             where c.creature_id = p_creature_id;
+        exception
+            when no_data_found then
+                raise_application_error(-20080, 'Creature or reference archetype was not found for morphology materialization.');
+        end;
+
+        if v_creature_species_type <> v_archetype_species_type then
+            raise_application_error(-20081, 'Creature species_type does not match its reference archetype.');
+        end if;
+
+        select
+            count(*),
+            count(case
+                      when g.species_type = 0
+                       and g.gene_type = 'morphology'
+                       and g.gameplay_enabled = 'N'
+                      then 1
+                  end)
+          into v_template_row_count, v_morphology_row_count
+          from ref_archetype_alleles taa
+          join genes g
+            on g.gene_id = taa.gene_id
+         where taa.archetype_id = p_archetype_id;
+
+        if v_template_row_count <> 18 or v_morphology_row_count <> 18 then
+            raise_application_error(-20082, 'Reference archetype must contain exactly 18 universal morphology genes.');
+        end if;
+
+        merge into genotypes target
+        using (
+            select
+                p_creature_id as creature_id,
+                taa.gene_id,
+                taa.allele1_id,
+                taa.allele2_id
+              from ref_archetype_alleles taa
+             where taa.archetype_id = p_archetype_id
+        ) source
+           on (target.creature_id = source.creature_id and target.gene_id = source.gene_id)
+        when not matched then
+            insert (genotype_id, creature_id, gene_id, allele1_id, allele2_id)
+            values (genotypes_seq.nextval, source.creature_id, source.gene_id, source.allele1_id, source.allele2_id);
+    end materialize_archetype_morphology;
+
     procedure generate_starting_creatures(
         p_lab_id          in number
     ) is
@@ -3244,7 +3303,10 @@ end hash_password_sha256;
         v_archetype_id     number;
         v_archetype_count  number;
         v_existing_count   number;
+        v_gene_cursor_open boolean := false;
     begin
+        savepoint creature_build;
+
         if p_species_type < 1 or p_species_type > 6 then
             raise_application_error(-20027, 'Invalid species_type. Expected value from 1 to 6.');
         end if;
@@ -3324,6 +3386,7 @@ end hash_password_sha256;
                     and gameplay_enabled = ''Y''
                   order by gene_id'
                 using p_species_type;
+            v_gene_cursor_open := true;
         else
             open v_gene_cursor for
                 'select gene_id
@@ -3331,6 +3394,7 @@ end hash_password_sha256;
                   where species_type in (0, :species_type)
                   order by gene_id'
                 using p_species_type;
+            v_gene_cursor_open := true;
         end if;
 
         loop
@@ -3377,8 +3441,21 @@ end hash_password_sha256;
         end loop;
 
         close v_gene_cursor;
+        v_gene_cursor_open := false;
+
+        materialize_archetype_morphology(
+            p_creature_id  => p_creature_id,
+            p_archetype_id => v_archetype_id
+        );
 
         v_summary := get_phenotype(p_creature_id => p_creature_id);
+    exception
+        when others then
+            if v_gene_cursor_open then
+                close v_gene_cursor;
+            end if;
+            rollback to creature_build;
+            raise;
     end create_creature_of_type;
 
 

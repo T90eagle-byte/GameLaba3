@@ -143,9 +143,8 @@ explicit gameplay gate:
 ```
 
 It marks all legacy genes as `Y` and adds 18 reference-only morphology genes
-as `N`. The package excludes only `N` genes when forming new starter genotypes;
-existing genotype rows remain valid. The stable university installers do not
-invoke this migration. Verify it independently with:
+as `N`. Existing genotype rows remain valid. The stable university installers
+do not invoke this migration. Verify it independently with:
 
 ```sql
 @database/tests/13_universal_morphology_smoke_test.sql
@@ -159,9 +158,9 @@ archetype after migrations 04 and 05 are installed:
 ```
 
 It stores 18 homozygous morphology values for each of 18 archetypes
-(324 rows) in `REF_ARCHETYPE_ALLELES`. These are reference templates only;
-the current runtime, phenotype calculation, and starter generation do not
-read them. Verify this separately with:
+(324 rows) in `REF_ARCHETYPE_ALLELES`. At this stage they remain reference
+templates only; starter materialization is enabled by the following package
+update. Verify the template data separately with:
 
 ```sql
 @database/tests/14_archetype_templates_smoke_test.sql
@@ -176,11 +175,19 @@ creatures to their base archetype:
 
 Existing creatures remain `NULL`; crossbred or hybrid creatures may also have
 no single archetype. Starter generation assigns active archetypes cyclically
-by `archetype_code`. The reference morphology templates still are not copied
-to runtime genotypes or read by phenotype logic. Verify this separately with:
+by `archetype_code`, preserves the enabled legacy genotype, and materializes
+the corresponding 18 disabled reference morphology rows. Phenotype logic
+continues to ignore disabled morphology genes. Verify this separately with:
 
 ```sql
 @database/tests/15_creature_archetype_link_smoke_test.sql
+```
+
+Verify complete starter materialization, transition compatibility, and atomic
+failure handling with:
+
+```sql
+@database/tests/17_starter_morphology_materialization_smoke_test.sql
 ```
 
 ## 2) Run core seed data
