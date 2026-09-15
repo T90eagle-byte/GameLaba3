@@ -1271,12 +1271,12 @@ end hash_password_sha256;
                 rdt.display_name as dominance_display_name,
                 a1.allele_id as allele1_id,
                 a1.description as allele1_description,
-                a1.description as allele1_display_name,
+                coalesce(a1.display_name, a1.description) as allele1_display_name,
                 a1.dominance as allele1_dominance,
                 a1.trait_value as allele1_trait_value,
                 a2.allele_id as allele2_id,
                 a2.description as allele2_description,
-                a2.description as allele2_display_name,
+                coalesce(a2.display_name, a2.description) as allele2_display_name,
                 a2.dominance as allele2_dominance,
                 a2.trait_value as allele2_trait_value
               from genotypes gt
@@ -1973,6 +1973,11 @@ end hash_password_sha256;
                 raise_application_error(-20035, 'Parent2 does not exist in the selected lab.');
         end;
 
+        if v_parent1_species_type not between 1 and 6
+           or v_parent2_species_type not between 1 and 6 then
+            raise_application_error(-20091, 'Гибрид нельзя использовать в качестве родителя.');
+        end if;
+
         if v_parent1_species_type <> v_parent2_species_type then
             raise_application_error(-20036, 'Crossbreeding is allowed only for parents of the same species_type in MVP.');
         end if;
@@ -2244,6 +2249,11 @@ end hash_password_sha256;
             when no_data_found then
                 raise_application_error(-20035, 'Parent2 does not exist in the selected lab.');
         end;
+
+        if v_parent1_species_type not between 1 and 6
+           or v_parent2_species_type not between 1 and 6 then
+            raise_application_error(-20091, 'Гибрид нельзя использовать в качестве родителя.');
+        end if;
 
         if v_parent1_species_type <> v_parent2_species_type then
             raise_application_error(-20036, 'Crossbreeding is allowed only for parents of the same species_type in MVP.');
@@ -2850,6 +2860,295 @@ end hash_password_sha256;
             raise;
     end apply_mutation;
 
+    procedure apply_mutagen_genetics_core(
+        p_creature_id      in number,
+        p_mutagen_type     in varchar2,
+        p_genetics_version in number,
+        p_species_type     in number
+    ) is
+        v_target_gene_id        number;
+        v_current_allele1_id    number;
+        v_current_allele2_id    number;
+        v_new_allele_id         number;
+        v_selected_slot         pls_integer;
+        v_mutation_rounds       pls_integer := 1;
+        v_summary               varchar2(1000);
+    begin
+        if p_mutagen_type not in ('RADIATION', 'CHEMICAL') then
+            raise_application_error(-20070, 'Unsupported mutagen type. Use RADIATION or CHEMICAL.');
+        end if;
+
+        if p_mutagen_type = 'RADIATION' and dbms_random.value(0, 1) < 0.45 then
+            v_mutation_rounds := 2;
+        end if;
+
+        for mutation_round in 1 .. v_mutation_rounds loop
+            if p_mutagen_type = 'CHEMICAL' then
+                begin
+                    select gt.gene_id, gt.allele1_id, gt.allele2_id
+                      into v_target_gene_id, v_current_allele1_id, v_current_allele2_id
+                      from (
+                            select g.gene_id, g.allele1_id, g.allele2_id
+                              from genotypes g
+                              join genes ge
+                                on ge.gene_id = g.gene_id
+                             where g.creature_id = p_creature_id
+                               and (
+                                    (p_genetics_version = 1 and ge.gameplay_enabled = 'Y')
+                                    or (
+                                        p_genetics_version = 3
+                                        and ge.species_type = 0
+                                        and ge.gene_type = 'morphology'
+                                        and ge.gene_name <> 'nutrition_type'
+                                        and exists (
+                                            select 1
+                                              from ref_genetics_model_genes rmg
+                                             where rmg.genetics_version = 3
+                                               and rmg.gene_id = ge.gene_id
+                                        )
+                                    )
+                               )
+                             order by
+                                 case
+                                     when p_genetics_version = 1 and ge.species_type = p_species_type then 0
+                                     else 1
+                                 end,
+                                 case when p_genetics_version = 3 then ge.gene_name end,
+                                 ge.gene_id
+                      ) gt
+                     where rownum = 1;
+                exception
+                    when no_data_found then
+                        raise_application_error(-20051, 'Unable to select genotype row for chemical mutagen.');
+                end;
+
+                v_selected_slot := 1;
+            else
+                begin
+                    select gt.gene_id, gt.allele1_id, gt.allele2_id
+                      into v_target_gene_id, v_current_allele1_id, v_current_allele2_id
+                      from (
+                            select g.gene_id, g.allele1_id, g.allele2_id
+                              from genotypes g
+                              join genes ge
+                                on ge.gene_id = g.gene_id
+                             where g.creature_id = p_creature_id
+                               and (
+                                    (p_genetics_version = 1 and ge.gameplay_enabled = 'Y')
+                                    or (
+                                        p_genetics_version = 3
+                                        and ge.species_type = 0
+                                        and ge.gene_type = 'morphology'
+                                        and ge.gene_name <> 'nutrition_type'
+                                        and exists (
+                                            select 1
+                                              from ref_genetics_model_genes rmg
+                                             where rmg.genetics_version = 3
+                                               and rmg.gene_id = ge.gene_id
+                                        )
+                                    )
+                               )
+                             order by dbms_random.value
+                      ) gt
+                     where rownum = 1;
+                exception
+                    when no_data_found then
+                        raise_application_error(-20051, 'Unable to select genotype row for radiation mutagen.');
+                end;
+
+                v_selected_slot := pick_random_allele_side();
+            end if;
+
+            if v_selected_slot = 1 then
+                begin
+                    select a.allele_id
+                      into v_new_allele_id
+                      from (
+                            select a.allele_id
+                              from alleles a
+                             where a.gene_id = v_target_gene_id
+                               and a.allele_id <> v_current_allele1_id
+                             order by dbms_random.value
+                      ) a
+                     where rownum = 1;
+                exception
+                    when no_data_found then
+                        if p_genetics_version = 3 then
+                            raise_application_error(-20089, 'Мутация не может заменить аллель тем же значением.');
+                        end if;
+
+                        select a.allele_id
+                          into v_new_allele_id
+                          from (
+                                select a.allele_id
+                                  from alleles a
+                                 where a.gene_id = v_target_gene_id
+                                 order by dbms_random.value
+                          ) a
+                         where rownum = 1;
+                end;
+
+                update genotypes g
+                   set g.allele1_id = v_new_allele_id
+                 where g.creature_id = p_creature_id
+                   and g.gene_id = v_target_gene_id;
+            else
+                begin
+                    select a.allele_id
+                      into v_new_allele_id
+                      from (
+                            select a.allele_id
+                              from alleles a
+                             where a.gene_id = v_target_gene_id
+                               and a.allele_id <> v_current_allele2_id
+                             order by dbms_random.value
+                      ) a
+                     where rownum = 1;
+                exception
+                    when no_data_found then
+                        if p_genetics_version = 3 then
+                            raise_application_error(-20089, 'Мутация не может заменить аллель тем же значением.');
+                        end if;
+
+                        select a.allele_id
+                          into v_new_allele_id
+                          from (
+                                select a.allele_id
+                                  from alleles a
+                                 where a.gene_id = v_target_gene_id
+                                 order by dbms_random.value
+                          ) a
+                         where rownum = 1;
+                end;
+
+                update genotypes g
+                   set g.allele2_id = v_new_allele_id
+                 where g.creature_id = p_creature_id
+                   and g.gene_id = v_target_gene_id;
+            end if;
+        end loop;
+
+        v_summary := get_phenotype(p_creature_id => p_creature_id);
+    end apply_mutagen_genetics_core;
+
+    procedure hybridize_core(
+        p_lab_id          in number,
+        p_parent1_id      in number,
+        p_parent2_id      in number,
+        p_offspring_name  in varchar2,
+        p_offspring_id    out number
+    ) is
+        type t_link_side_map is table of pls_integer index by varchar2(40);
+        v_parent1_link_side_map t_link_side_map;
+        v_parent2_link_side_map t_link_side_map;
+        v_link_key              varchar2(40);
+        v_parent1_side          pls_integer;
+        v_parent2_side          pls_integer;
+        v_selected_allele1_id   number;
+        v_selected_allele2_id   number;
+        v_membership_count      number;
+        v_parent1_gene_count    number;
+        v_parent2_gene_count    number;
+        v_summary               varchar2(1000);
+    begin
+        select count(*)
+          into v_membership_count
+          from ref_genetics_model_genes
+         where genetics_version = 3;
+
+        if v_membership_count <> 19 then
+            raise_application_error(-20096, 'Каноническая генетическая модель гибрида должна содержать ровно 19 генов.');
+        end if;
+
+        select count(*)
+          into v_parent1_gene_count
+          from ref_genetics_model_genes rmg
+          join genotypes gt
+            on gt.gene_id = rmg.gene_id
+           and gt.creature_id = p_parent1_id
+         where rmg.genetics_version = 3;
+
+        select count(*)
+          into v_parent2_gene_count
+          from ref_genetics_model_genes rmg
+          join genotypes gt
+            on gt.gene_id = rmg.gene_id
+           and gt.creature_id = p_parent2_id
+         where rmg.genetics_version = 3;
+
+        if v_parent1_gene_count <> v_membership_count
+           or v_parent2_gene_count <> v_membership_count then
+            raise_application_error(-20097, 'У одного из родителей отсутствует полный набор генов версии 3.');
+        end if;
+
+        p_offspring_id := creatures_seq.nextval;
+        insert into creatures (
+            creature_id, lab_id, species_type, archetype_id, creature_name,
+            phenotype_color, phenotype_size, phenotype_has_wings,
+            phenotype_nutrition_type, phenotype_summary
+        ) values (
+            p_offspring_id, p_lab_id, 7, null, trim(p_offspring_name),
+            null, null, null, null, null
+        );
+
+        for rec in (
+            select
+                rmg.gene_id,
+                g.linkage_group,
+                gp1.allele1_id as parent1_allele1_id,
+                gp1.allele2_id as parent1_allele2_id,
+                gp2.allele1_id as parent2_allele1_id,
+                gp2.allele2_id as parent2_allele2_id
+              from ref_genetics_model_genes rmg
+              join genes g
+                on g.gene_id = rmg.gene_id
+              join genotypes gp1
+                on gp1.gene_id = rmg.gene_id
+               and gp1.creature_id = p_parent1_id
+              join genotypes gp2
+                on gp2.gene_id = rmg.gene_id
+               and gp2.creature_id = p_parent2_id
+             where rmg.genetics_version = 3
+             order by
+                case when g.linkage_group is null then 0 else 1 end,
+                g.linkage_group,
+                rmg.gene_id
+        ) loop
+            if rec.linkage_group is null then
+                v_parent1_side := pick_random_allele_side();
+                v_parent2_side := pick_random_allele_side();
+            else
+                v_link_key := to_char(rec.linkage_group);
+                if not v_parent1_link_side_map.exists(v_link_key) then
+                    v_parent1_link_side_map(v_link_key) := pick_random_allele_side();
+                end if;
+                if not v_parent2_link_side_map.exists(v_link_key) then
+                    v_parent2_link_side_map(v_link_key) := pick_random_allele_side();
+                end if;
+                v_parent1_side := v_parent1_link_side_map(v_link_key);
+                v_parent2_side := v_parent2_link_side_map(v_link_key);
+            end if;
+
+            v_selected_allele1_id := case
+                when v_parent1_side = 1 then rec.parent1_allele1_id
+                else rec.parent1_allele2_id
+            end;
+            v_selected_allele2_id := case
+                when v_parent2_side = 1 then rec.parent2_allele1_id
+                else rec.parent2_allele2_id
+            end;
+
+            insert into genotypes (
+                genotype_id, creature_id, gene_id, allele1_id, allele2_id
+            ) values (
+                genotypes_seq.nextval, p_offspring_id, rec.gene_id,
+                v_selected_allele1_id, v_selected_allele2_id
+            );
+        end loop;
+
+        v_summary := get_phenotype(p_creature_id => p_offspring_id);
+    end hybridize_core;
+
     procedure mutagen_core(
         p_creature_id      in number,
         p_mutagen_type     in varchar2,
@@ -2867,19 +3166,12 @@ end hash_password_sha256;
         v_source_name           varchar2(255);
         v_new_name              varchar2(255);
         v_mutagen_mode          varchar2(20);
-        v_target_gene_id        number;
-        v_current_allele1_id    number;
-        v_current_allele2_id    number;
-        v_new_allele_id         number;
-        v_selected_slot         pls_integer;
-        v_mutation_rounds       pls_integer := 1;
         v_wallet_cost           number(12, 2);
         v_rating_delta          number(12, 2);
         v_lab_wallet            number(12, 2);
         v_lab_rating_before     number(12, 2);
         v_lab_rating_after      number(12, 2);
         v_rating_actual_delta   number(12, 2);
-        v_summary               varchar2(1000);
         v_experiment_id         number;
         v_mutagen_display_name  varchar2(100);
 
@@ -3006,176 +3298,11 @@ end hash_password_sha256;
             p_new_creature_id := p_creature_id;
         end if;
 
-        if v_mutagen_mode = 'RADIATION' and dbms_random.value(0, 1) < 0.45 then
-            v_mutation_rounds := 2;
-        end if;
-
-        for mutation_round in 1 .. v_mutation_rounds loop
-            if v_mutagen_mode = 'CHEMICAL' then
-                begin
-                    select
-                        gt.gene_id,
-                        gt.allele1_id,
-                        gt.allele2_id
-                      into
-                        v_target_gene_id,
-                        v_current_allele1_id,
-                        v_current_allele2_id
-                      from (
-                            select
-                                g.gene_id,
-                                g.allele1_id,
-                                g.allele2_id
-                             from genotypes g
-                              join genes ge
-                                on ge.gene_id = g.gene_id
-                             where g.creature_id = p_new_creature_id
-                               and (
-                                    (v_genetics_version = 1 and ge.gameplay_enabled = 'Y')
-                                    or (
-                                        v_genetics_version = 3
-                                        and ge.species_type = 0
-                                        and ge.gene_type = 'morphology'
-                                        and ge.gene_name <> 'nutrition_type'
-                                        and exists (
-                                            select 1
-                                              from ref_genetics_model_genes rmg
-                                             where rmg.genetics_version = 3
-                                               and rmg.gene_id = ge.gene_id
-                                        )
-                                    )
-                               )
-                             order by
-                                 case
-                                     when v_genetics_version = 1 and ge.species_type = v_species_type then 0
-                                     else 1
-                                 end,
-                                 case when v_genetics_version = 3 then ge.gene_name end,
-                                 ge.gene_id
-                      ) gt
-                     where rownum = 1;
-                exception
-                    when no_data_found then
-                        raise_application_error(-20051, 'Unable to select genotype row for chemical mutagen.');
-                end;
-
-                v_selected_slot := 1;
-            else
-                begin
-                    select
-                        gt.gene_id,
-                        gt.allele1_id,
-                        gt.allele2_id
-                      into
-                        v_target_gene_id,
-                        v_current_allele1_id,
-                        v_current_allele2_id
-                      from (
-                            select
-                                g.gene_id,
-                                g.allele1_id,
-                                g.allele2_id
-                             from genotypes g
-                              join genes ge
-                                on ge.gene_id = g.gene_id
-                             where g.creature_id = p_new_creature_id
-                               and (
-                                    (v_genetics_version = 1 and ge.gameplay_enabled = 'Y')
-                                    or (
-                                        v_genetics_version = 3
-                                        and ge.species_type = 0
-                                        and ge.gene_type = 'morphology'
-                                        and ge.gene_name <> 'nutrition_type'
-                                        and exists (
-                                            select 1
-                                              from ref_genetics_model_genes rmg
-                                             where rmg.genetics_version = 3
-                                               and rmg.gene_id = ge.gene_id
-                                        )
-                                    )
-                               )
-                             order by dbms_random.value
-                      ) gt
-                     where rownum = 1;
-                exception
-                    when no_data_found then
-                        raise_application_error(-20051, 'Unable to select genotype row for radiation mutagen.');
-                end;
-
-                v_selected_slot := pick_random_allele_side();
-            end if;
-
-            if v_selected_slot = 1 then
-                begin
-                    select a.allele_id
-                      into v_new_allele_id
-                      from (
-                            select a.allele_id
-                              from alleles a
-                             where a.gene_id = v_target_gene_id
-                               and a.allele_id <> v_current_allele1_id
-                             order by dbms_random.value
-                      ) a
-                     where rownum = 1;
-                exception
-                    when no_data_found then
-                        if v_genetics_version = 3 then
-                            raise_application_error(-20089, 'Мутация не может заменить аллель тем же значением.');
-                        end if;
-
-                        select a.allele_id
-                          into v_new_allele_id
-                          from (
-                                select a.allele_id
-                                  from alleles a
-                                 where a.gene_id = v_target_gene_id
-                                 order by dbms_random.value
-                          ) a
-                         where rownum = 1;
-                end;
-
-                update genotypes g
-                   set g.allele1_id = v_new_allele_id
-                 where g.creature_id = p_new_creature_id
-                   and g.gene_id = v_target_gene_id;
-            else
-                begin
-                    select a.allele_id
-                      into v_new_allele_id
-                      from (
-                            select a.allele_id
-                              from alleles a
-                             where a.gene_id = v_target_gene_id
-                               and a.allele_id <> v_current_allele2_id
-                             order by dbms_random.value
-                      ) a
-                     where rownum = 1;
-                exception
-                    when no_data_found then
-                        if v_genetics_version = 3 then
-                            raise_application_error(-20089, 'Мутация не может заменить аллель тем же значением.');
-                        end if;
-
-                        select a.allele_id
-                          into v_new_allele_id
-                          from (
-                                select a.allele_id
-                                  from alleles a
-                                 where a.gene_id = v_target_gene_id
-                                 order by dbms_random.value
-                          ) a
-                         where rownum = 1;
-                end;
-
-                update genotypes g
-                   set g.allele2_id = v_new_allele_id
-                 where g.creature_id = p_new_creature_id
-                   and g.gene_id = v_target_gene_id;
-            end if;
-        end loop;
-
-        v_summary := get_phenotype(
-            p_creature_id => p_new_creature_id
+        apply_mutagen_genetics_core(
+            p_creature_id      => p_new_creature_id,
+            p_mutagen_type     => v_mutagen_mode,
+            p_genetics_version => v_genetics_version,
+            p_species_type     => v_species_type
         );
 
         if p_record_side_effects then
@@ -3398,6 +3525,189 @@ end hash_password_sha256;
             p_offspring_id := null;
             raise;
     end make_experiment;
+
+    procedure hybridize(
+        p_lab_id          in number,
+        p_parent1_id      in number,
+        p_parent2_id      in number,
+        p_mutagen_type    in varchar2,
+        p_offspring_name  in varchar2,
+        p_offspring_id    out number
+    ) is
+        v_parent1_species_type number;
+        v_parent2_species_type number;
+        v_genetics_version     labs.genetics_version%type;
+        v_wallet_before        labs.wallet%type;
+        v_rating_before        labs.rating%type;
+        v_rating_after         labs.rating%type;
+        v_wallet_cost          ref_experiment_economics.wallet_cost%type;
+        v_rating_effect        ref_experiment_economics.rating_effect%type;
+        v_rating_actual_delta  rating_events.rating_delta%type;
+        v_experiment_id        experiments.experiment_id%type;
+        v_genotype_count       number;
+        v_membership_count     number;
+        v_morphology_count     number;
+        v_nutrition_count      number;
+        v_normalized_mutagen   varchar2(30);
+    begin
+        savepoint hybridization_savepoint;
+        p_offspring_id := null;
+
+        if p_parent1_id is null or p_parent2_id is null then
+            raise_application_error(-20031, 'Both parent ids are required.');
+        end if;
+        if p_parent1_id = p_parent2_id then
+            raise_application_error(-20032, 'Parent ids must be different.');
+        end if;
+        if p_offspring_name is null or trim(p_offspring_name) is null then
+            raise_application_error(-20033, 'Offspring name cannot be empty.');
+        end if;
+
+        assert_lab_access(p_lab_id => p_lab_id);
+        if assert_creature_access(p_parent1_id, p_lab_id) is null then
+            null;
+        end if;
+        if assert_creature_access(p_parent2_id, p_lab_id) is null then
+            null;
+        end if;
+
+        select l.genetics_version, l.wallet
+          into v_genetics_version, v_wallet_before
+          from labs l
+         where l.lab_id = p_lab_id;
+
+        if v_genetics_version <> 3 then
+            raise_application_error(-20092, 'Гибридизация доступна только в лаборатории генетической модели 3.');
+        end if;
+
+        select c.species_type
+          into v_parent1_species_type
+          from creatures c
+         where c.creature_id = p_parent1_id
+           and c.lab_id = p_lab_id;
+        select c.species_type
+          into v_parent2_species_type
+          from creatures c
+         where c.creature_id = p_parent2_id
+           and c.lab_id = p_lab_id;
+
+        if v_parent1_species_type not between 1 and 6
+           or v_parent2_species_type not between 1 and 6 then
+            raise_application_error(-20091, 'Гибрид нельзя использовать в качестве родителя.');
+        end if;
+        if v_parent1_species_type = v_parent2_species_type then
+            raise_application_error(-20093, 'Для гибридизации выберите существ двух разных видов.');
+        end if;
+
+        v_normalized_mutagen := upper(trim(p_mutagen_type));
+        if v_normalized_mutagen <> 'RADIATION' then
+            raise_application_error(-20094, 'Для контролируемой гибридизации доступно только облучение.');
+        end if;
+
+        begin
+            select ree.wallet_cost, ree.rating_effect
+              into v_wallet_cost, v_rating_effect
+              from ref_experiment_economics ree
+             where ree.experiment_type = 'HYBRIDIZATION'
+               and ree.genetics_version = 3
+               and ree.mutagen_type = v_normalized_mutagen
+               and ree.active_flag = 'Y';
+        exception
+            when no_data_found then
+                raise_application_error(-20095, 'Настройки контролируемой гибридизации недоступны.');
+            when too_many_rows then
+                raise_application_error(-20095, 'Настройки контролируемой гибридизации противоречивы.');
+        end;
+
+        if v_wallet_before < v_wallet_cost then
+            raise_application_error(-20071, 'Not enough wallet balance for selected experiment.');
+        end if;
+
+        hybridize_core(
+            p_lab_id         => p_lab_id,
+            p_parent1_id     => p_parent1_id,
+            p_parent2_id     => p_parent2_id,
+            p_offspring_name => p_offspring_name,
+            p_offspring_id   => p_offspring_id
+        );
+
+        apply_mutagen_genetics_core(
+            p_creature_id      => p_offspring_id,
+            p_mutagen_type     => v_normalized_mutagen,
+            p_genetics_version => 3,
+            p_species_type     => 7
+        );
+
+        select
+            count(*),
+            count(case when rmg.gene_id is not null then 1 end),
+            count(case when g.species_type = 0 and g.gene_type = 'morphology' then 1 end),
+            count(case when g.species_type = 0 and g.gene_name = 'nutrition_type' then 1 end)
+          into
+            v_genotype_count,
+            v_membership_count,
+            v_morphology_count,
+            v_nutrition_count
+          from genotypes gt
+          join genes g
+            on g.gene_id = gt.gene_id
+          left join ref_genetics_model_genes rmg
+            on rmg.genetics_version = 3
+           and rmg.gene_id = gt.gene_id
+         where gt.creature_id = p_offspring_id;
+
+        if v_genotype_count <> 19
+           or v_membership_count <> 19
+           or v_morphology_count <> 18
+           or v_nutrition_count <> 1 then
+            raise_application_error(-20098, 'Итоговый генотип гибрида не соответствует канонической модели версии 3.');
+        end if;
+
+        v_experiment_id := experiments_seq.nextval;
+        insert into experiments (
+            experiment_id, lab_id, parent1_id, parent2_id,
+            mutation_id, mutagen_type, offspring_id, experiment_type
+        ) values (
+            v_experiment_id, p_lab_id, p_parent1_id, p_parent2_id,
+            null, v_normalized_mutagen, p_offspring_id, 'HYBRIDIZATION'
+        );
+
+        auto_complete_matching_tasks(
+            p_lab_id      => p_lab_id,
+            p_creature_id => p_offspring_id
+        );
+
+        select l.rating
+          into v_rating_before
+          from labs l
+         where l.lab_id = p_lab_id;
+
+        update labs l
+           set l.wallet = l.wallet - v_wallet_cost,
+               l.rating = greatest(0, l.rating + v_rating_effect)
+         where l.lab_id = p_lab_id;
+
+        select l.rating
+          into v_rating_after
+          from labs l
+         where l.lab_id = p_lab_id;
+
+        v_rating_actual_delta := v_rating_after - v_rating_before;
+        record_rating_event(
+            p_lab_id        => p_lab_id,
+            p_event_type    => 'HYBRIDIZATION_PENALTY',
+            p_rating_delta  => v_rating_actual_delta,
+            p_wallet_delta  => -v_wallet_cost,
+            p_description   => 'Штраф за гибридизацию',
+            p_creature_id   => p_offspring_id,
+            p_experiment_id => v_experiment_id
+        );
+    exception
+        when others then
+            rollback to hybridization_savepoint;
+            p_offspring_id := null;
+            raise;
+    end hybridize;
 
     function get_experiment_history(
         p_lab_id           in number,

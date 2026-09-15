@@ -1023,6 +1023,9 @@ button,
 
 .experiment-tabs { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0 0 1rem; }
 .experiment-tabs .button { flex: 0 1 auto; min-width: 9.5rem; }
+.hybridization-effect { display: grid; gap: .2rem; padding: .8rem 1rem; border: 1px solid var(--line); background: rgba(255, 255, 255, .54); }
+.hybridization-effect span, .hybridization-effect small { color: var(--muted); }
+.result-penalty { color: #8d3e37; }
 .experiment-workspace { margin-bottom: 1.25rem; }
 .mutagen-choice { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: 8px; }
 .mutagen-choice legend { padding: 0 .35rem; font-weight: 700; }

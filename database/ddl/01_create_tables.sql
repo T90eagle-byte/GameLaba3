@@ -130,6 +130,21 @@ create table ref_rating_event_types (
     constraint pk_ref_rating_event_types primary key (event_type)
 );
 
+create table ref_experiment_economics (
+    experiment_type    varchar2(30 char) not null,
+    genetics_version   number(2) not null,
+    mutagen_type       varchar2(30 char) not null,
+    wallet_cost        number(12, 2) default 0 not null,
+    rating_effect      number(12, 2) default 0 not null,
+    active_flag        char(1 char) default 'Y' not null,
+    constraint pk_ref_experiment_economics primary key (experiment_type, genetics_version, mutagen_type),
+    constraint fk_ref_exp_econ_experiment foreign key (experiment_type) references ref_experiment_types (experiment_type),
+    constraint fk_ref_exp_econ_mutagen foreign key (mutagen_type) references ref_mutagen_types (mutagen_type),
+    constraint ck_ref_exp_econ_version check (genetics_version in (1, 3)),
+    constraint ck_ref_exp_econ_wallet check (wallet_cost >= 0),
+    constraint ck_ref_exp_econ_active check (active_flag in ('Y', 'N'))
+);
+
 comment on table ref_species_types is 'Species type domain reference.';
 comment on table ref_gene_types is 'Gene type domain reference.';
 comment on table ref_dominance_types is 'Dominance type domain reference.';
@@ -139,6 +154,8 @@ comment on table ref_mutagen_types is 'Mutagen type domain reference.';
 comment on table ref_mutation_types is 'Mutation type domain reference.';
 comment on table ref_task_difficulties is 'Task difficulty domain reference.';
 comment on table ref_rating_event_types is 'Rating/economy event type domain reference.';
+comment on table ref_experiment_economics is 'Version-aware economics for configured compound experiments.';
+comment on column ref_experiment_economics.rating_effect is 'Configured rating delta; the recorded event stores the actual delta after clamping.';
 
 create table ref_creature_archetypes (
     archetype_id       number not null,
@@ -337,13 +354,13 @@ create table creatures (
     constraint fk_creatures_lab_id foreign key (lab_id) references labs (lab_id),
     constraint fk_creatures_species_type foreign key (species_type) references ref_species_types (species_type),
     constraint fk_creatures_archetype_id foreign key (archetype_id) references ref_creature_archetypes (archetype_id),
-    constraint ck_creatures_species_type check (species_type between 1 and 6),
+    constraint ck_creatures_species_type check (species_type between 1 and 7),
     constraint ck_creatures_has_wings check (phenotype_has_wings in ('Y', 'N') or phenotype_has_wings is null)
 );
 
 comment on table creatures is 'Creatures owned by a lab, with cached phenotype fields for UI.';
 comment on column creatures.creature_id is 'Primary key.';
-comment on column creatures.species_type is 'Species type code from 1 to 6.';
+comment on column creatures.species_type is 'Persisted species type code from 1 to 7; type 7 is created only by controlled hybridization.';
 comment on column creatures.archetype_id is 'Nullable reference archetype for starter creatures; crossbred and historical creatures may have no single archetype.';
 comment on column creatures.phenotype_summary is 'Compact phenotype text for collection screens.';
 
@@ -391,19 +408,20 @@ create table experiments (
     constraint fk_experiments_type foreign key (experiment_type) references ref_experiment_types (experiment_type),
     constraint ck_experiments_parents_different check (parent2_id is null or parent1_id <> parent2_id),
     constraint ck_experiments_cross_requires_parent2 check (
-        (experiment_type in ('CROSS', 'CROSSBREED_MUTAGEN') and parent2_id is not null) or
+        (experiment_type in ('CROSS', 'CROSSBREED_MUTAGEN', 'HYBRIDIZATION') and parent2_id is not null) or
         (experiment_type in ('MUTATION', 'MUTAGEN') and parent2_id is null)
     ),
     constraint ck_experiments_combined_fields check (
-        experiment_type <> 'CROSSBREED_MUTAGEN'
-        or (mutagen_type is not null and mutation_id is null)
+        (experiment_type = 'CROSSBREED_MUTAGEN' and mutagen_type is not null and mutation_id is null)
+        or (experiment_type = 'HYBRIDIZATION' and mutagen_type = 'RADIATION' and mutation_id is null)
+        or experiment_type not in ('CROSSBREED_MUTAGEN', 'HYBRIDIZATION')
     )
 );
 
-comment on table experiments is 'History of crossbreeding, mutation, and mutagen actions.';
+comment on table experiments is 'History of crossbreeding, mutation, mutagen, and controlled hybridization actions.';
 comment on column experiments.experiment_id is 'Primary key.';
-comment on column experiments.experiment_type is 'CROSS, MUTATION, MUTAGEN, or CROSSBREED_MUTAGEN.';
-comment on column experiments.mutagen_type is 'Mutagen code for combined experiments; historical MUTAGEN rows may remain null.';
+comment on column experiments.experiment_type is 'CROSS, MUTATION, MUTAGEN, CROSSBREED_MUTAGEN, or HYBRIDIZATION.';
+comment on column experiments.mutagen_type is 'Mutagen code for compound experiments; historical MUTAGEN rows may remain null.';
 
 create table lab_mutations (
     lab_mutation_id     number not null,

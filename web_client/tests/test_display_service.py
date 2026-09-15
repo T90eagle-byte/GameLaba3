@@ -6,12 +6,14 @@ from web_client.services.display_service import (
     EVENT_LABELS,
     TASK_DESCRIPTIONS,
     TASK_LABELS,
+    build_creature_view,
     creature_visual,
     experiment_view,
     genotype_change_slots,
     genotype_view,
     phenotype_items,
     rating_event_view,
+    species_label,
     task_view,
     trait_label,
     translate_free_text,
@@ -224,6 +226,34 @@ class GenotypeChangeTests(unittest.TestCase):
 
 
 class PlayerLocalizationTests(unittest.TestCase):
+    def test_hybrid_species_is_localized_without_exposing_numeric_code(self) -> None:
+        self.assertEqual(species_label({"species_type": 7}), "Гибрид")
+        self.assertEqual(translate_free_text("species_type=7"), "species type=Гибрид")
+        self.assertEqual(trait_label("2"), "2")
+
+    def test_v3_creature_uses_backend_nutrition_result_for_genotype(self) -> None:
+        creature = build_creature_view(
+            {
+                "creature_id": 77,
+                "species_type": 7,
+                "genetics_version": 3,
+                "phenotype_nutrition_type": "herbivore/carnivore",
+            },
+            [],
+        )
+        genotype = genotype_view(
+            [{
+                "gene_id": 9,
+                "gene_name": "nutrition_type",
+                "dominance_type": "CODOMINANT",
+                "allele1_display_name": "Травоядное",
+                "allele2_display_name": "Хищное",
+            }],
+            creature["phenotype_items"],
+        )
+
+        self.assertEqual(genotype[0]["result_label"], "смешанное питание: хищное и травоядное")
+
     def test_known_trait_and_history_values_are_russian(self) -> None:
         self.assertEqual(trait_label("spiked_shell"), "шипастый панцирь")
         self.assertEqual(translate_free_text("System adjustment"), "Корректировка результата")

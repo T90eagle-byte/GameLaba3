@@ -8,6 +8,7 @@ declare
     -- 4 = mollusks
     -- 5 = turtles
     -- 6 = mammals
+    -- 7 = hybrids (created only by controlled hybridization)
 
     function get_gene_id(
         p_gene_name    in varchar2,
@@ -384,6 +385,12 @@ begin
     when matched then update set tgt.display_name = src.display_name
     when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);
 
+    merge into ref_species_types tgt
+    using (select 7 as species_type, 'Гибрид' as display_name from dual) src
+    on (tgt.species_type = src.species_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);
+
     merge into ref_gene_types tgt
     using (select 'morphology' as gene_type, 'Морфология' as display_name from dual) src
     on (tgt.gene_type = src.gene_type)
@@ -462,14 +469,20 @@ begin
     when matched then update set tgt.display_name = src.display_name
     when not matched then insert (experiment_type, display_name) values (src.experiment_type, src.display_name);
 
+    merge into ref_experiment_types tgt
+    using (select 'HYBRIDIZATION' as experiment_type, 'Гибридизация' as display_name from dual) src
+    on (tgt.experiment_type = src.experiment_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (experiment_type, display_name) values (src.experiment_type, src.display_name);
+
     merge into ref_mutagen_types tgt
-    using (select 'CHEMICAL' as mutagen_type, 'Химический' as display_name from dual) src
+    using (select 'CHEMICAL' as mutagen_type, 'Химический мутаген' as display_name from dual) src
     on (tgt.mutagen_type = src.mutagen_type)
     when matched then update set tgt.display_name = src.display_name
     when not matched then insert (mutagen_type, display_name) values (src.mutagen_type, src.display_name);
 
     merge into ref_mutagen_types tgt
-    using (select 'RADIATION' as mutagen_type, 'Радиационный' as display_name from dual) src
+    using (select 'RADIATION' as mutagen_type, 'Облучение' as display_name from dual) src
     on (tgt.mutagen_type = src.mutagen_type)
     when matched then update set tgt.display_name = src.display_name
     when not matched then insert (mutagen_type, display_name) values (src.mutagen_type, src.display_name);
@@ -575,6 +588,36 @@ begin
     on (tgt.event_type = src.event_type)
     when matched then update set tgt.display_name = src.display_name
     when not matched then insert (event_type, display_name) values (src.event_type, src.display_name);
+
+    merge into ref_rating_event_types tgt
+    using (select 'HYBRIDIZATION_PENALTY' as event_type, 'Штраф за гибридизацию' as display_name from dual) src
+    on (tgt.event_type = src.event_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (event_type, display_name) values (src.event_type, src.display_name);
+
+    merge into ref_experiment_economics tgt
+    using (
+        select 'HYBRIDIZATION' as experiment_type, 3 as genetics_version,
+               'RADIATION' as mutagen_type, 0 as wallet_cost,
+               -50 as rating_effect, 'Y' as active_flag
+          from dual
+    ) src
+    on (
+        tgt.experiment_type = src.experiment_type
+        and tgt.genetics_version = src.genetics_version
+        and tgt.mutagen_type = src.mutagen_type
+    )
+    when matched then update set
+        tgt.wallet_cost = src.wallet_cost,
+        tgt.rating_effect = src.rating_effect,
+        tgt.active_flag = src.active_flag
+    when not matched then insert (
+        experiment_type, genetics_version, mutagen_type,
+        wallet_cost, rating_effect, active_flag
+    ) values (
+        src.experiment_type, src.genetics_version, src.mutagen_type,
+        src.wallet_cost, src.rating_effect, src.active_flag
+    );
     -- -------------------------------------------------------------------------
     -- 1) Genes (4 universal + species-specific genes)
     -- -------------------------------------------------------------------------

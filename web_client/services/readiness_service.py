@@ -36,6 +36,7 @@ REQUIRED_TABLES = frozenset(
         "REF_MUTATION_TYPES",
         "REF_TASK_DIFFICULTIES",
         "REF_RATING_EVENT_TYPES",
+        "REF_EXPERIMENT_ECONOMICS",
     }
 )
 REQUIRED_ROUTINES = frozenset(
@@ -67,6 +68,7 @@ REQUIRED_ROUTINES = frozenset(
         "APPLY_MUTATION",
         "APPLY_MUTAGEN",
         "MAKE_EXPERIMENT",
+        "HYBRIDIZE",
         "GET_EXPERIMENT_HISTORY",
         "GET_RATING_EVENTS_CURSOR",
         "GET_TASKS_CURSOR",
@@ -97,13 +99,16 @@ REQUIRED_SIGNATURES: dict[str, tuple[frozenset[str], ...]] = {
         frozenset({"P_LAB_ID", "P_PARENT1_ID", "P_PARENT2_ID", "P_MUTATION_ID", "P_OFFSPRING_NAME", "P_OFFSPRING_ID"}),
         frozenset({"P_LAB_ID", "P_PARENT1_ID", "P_PARENT2_ID", "P_MUTAGEN_TYPE", "P_OFFSPRING_NAME", "P_OFFSPRING_ID"}),
     ),
+    "HYBRIDIZE": (
+        frozenset({"P_LAB_ID", "P_PARENT1_ID", "P_PARENT2_ID", "P_MUTAGEN_TYPE", "P_OFFSPRING_NAME", "P_OFFSPRING_ID"}),
+    ),
     "CHECK_TASK": (frozenset({"P_LAB_ID", "P_TASK_ID", "P_CREATURE_ID"}),),
     "COMPLETE_TASK": (
         frozenset({"P_LAB_ID", "P_TASK_ID", "P_CREATURE_ID", "P_IS_COMPLETED", "P_WALLET_AFTER", "P_RATING_AFTER"}),
     ),
 }
 SEED_MINIMUMS = {
-    "species": ("REF_SPECIES_TYPES", 7),
+    "species": ("REF_SPECIES_TYPES", 8),
     "genes": ("GENES", 12),
     "alleles": ("ALLELES", 38),
     "mutations": ("MUTATIONS", 20),
@@ -127,6 +132,9 @@ class SchemaSnapshot:
     species_types: frozenset[int]
     mutations_without_rules: int
     tasks_without_markers: int
+    experiment_types: frozenset[str]
+    rating_event_types: frozenset[str]
+    hybrid_economics_ready: bool
 
 
 def _in_binds(prefix: str, values: list[str]) -> tuple[str, dict[str, str]]:
@@ -270,6 +278,30 @@ def collect_schema_snapshot(connection: oracledb.Connection) -> SchemaSnapshot:
             cursor.execute("select species_type from ref_species_types")
             species_types = frozenset(int(row[0]) for row in cursor.fetchall())
 
+        experiment_types: frozenset[str] = frozenset()
+        if "REF_EXPERIMENT_TYPES" in tables:
+            experiment_types = _fetch_names(cursor, "select experiment_type from ref_experiment_types")
+
+        rating_event_types: frozenset[str] = frozenset()
+        if "REF_RATING_EVENT_TYPES" in tables:
+            rating_event_types = _fetch_names(cursor, "select event_type from ref_rating_event_types")
+
+        hybrid_economics_ready = False
+        if "REF_EXPERIMENT_ECONOMICS" in tables:
+            cursor.execute(
+                """
+                select count(*)
+                  from ref_experiment_economics
+                 where experiment_type = 'HYBRIDIZATION'
+                   and genetics_version = 3
+                   and mutagen_type = 'RADIATION'
+                   and wallet_cost = 0
+                   and rating_effect = -50
+                   and active_flag = 'Y'
+                """
+            )
+            hybrid_economics_ready = int(cursor.fetchone()[0] or 0) == 1
+
         mutations_without_rules = 0
         if {"MUTATIONS", "MUTATION_RULES"}.issubset(tables):
             cursor.execute(
@@ -307,6 +339,9 @@ def collect_schema_snapshot(connection: oracledb.Connection) -> SchemaSnapshot:
         species_types=species_types,
         mutations_without_rules=mutations_without_rules,
         tasks_without_markers=tasks_without_markers,
+        experiment_types=experiment_types,
+        rating_event_types=rating_event_types,
+        hybrid_economics_ready=hybrid_economics_ready,
     )
 
 
@@ -328,9 +363,12 @@ def schema_report(snapshot: SchemaSnapshot) -> dict[str, Any]:
         for label, (_table, minimum) in SEED_MINIMUMS.items()
     }
     seed_integrity = {
-        "species_types": snapshot.species_types == frozenset(range(7)),
+        "species_types": snapshot.species_types == frozenset(range(8)),
         "mutation_rules_cover_catalog": snapshot.mutations_without_rules == 0,
         "task_markers_cover_tasks": snapshot.tasks_without_markers == 0,
+        "hybridization_experiment_type": "HYBRIDIZATION" in snapshot.experiment_types,
+        "hybridization_rating_event_type": "HYBRIDIZATION_PENALTY" in snapshot.rating_event_types,
+        "hybridization_economics": snapshot.hybrid_economics_ready,
     }
     seed_ready = all(item["count"] >= item["minimum"] for item in seed_report.values()) and all(seed_integrity.values())
     migrations = {

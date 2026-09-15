@@ -115,6 +115,7 @@ def create_app() -> Flask:
         after_tasks: list[dict[str, Any]],
         morphology_changes: list[dict[str, str]] | None = None,
         mutagen_label: str | None = None,
+        rating_penalty: float | None = None,
     ) -> dict[str, Any]:
         def delta(field: str) -> float:
             try:
@@ -135,6 +136,10 @@ def create_app() -> Flask:
             "morphology_observed": morphology_changes is not None,
             "has_hidden_morphology_change": morphology_changes == [],
             "mutagen_label": mutagen_label,
+            "rating_penalty_label": (
+                display_service.signed_number_label(rating_penalty)
+                if rating_penalty is not None else None
+            ),
         }
 
     def morphology_changes(
@@ -268,6 +273,46 @@ def create_app() -> Flask:
                 task_service.get_tasks(token, lab_id),
                 None,
                 display_service.MUTAGEN_LABELS.get(mutagen_type),
+            )
+        return offspring_id
+
+    def perform_hybridization(
+        token: str,
+        lab_id: int,
+        parent1_id: int,
+        parent2_id: int,
+        offspring_name: str,
+    ) -> int:
+        before_tasks = task_service.get_tasks(token, lab_id)
+        before_stats = lab_service.get_lab_stats(token, lab_id)
+        before_event_ids = {
+            int(row.get("rating_event_id") or 0)
+            for row in rating_service.get_rating_events(token, lab_id)
+        }
+        offspring_id = crossbreed_service.hybridize(
+            token, lab_id, parent1_id, parent2_id, offspring_name
+        )
+        if offspring_id:
+            penalty = next(
+                (
+                    float(row.get("rating_delta") or 0)
+                    for row in rating_service.get_rating_events(token, lab_id)
+                    if int(row.get("rating_event_id") or 0) not in before_event_ids
+                    and str(row.get("event_type") or "").upper() == "HYBRIDIZATION_PENALTY"
+                    and int(row.get("creature_id") or 0) == offspring_id
+                ),
+                None,
+            )
+            session["action_feedback"] = action_feedback(
+                "hybridization",
+                offspring_id,
+                before_stats,
+                lab_service.get_lab_stats(token, lab_id),
+                before_tasks,
+                task_service.get_tasks(token, lab_id),
+                None,
+                display_service.MUTAGEN_LABELS["RADIATION"],
+                penalty,
             )
         return offspring_id
 
@@ -885,7 +930,7 @@ def create_app() -> Flask:
             flash("Сначала выберите лабораторию.", "warning")
             return redirect(url_for("labs"))
 
-        allowed_modes = {"crossbreed", "mutation", "crossbreed_mutagen", "history"}
+        allowed_modes = {"crossbreed", "mutation", "crossbreed_mutagen", "hybridization", "history"}
         mode = request.values.get("mode", "history")
         if mode not in allowed_modes:
             mode = "history"
@@ -943,6 +988,16 @@ def create_app() -> Flask:
                     )
                     flash("Эксперимент завершён.", "success")
                     return redirect(url_for("creature_detail", creature_id=offspring_id))
+                elif action == "hybridization":
+                    parent1_id = int(selected_parent1 or "0")
+                    parent2_id = int(selected_parent2 or "0")
+                    if not offspring_name:
+                        raise ValueError
+                    offspring_id = perform_hybridization(
+                        token, lab_id, parent1_id, parent2_id, offspring_name
+                    )
+                    flash("Гибридизация завершена.", "success")
+                    return redirect(url_for("creature_detail", creature_id=offspring_id))
                 else:
                     flash("Неизвестный режим эксперимента.", "error")
             except (TypeError, ValueError):
@@ -953,6 +1008,11 @@ def create_app() -> Flask:
         try:
             history_rows = history_service.get_experiment_history(token, lab_id) if mode == "history" else []
             creature_rows = creature_service.get_creatures(token, lab_id) if mode != "history" else []
+            if mode in {"crossbreed", "crossbreed_mutagen", "hybridization"}:
+                creature_rows = [
+                    row for row in creature_rows
+                    if 1 <= int(row.get("species_type") or 0) <= 6
+                ]
             if creature_rows:
                 creature_views, morphology_by_creature = display_creatures_for_lab(token, lab_id, creature_rows)
                 parent_cards = display_service.parent_creature_views(creature_rows, morphology_by_creature)
@@ -1000,6 +1060,7 @@ def create_app() -> Flask:
                 ("crossbreed", "Скрещивание"),
                 ("mutation", "Мутация"),
                 ("crossbreed_mutagen", "Скрещивание + мутаген"),
+                ("hybridization", "Гибридизация"),
                 ("history", "История"),
             ),
             creatures=creature_views,

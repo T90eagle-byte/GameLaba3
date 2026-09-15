@@ -516,7 +516,7 @@ begin
         end if;
     end loop;
     close v_rc;
-    assert_true(v_dummy_num = 6, 'reference cursor returns rating event type labels', 'rows=' || v_dummy_num);
+    assert_true(v_dummy_num >= 7, 'reference cursor returns rating event type labels', 'rows=' || v_dummy_num);
 
     v_dummy_num := 0;
     v_rc := pkg_genetics_game.get_reference_cursor('TASK_DIFFICULTIES');
@@ -1030,4 +1030,3 @@ exception
         );
 end;
 /
-

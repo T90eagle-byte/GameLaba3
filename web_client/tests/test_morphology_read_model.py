@@ -69,6 +69,7 @@ class VersionAwareCreatureViewTests(unittest.TestCase):
                 "archetype_id": 42,
                 "archetype_code": "whale",
                 "archetype_display_name": "Кит",
+                "phenotype_nutrition_type": "carnivore/herbivore",
                 "phenotype_summary": "color=legacy_green; size=legacy_small; has_wings=wings",
             },
             morphology_rows(),
@@ -83,6 +84,8 @@ class VersionAwareCreatureViewTests(unittest.TestCase):
         self.assertNotIn("color", view["morphology"])
         self.assertNotIn("size", view["morphology"])
         self.assertNotIn("has_wings", view["morphology"])
+        self.assertEqual(view["phenotype_items"][-1]["key"], "nutrition_type")
+        self.assertEqual(view["phenotype_items"][-1]["detail_value"], "смешанное питание: хищное и травоядное")
         self.assertNotIn("legacy_green", view["phenotype_text"])
         self.assertEqual(view["archetype"], {"archetype_id": 42, "code": "whale", "display_name": "Кит"})
 
@@ -96,6 +99,23 @@ class VersionAwareCreatureViewTests(unittest.TestCase):
         self.assertEqual(view["morphology_visual_state"]["rear_appendage_size"], "medium")
         self.assertEqual(view["morphology_visual_state"]["tail_size"], "none")
         self.assertEqual(view["morphology_visual_state"]["dorsal_size"], "none")
+
+    def test_hybrid_without_archetype_uses_universal_morphology(self) -> None:
+        view = build_creature_view(
+            {
+                "creature_id": 9,
+                "creature_name": "Гибрид 9",
+                "species_type": 7,
+                "genetics_version": 3,
+                "archetype_id": None,
+            },
+            morphology_rows(),
+        )
+
+        self.assertEqual(view["species_label"], "Гибрид")
+        self.assertEqual(view["display_model"], "morphology")
+        self.assertEqual(len(view["morphology_traits"]), 18)
+        self.assertIsNone(view["archetype"])
 
 
 if __name__ == "__main__":

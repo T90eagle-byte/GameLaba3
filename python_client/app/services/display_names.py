@@ -154,6 +154,7 @@ def species_label(value: Any) -> str:
         (4, "Моллюски"),
         (5, "Черепахи"),
         (6, "Млекопитающие"),
+        (7, "Гибрид"),
     )
     for code, label in labels:
         if code == species_id:
@@ -262,6 +263,8 @@ def experiment_type_label(value: Any, *, with_code: bool = True) -> str:
             ("CROSS", "Генетический эксперимент"),
             ("MUTATION", "Мутация"),
             ("MUTAGEN", "Мутаген"),
+            ("CROSSBREED_MUTAGEN", "Скрещивание + мутаген"),
+            ("HYBRIDIZATION", "Гибридизация"),
         ),
         raw,
     )
@@ -273,7 +276,7 @@ def mutagen_type_label(value: Any, *, with_code: bool = True) -> str:
     code = raw.upper()
     label = _lookup_text_label(
         code,
-        (("RADIATION", "Радиационный"), ("CHEMICAL", "Химический")),
+        (("RADIATION", "Облучение"), ("CHEMICAL", "Химический мутаген")),
         raw,
     )
     return f"{label} ({code})" if with_code and code != "НЕ УКАЗАНО" else label

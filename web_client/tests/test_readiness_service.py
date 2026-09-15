@@ -32,9 +32,12 @@ def ready_snapshot(**changes: object) -> readiness_service.SchemaSnapshot:
             routine: frozenset(signatures)
             for routine, signatures in readiness_service.REQUIRED_SIGNATURES.items()
         },
-        "species_types": frozenset(range(7)),
+        "species_types": frozenset(range(8)),
         "mutations_without_rules": 0,
         "tasks_without_markers": 0,
+        "experiment_types": frozenset({"CROSS", "MUTATION", "MUTAGEN", "CROSSBREED_MUTAGEN", "HYBRIDIZATION"}),
+        "rating_event_types": frozenset({"TASK_REWARD", "MUTAGEN_PENALTY", "HYBRIDIZATION_PENALTY"}),
+        "hybrid_economics_ready": True,
     }
     values.update(changes)
     return readiness_service.SchemaSnapshot(**values)  # type: ignore[arg-type]
@@ -100,6 +103,12 @@ class SchemaReportTests(unittest.TestCase):
         self.assertFalse(report["seed"]["ready"])
         self.assertFalse(report["seed"]["integrity"]["mutation_rules_cover_catalog"])
         self.assertFalse(report["seed"]["integrity"]["task_markers_cover_tasks"])
+
+    def test_missing_hybridization_economics_is_not_ready(self) -> None:
+        report = readiness_service.schema_report(ready_snapshot(hybrid_economics_ready=False))
+
+        self.assertFalse(report["ready"])
+        self.assertFalse(report["seed"]["integrity"]["hybridization_economics"])
 
     def test_credentials_and_listener_errors_have_different_kinds(self) -> None:
         self.assertEqual(readiness_service.classify_oracle_error_code(1017), "credentials")

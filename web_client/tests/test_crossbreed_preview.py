@@ -4,7 +4,7 @@ import re
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 WEB_ROOT = Path(__file__).resolve().parents[1]
@@ -82,6 +82,24 @@ class PreviewParentAndDeduplicationTests(unittest.TestCase):
 
         self.assertEqual(len(unique), 1)
         self.assertEqual(unique[0]["option_no"], 1)
+
+    @patch.object(crossbreed_service, "run_db")
+    def test_hybridize_wrapper_loads_lab_and_forces_radiation(self, run_db) -> None:
+        connection = MagicMock()
+        cursor = connection.cursor.return_value.__enter__.return_value
+        out_value = MagicMock()
+        out_value.getvalue.return_value = 42
+        cursor.var.return_value = out_value
+        run_db.side_effect = lambda action: action(connection)
+
+        result = crossbreed_service.hybridize("token", 7, 10, 11, "Гибрид")
+
+        self.assertEqual(result, 42)
+        self.assertEqual(cursor.callproc.call_args_list[0].args, ("pkg_genetics_game.load_lab", ["token", 7]))
+        self.assertEqual(
+            cursor.callproc.call_args_list[1].args,
+            ("pkg_genetics_game.hybridize", [7, 10, 11, "RADIATION", "Гибрид", out_value]),
+        )
 
 
 class CrossbreedPreviewRouteTests(unittest.TestCase):

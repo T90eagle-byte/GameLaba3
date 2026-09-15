@@ -59,6 +59,21 @@ def first_compatible_pair(creatures: list[dict[str, Any]]) -> tuple[int, int] | 
     return None
 
 
+def first_cross_species_pair(creatures: list[dict[str, Any]]) -> tuple[int, int] | None:
+    normal = [
+        row for row in creatures
+        if 1 <= int(get_value(row, "species_type", default=0)) <= 6
+    ]
+    for first in normal:
+        for second in normal:
+            if (
+                first["creature_id"] != second["creature_id"]
+                and first["species_type"] != second["species_type"]
+            ):
+                return int(first["creature_id"]), int(second["creature_id"])
+    return None
+
+
 def main() -> None:
     app = create_app()
     app.config.update(TESTING=True)
@@ -190,6 +205,77 @@ def main() -> None:
         ok("combined experiment route creates one in-place-mutated offspring")
     else:
         skip("no compatible parent pair found")
+
+    hybrid_pair = first_cross_species_pair(creatures)
+    if hybrid_pair:
+        parent1_id, parent2_id = hybrid_pair
+        before_ids = {int(row["creature_id"]) for row in creature_service.get_creatures(token, lab_id)}
+        response = client.post(
+            "/experiments",
+            data={
+                "mode": "hybridization",
+                "action": "hybridization",
+                "parent1_id": parent1_id,
+                "parent2_id": parent2_id,
+                "offspring_name": "Smoke hybrid",
+            },
+            follow_redirects=True,
+        )
+        require(response.status_code == 200, "hybridization route failed")
+        hybrid_html = response.get_data(as_text=True)
+        require("Гибридизация завершена" in hybrid_html, "hybridization feedback is missing")
+        require("Гибрид" in hybrid_html and "Облучение" in hybrid_html, "hybrid display labels are missing")
+        require("Штраф за гибридизацию" in hybrid_html, "actual hybridization penalty is missing")
+
+        after_hybrid = creature_service.get_creatures(token, lab_id)
+        created_ids = {int(row["creature_id"]) for row in after_hybrid} - before_ids
+        require(len(created_ids) == 1, "hybridization did not create exactly one offspring")
+        hybrid_id = created_ids.pop()
+        hybrid = next(row for row in after_hybrid if int(row["creature_id"]) == hybrid_id)
+        require(int(get_value(hybrid, "species_type", default=0)) == 7, "hybrid species_type is not 7")
+        require(len(creature_service.get_genotype(token, hybrid_id, lab_id)) == 19, "hybrid genotype is not canonical")
+        require(len(creature_service.get_morphology(token, hybrid_id, lab_id)) == 18, "hybrid morphology is incomplete")
+        hybrid_history = [
+            row for row in history_service.get_experiment_history(token, lab_id)
+            if str(row.get("experiment_type") or "").upper() == "HYBRIDIZATION"
+            and int(row.get("offspring_id") or 0) == hybrid_id
+        ]
+        require(len(hybrid_history) == 1, "hybridization did not create exactly one history row")
+        require(str(hybrid_history[0].get("mutagen_type") or "").upper() == "RADIATION", "hybrid history lost radiation")
+        ok("hybridization route creates one canonical hybrid with one history row")
+
+        before_mutagen_ids = {int(row["creature_id"]) for row in after_hybrid}
+        response = client.post(
+            "/mutations",
+            data={"action": "apply_mutagen", "creature_id": hybrid_id, "mutagen_type": "CHEMICAL"},
+            follow_redirects=True,
+        )
+        require(response.status_code == 200, "hybrid mutagen route failed")
+        after_mutagen = creature_service.get_creatures(token, lab_id)
+        mutagen_ids = {int(row["creature_id"]) for row in after_mutagen} - before_mutagen_ids
+        require(len(mutagen_ids) == 1, "hybrid mutagen did not create exactly one clone")
+        hybrid_clone = next(row for row in after_mutagen if int(row["creature_id"]) in mutagen_ids)
+        require(int(get_value(hybrid_clone, "species_type", default=0)) == 7, "mutagen clone lost hybrid species")
+        ok("hybrid remains mutable through the existing mutagen route")
+
+        before_rejected_count = len(after_mutagen)
+        response = client.post(
+            "/experiments",
+            data={
+                "mode": "crossbreed",
+                "action": "crossbreed",
+                "parent1_id": hybrid_id,
+                "parent2_id": parent1_id,
+                "offspring_name": "Rejected hybrid child",
+            },
+            follow_redirects=True,
+        )
+        require(response.status_code == 200, "hybrid-parent rejection route failed")
+        require("Гибрид нельзя использовать в качестве родителя" in response.get_data(as_text=True), "hybrid-parent rejection is not user-facing")
+        require(len(creature_service.get_creatures(token, lab_id)) == before_rejected_count, "rejected hybrid breeding created a creature")
+        ok("hybrid parent is rejected without creating offspring")
+    else:
+        skip("no different-species parent pair found")
 
     try:
         shop = mutation_service.get_mutation_shop(token, lab_id)

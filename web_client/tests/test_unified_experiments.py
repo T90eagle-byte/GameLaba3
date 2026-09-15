@@ -35,12 +35,12 @@ class UnifiedExperimentsRouteTests(unittest.TestCase):
             flask_session["current_lab_id"] = 7
 
     @patch.object(app_module.history_service, "get_experiment_history", return_value=[])
-    def test_workspace_opens_with_four_russian_modes(self, _history) -> None:
+    def test_workspace_opens_with_five_russian_modes(self, _history) -> None:
         response = self.client.get("/experiments")
         markup = response.get_data(as_text=True)
 
         self.assertEqual(response.status_code, 200)
-        for label in ("Эксперименты", "Скрещивание", "Мутация", "Скрещивание + мутаген", "История"):
+        for label in ("Эксперименты", "Скрещивание", "Мутация", "Скрещивание + мутаген", "Гибридизация", "История"):
             self.assertIn(label, markup)
         self.assertNotIn("CROSSBREED_MUTAGEN", markup)
 
@@ -53,7 +53,7 @@ class UnifiedExperimentsRouteTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('name="parent1_id"', markup)
-        self.assertIn('value="10" selected', markup)
+        self.assertIn('value="10" data-species-type="1" selected', markup)
         self.assertIn('data-creature-id="10"', markup)
 
     @patch.object(app_module.creature_service, "get_creatures")
@@ -132,6 +132,89 @@ class UnifiedExperimentsRouteTests(unittest.TestCase):
             self.assertNotIn("action_feedback", flask_session)
         combined.assert_called_once()
 
+    @patch.object(app_module.creature_service, "get_creatures")
+    def test_hybridization_mode_shows_only_normal_parents_and_radiation(self, get_creatures) -> None:
+        get_creatures.return_value = [creature(10, 1), creature(11, 2), creature(12, 7)]
+
+        response = self.client.get("/experiments?mode=hybridization")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Контролируемая гибридизация", markup)
+        self.assertIn("Провести гибридизацию", markup)
+        self.assertIn("Облучение", markup)
+        self.assertNotIn("Химический мутаген", markup)
+        self.assertIn('value="10" data-species-type="1"', markup)
+        self.assertIn('value="11" data-species-type="2"', markup)
+        self.assertNotIn('value="12" data-species-type="7"', markup)
+
+    @patch.object(app_module.rating_service, "get_rating_events", side_effect=[[], [{
+        "rating_event_id": 90,
+        "event_type": "HYBRIDIZATION_PENALTY",
+        "creature_id": 42,
+        "rating_delta": -20,
+    }]])
+    @patch.object(app_module.lab_service, "get_lab_stats", side_effect=[
+        {"wallet": 1000, "rating": 20},
+        {"wallet": 1200, "rating": 0},
+    ])
+    @patch.object(app_module.task_service, "get_tasks", side_effect=[[], [{
+        "task_id": 3,
+        "task_name": "task_v3_disc_saw",
+        "task_status": "COMPLETED",
+        "reward_money": 200,
+        "reward_rating": 30,
+    }]])
+    @patch.object(app_module.crossbreed_service, "hybridize", return_value=42)
+    def test_hybridization_uses_one_service_call_and_records_actual_penalty(
+        self, hybridize, _tasks, _stats, _events
+    ) -> None:
+        response = self.client.post(
+            "/experiments",
+            data={
+                "mode": "hybridization",
+                "action": "hybridization",
+                "parent1_id": "10",
+                "parent2_id": "11",
+                "offspring_name": "Первый гибрид",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.headers["Location"].endswith("/creatures/42"))
+        hybridize.assert_called_once_with("experiment-token", 7, 10, 11, "Первый гибрид")
+        with self.client.session_transaction() as flask_session:
+            feedback = flask_session["action_feedback"]
+        self.assertEqual(feedback["kind"], "hybridization")
+        self.assertEqual(feedback["mutagen_label"], "Облучение")
+        self.assertEqual(feedback["rating_penalty_label"], "-20")
+        self.assertEqual(len(feedback["completed_tasks"]), 1)
+
+    @patch.object(app_module.crossbreed_service, "hybridize", side_effect=ServiceError("Для гибридизации выберите существ двух разных видов."))
+    @patch.object(app_module.lab_service, "get_lab_stats", return_value={"wallet": 1000, "rating": 10})
+    @patch.object(app_module.task_service, "get_tasks", return_value=[])
+    @patch.object(app_module.rating_service, "get_rating_events", return_value=[])
+    @patch.object(app_module.creature_service, "get_creatures", return_value=[creature(10), creature(11)])
+    def test_same_species_hybridization_rejection_is_safe(
+        self, _creatures, _events, _tasks, _stats, hybridize
+    ) -> None:
+        response = self.client.post(
+            "/experiments",
+            data={
+                "mode": "hybridization",
+                "action": "hybridization",
+                "parent1_id": "10",
+                "parent2_id": "11",
+                "offspring_name": "Нельзя",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Для гибридизации выберите существ двух разных видов".encode(), response.data)
+        hybridize.assert_called_once()
+        with self.client.session_transaction() as flask_session:
+            self.assertNotIn("action_feedback", flask_session)
+
     @patch.object(app_module.history_service, "get_experiment_history")
     def test_combined_history_is_russian_and_links_result(self, get_history) -> None:
         get_history.return_value = [{
@@ -169,6 +252,28 @@ class UnifiedExperimentsRouteTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Мутация #7", response.get_data(as_text=True))
+
+    @patch.object(app_module.history_service, "get_experiment_history")
+    def test_hybridization_history_is_russian_and_links_hybrid(self, get_history) -> None:
+        get_history.return_value = [{
+            "experiment_id": 3,
+            "experiment_type": "HYBRIDIZATION",
+            "parent1_id": 10,
+            "parent2_id": 11,
+            "offspring_id": 42,
+            "mutagen_type": "RADIATION",
+            "created_at": None,
+        }]
+
+        response = self.client.get("/experiments?mode=history")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Гибридизация", markup)
+        self.assertIn("Облучение", markup)
+        self.assertIn('href="/creatures/42"', markup)
+        self.assertNotIn("HYBRIDIZATION", markup)
+        self.assertNotIn("RADIATION", markup)
 
 
 if __name__ == "__main__":

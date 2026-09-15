@@ -5,21 +5,21 @@
 <section class="hero-panel compact-hero"><div><p class="eyebrow">Генетическая мастерская</p><h1>Эксперименты</h1><p class="lead">Скрещивайте существ, применяйте мутации и проводите комбинированные опыты в одном разделе.</p></div></section>
 <nav class="experiment-tabs" aria-label="Режим эксперимента">{% for code, label in modes %}<a class="button{% if mode != code %} ghost{% endif %}" href="{{ url_for('experiments', mode=code) }}">{{ label }}</a>{% endfor %}</nav>
 
-{% if mode in ('crossbreed', 'crossbreed_mutagen') %}
+{% if mode in ('crossbreed', 'crossbreed_mutagen', 'hybridization') %}
 <section class="panel breeding-panel experiment-workspace">
-  <div class="section-title"><div><p class="eyebrow">{% if mode == 'crossbreed_mutagen' %}Комбинированный опыт{% else %}Новый потомок{% endif %}</p><h2>{% if mode == 'crossbreed_mutagen' %}Скрещивание + мутаген{% else %}Скрещивание{% endif %}</h2></div></div>
+  <div class="section-title"><div><p class="eyebrow">{% if mode == 'hybridization' %}Разные виды{% elif mode == 'crossbreed_mutagen' %}Комбинированный опыт{% else %}Новый потомок{% endif %}</p><h2>{% if mode == 'hybridization' %}Контролируемая гибридизация{% elif mode == 'crossbreed_mutagen' %}Скрещивание + мутаген{% else %}Скрещивание{% endif %}</h2></div></div>
   <form class="form" method="post" action="{{ url_for('experiments') }}">
     <input type="hidden" name="mode" value="{{ mode }}">
     <div class="parent-grid">
       {% for field, selected, label, slot in [('parent1_id', selected_parent1, 'Родитель 1', 'one'), ('parent2_id', selected_parent2, 'Родитель 2', 'two')] %}
       <div class="parent-choice">
-        <label class="parent-select"><span>{{ label }}</span><select name="{{ field }}" data-parent-select="{{ slot }}" required><option value="">Выберите существо</option>{% for creature in creatures %}<option value="{{ creature.creature_id }}" {% if selected|string == creature.creature_id|string %}selected{% endif %}>#{{ creature.creature_id }} — {{ creature.display_name }} / {{ creature.species_label }}</option>{% endfor %}</select></label>
+        <label class="parent-select"><span>{{ label }}</span><select name="{{ field }}" data-parent-select="{{ slot }}" required><option value="">Выберите существо</option>{% for creature in creatures %}<option value="{{ creature.creature_id }}" data-species-type="{{ creature.species_type }}" {% if selected|string == creature.creature_id|string %}selected{% endif %}>#{{ creature.creature_id }} — {{ creature.display_name }} / {{ creature.species_label }}</option>{% endfor %}</select></label>
         <div class="parent-card-stack" aria-live="polite"><p class="parent-card-empty" data-parent-empty="{{ slot }}">Выберите существо, чтобы увидеть его признаки.</p>{% for creature in parent_cards %}<article class="parent-preview-card" data-parent-card="{{ slot }}" data-creature-id="{{ creature.creature_id }}" hidden>{{ creature_portrait(creature, 'mini', 'experiment-' ~ mode ~ '-' ~ slot ~ '-' ~ creature.creature_id) }}<div><p class="eyebrow">{{ label }}</p><h3>{{ creature.display_name }}</h3><p class="muted">#{{ creature.creature_id }} · {{ creature.species_label }}</p><div class="trait-row compact-traits">{% for item in creature.parent_traits %}<span class="trait-pill {{ item.class }}"><small>{{ item.label }}</small>{{ item.value }}</span>{% endfor %}</div></div></article>{% endfor %}</div>
       </div>
       {% endfor %}
     </div>
     <label><span>Имя потомка</span><input name="offspring_name" value="{{ offspring_name }}" placeholder="Например: Потомок линии A" required></label>
-    {% if mode == 'crossbreed_mutagen' %}<fieldset class="mutagen-choice"><legend>Мутагент</legend><label><input type="radio" name="mutagen_type" value="RADIATION" {% if selected_mutagen == 'RADIATION' %}checked{% endif %}> Облучение</label><label><input type="radio" name="mutagen_type" value="CHEMICAL" {% if selected_mutagen == 'CHEMICAL' %}checked{% endif %}> Химический мутаген</label></fieldset><button type="submit" name="action" value="crossbreed_mutagen">Провести эксперимент</button>{% else %}<div class="button-row"><button type="submit" name="action" value="preview">Показать 3 варианта</button><button class="secondary" type="submit" name="action" value="crossbreed">Скрестить</button></div>{% endif %}
+    {% if mode == 'hybridization' %}<div class="hybridization-effect"><span>Воздействие</span><strong>Облучение</strong><small>Для гибридизации нужны существа двух разных видов.</small></div><button type="submit" name="action" value="hybridization">Провести гибридизацию</button>{% elif mode == 'crossbreed_mutagen' %}<fieldset class="mutagen-choice"><legend>Мутагент</legend><label><input type="radio" name="mutagen_type" value="RADIATION" {% if selected_mutagen == 'RADIATION' %}checked{% endif %}> Облучение</label><label><input type="radio" name="mutagen_type" value="CHEMICAL" {% if selected_mutagen == 'CHEMICAL' %}checked{% endif %}> Химический мутаген</label></fieldset><button type="submit" name="action" value="crossbreed_mutagen">Провести эксперимент</button>{% else %}<div class="button-row"><button type="submit" name="action" value="preview">Показать 3 варианта</button><button class="secondary" type="submit" name="action" value="crossbreed">Скрестить</button></div>{% endif %}
   </form>
 </section>
 {% if preview_options %}<section class="preview-section"><div class="section-title"><div><p class="eyebrow">Предпросмотр</p><h2>Различные примеры возможного потомства</h2><p class="muted">Это случайные допустимые варианты, а не вероятность рождения конкретного существа.</p></div><span class="badge">{{ preview_options|length }} примера</span></div><div class="preview-grid">{% for option in preview_options %}<article class="preview-card {{ option.visual.tone_class }}">{{ creature_portrait(option, 'mini', 'experiment-preview-' ~ option.option_no) }}<div class="entity-card-header"><h3>Вариант {{ option.option_no }}</h3><span class="badge">{{ option.species_label }}</span></div><p class="summary">{{ option.phenotype_text }}</p></article>{% endfor %}</div></section>{% endif %}
@@ -31,8 +31,20 @@
 <section class="experiment-history"><div class="section-title"><div><p class="eyebrow">Память лаборатории</p><h2>История экспериментов</h2></div><span class="badge">{{ experiments|length }}</span></div>{% if experiments %}<div class="timeline">{% for item in experiments %}<article class="timeline-item {{ item.type_class }}"><span class="timeline-dot"></span><div class="panel"><div class="entity-card-header"><h3>{{ item.type_label }}</h3><span class="badge">{{ item.created_at_label }}</span></div><p>{{ item.description_text }}</p><div class="badge-row">{% if item.parent1_id %}<span class="badge">Родитель #{{ item.parent1_id }}</span>{% endif %}{% if item.parent2_id %}<span class="badge">Родитель #{{ item.parent2_id }}</span>{% endif %}{% if item.result_creature_id %}<a class="badge link-badge" href="{{ url_for('creature_detail', creature_id=item.result_creature_id) }}">Результат #{{ item.result_creature_id }}</a>{% endif %}{% if item.mutation_id %}<span class="badge">Мутация #{{ item.mutation_id }}</span>{% endif %}{% if item.mutagen_label %}<span class="badge">{{ item.mutagen_label }}</span>{% endif %}</div></div></article>{% endfor %}</div>{% else %}<div class="panel empty-state"><h2>Экспериментов пока нет</h2><p>Выберите режим и проведите первый опыт.</p></div>{% endif %}</section>
 {% endif %}
 
-{% if mode in ('crossbreed', 'crossbreed_mutagen') %}<script>
+{% if mode in ('crossbreed', 'crossbreed_mutagen', 'hybridization') %}<script>
 (() => {
+  const hybridization = {{ (mode == 'hybridization')|tojson }};
+  const syncHybridCandidates = () => {
+    if (!hybridization) return;
+    const first = document.querySelector('[data-parent-select="one"]');
+    const second = document.querySelector('[data-parent-select="two"]');
+    if (!first || !second) return;
+    const species = first.selectedOptions[0]?.dataset.speciesType || "";
+    Array.from(second.options).forEach((option) => {
+      option.disabled = Boolean(option.value && species && option.dataset.speciesType === species);
+    });
+    if (second.selectedOptions[0]?.disabled) second.value = "";
+  };
   const updateParentCard = (slot) => {
     const select = document.querySelector(`[data-parent-select="${slot}"]`);
     if (!select) return;
@@ -40,7 +52,9 @@
     const empty = document.querySelector(`[data-parent-empty="${slot}"]`);
     if (empty) empty.hidden = Boolean(select.value);
   };
-  ["one", "two"].forEach((slot) => { const select = document.querySelector(`[data-parent-select="${slot}"]`); if (!select) return; select.addEventListener("change", () => updateParentCard(slot)); updateParentCard(slot); });
+  ["one", "two"].forEach((slot) => { const select = document.querySelector(`[data-parent-select="${slot}"]`); if (!select) return; select.addEventListener("change", () => { if (slot === "one") syncHybridCandidates(); updateParentCard(slot); if (slot === "one") updateParentCard("two"); }); updateParentCard(slot); });
+  syncHybridCandidates();
+  updateParentCard("two");
 })();
 </script>{% endif %}
 {% endblock %}

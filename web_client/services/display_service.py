@@ -12,6 +12,7 @@ SPECIES_LABELS = {
     "4": "Моллюск",
     "5": "Черепаха",
     "6": "Млекопитающее",
+    "7": "Гибрид",
     "cartilaginous_fish": "Хрящевая рыба",
     "bony_fish": "Костная рыба",
     "crustacean": "Ракообразное",
@@ -200,6 +201,7 @@ EVENT_LABELS = {
     "MUTATION_EFFECT": "Эффект мутации",
     "RARE_TRAIT_BONUS": "Бонус редкого признака",
     "SYSTEM_ADJUSTMENT": "Корректировка результата",
+    "HYBRIDIZATION_PENALTY": "Штраф за гибридизацию",
 }
 
 USER_TEXT_REPLACEMENTS = {
@@ -214,6 +216,7 @@ EXPERIMENT_LABELS = {
     "MUTATION": "Мутация",
     "MUTAGEN": "Мутагент",
     "CROSSBREED_MUTAGEN": "Скрещивание + мутаген",
+    "HYBRIDIZATION": "Гибридизация",
 }
 
 MUTAGEN_LABELS = {
@@ -254,6 +257,7 @@ SPECIES_CLASS_CODES = {
     "4": "mollusk",
     "5": "turtle",
     "6": "mammal",
+    "7": "hybrid",
     "cartilaginous_fish": "cartilaginous-fish",
     "bony_fish": "bony-fish",
     "crustacean": "crustacean",
@@ -366,7 +370,7 @@ def translate_free_text(value: Any) -> str:
         return f"{match.group(1)}{SPECIES_LABELS[match.group(2)]}"
 
     text = re.sub(
-        r"\b(species(?:_type)?\s*[=:]\s*)([1-6])\b",
+        r"\b(species(?:_type)?\s*[=:]\s*)([1-7])\b",
         replace_numeric_species,
         text,
         flags=re.IGNORECASE,
@@ -490,7 +494,7 @@ def humanize_code(value: Any) -> str:
         return TRAIT_LABELS[code]
     if code in GENE_LABELS:
         return GENE_LABELS[code]
-    if code in SPECIES_LABELS:
+    if code in SPECIES_LABELS and not code.isdigit():
         return SPECIES_LABELS[code]
     if code in DOMINANCE_LABELS:
         return DOMINANCE_LABELS[code]
@@ -821,11 +825,32 @@ def build_creature_view(
     view["archetype"] = _archetype_view(row)
     if genetics_version == 3:
         traits = morphology_traits(morphology_rows or [])
+        phenotype_results = list(traits)
+        nutrition_value = row.get("phenotype_nutrition_type")
+        if nutrition_value:
+            nutrition_parts = {
+                _clean_code(part)
+                for part in _text(nutrition_value).split("/")
+                if part.strip()
+            }
+            nutrition_detail = (
+                "смешанное питание: хищное и травоядное"
+                if {"herbivore", "carnivore"}.issubset(nutrition_parts)
+                else trait_detail_label(nutrition_value)
+            )
+            phenotype_results.append({
+                "key": "nutrition_type",
+                "label": gene_label("nutrition_type"),
+                "value": trait_label(nutrition_value),
+                "detail_value": nutrition_detail,
+                "raw": _text(nutrition_value),
+                "class": "tone-neutral",
+            })
         view["display_model"] = "morphology"
         view["morphology_traits"] = traits
         view["morphology"] = {trait["key"]: trait for trait in traits}
         view["morphology_visual_state"] = normalize_morphology_visual_state(traits)
-        view["phenotype_items"] = traits
+        view["phenotype_items"] = phenotype_results
         summary_traits = [
             view["morphology"].get(code)
             for code in ("body_shape", "body_color", "body_size")
