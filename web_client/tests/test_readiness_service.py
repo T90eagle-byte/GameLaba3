@@ -83,6 +83,15 @@ class SchemaReportTests(unittest.TestCase):
         self.assertFalse(report["signatures"]["ready"])
         self.assertIn("APPLY_MUTATION", report["signatures"]["missing"])
 
+    def test_combined_experiment_overload_is_required(self) -> None:
+        signatures = dict(ready_snapshot().routine_signatures)
+        signatures["MAKE_EXPERIMENT"] = frozenset({readiness_service.REQUIRED_SIGNATURES["MAKE_EXPERIMENT"][0]})
+
+        report = readiness_service.schema_report(ready_snapshot(routine_signatures=signatures))
+
+        self.assertFalse(report["ready"])
+        self.assertIn("MAKE_EXPERIMENT", report["signatures"]["missing"])
+
     def test_missing_seed_relationships_are_not_ready(self) -> None:
         report = readiness_service.schema_report(
             ready_snapshot(mutations_without_rules=1, tasks_without_markers=1)

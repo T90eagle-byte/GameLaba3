@@ -82,6 +82,7 @@ declare
     v_h_mutation_id                   number;
     v_h_mutation_name                 varchar2(4000);
     v_h_created_at                    timestamp;
+    v_h_mutagen_type                  varchar2(30);
     v_history_row_count               number := 0;
     v_history_has_cross               number := 0;
     v_history_has_mutation            number := 0;
@@ -669,7 +670,8 @@ if v_lab_id is not null then
                     v_h_offspring_name,
                     v_h_mutation_id,
                     v_h_mutation_name,
-                    v_h_created_at;
+                    v_h_created_at,
+                    v_h_mutagen_type;
                 exit when v_history_cursor%notfound;
 
                 v_history_row_count := v_history_row_count + 1;
@@ -843,5 +845,4 @@ exception
         raise_application_error(-20500, 'Unhandled exception in 05_mutations_experiments_smoke_test. Root error: ' || v_root_sqlcode || ' / ' || v_root_sqlerrm);
 end;
 /
-
 

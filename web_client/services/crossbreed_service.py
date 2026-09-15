@@ -80,3 +80,25 @@ def crossbreed(
             return 0 if value is None else int(value)
 
     return run_db(action)
+
+
+def crossbreed_with_mutagen(
+    session_token: str,
+    lab_id: int,
+    parent1_id: int,
+    parent2_id: int,
+    mutagen_type: str,
+    offspring_name: str,
+) -> int:
+    def action(connection: oracledb.Connection) -> int:
+        with connection.cursor() as cursor:
+            cursor.callproc("pkg_genetics_game.load_lab", [session_token, lab_id])
+            out_offspring_id = cursor.var(oracledb.DB_TYPE_NUMBER)
+            cursor.callproc(
+                "pkg_genetics_game.make_experiment",
+                [lab_id, parent1_id, parent2_id, mutagen_type, offspring_name, out_offspring_id],
+            )
+            value = out_offspring_id.getvalue()
+            return 0 if value is None else int(value)
+
+    return run_db(action)

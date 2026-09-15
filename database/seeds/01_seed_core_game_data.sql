@@ -456,6 +456,12 @@ begin
     when matched then update set tgt.display_name = src.display_name
     when not matched then insert (experiment_type, display_name) values (src.experiment_type, src.display_name);
 
+    merge into ref_experiment_types tgt
+    using (select 'CROSSBREED_MUTAGEN' as experiment_type, 'Скрещивание + мутаген' as display_name from dual) src
+    on (tgt.experiment_type = src.experiment_type)
+    when matched then update set tgt.display_name = src.display_name
+    when not matched then insert (experiment_type, display_name) values (src.experiment_type, src.display_name);
+
     merge into ref_mutagen_types tgt
     using (select 'CHEMICAL' as mutagen_type, 'Химический' as display_name from dual) src
     on (tgt.mutagen_type = src.mutagen_type)
@@ -952,4 +958,3 @@ end;
 commit;
 
 @@02_seed_universal_morphology.sql
-

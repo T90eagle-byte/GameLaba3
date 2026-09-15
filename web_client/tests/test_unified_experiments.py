@@ -1,0 +1,175 @@
+from __future__ import annotations
+
+import sys
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+
+WEB_ROOT = Path(__file__).resolve().parents[1]
+if str(WEB_ROOT) not in sys.path:
+    sys.path.insert(0, str(WEB_ROOT))
+
+import app as app_module  # noqa: E402
+from services.oracle import ServiceError  # noqa: E402
+
+
+def creature(creature_id: int, species_type: int = 1) -> dict[str, object]:
+    return {
+        "creature_id": creature_id,
+        "creature_name": f"Существо {creature_id}",
+        "species_type": species_type,
+        "genetics_version": 1,
+        "phenotype_summary": "color=blue_color; has_wings=no_wings; nutrition_type=herbivore; size=medium_size",
+    }
+
+
+class UnifiedExperimentsRouteTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.app = app_module.create_app()
+        self.app.config.update(TESTING=True, SECRET_KEY="unified-test")
+        self.client = self.app.test_client()
+        with self.client.session_transaction() as flask_session:
+            flask_session["session_token"] = "experiment-token"
+            flask_session["login"] = "experiment-user"
+            flask_session["current_lab_id"] = 7
+
+    @patch.object(app_module.history_service, "get_experiment_history", return_value=[])
+    def test_workspace_opens_with_four_russian_modes(self, _history) -> None:
+        response = self.client.get("/experiments")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        for label in ("Эксперименты", "Скрещивание", "Мутация", "Скрещивание + мутаген", "История"):
+            self.assertIn(label, markup)
+        self.assertNotIn("CROSSBREED_MUTAGEN", markup)
+
+    @patch.object(app_module.creature_service, "get_creatures")
+    def test_crossbreed_mode_preselects_current_lab_parent(self, get_creatures) -> None:
+        get_creatures.return_value = [creature(10), creature(11)]
+
+        response = self.client.get("/experiments?mode=crossbreed&parent_id=10")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('name="parent1_id"', markup)
+        self.assertIn('value="10" selected', markup)
+        self.assertIn('data-creature-id="10"', markup)
+
+    @patch.object(app_module.creature_service, "get_creatures")
+    def test_invalid_parent_is_not_preselected(self, get_creatures) -> None:
+        get_creatures.return_value = [creature(10), creature(11)]
+
+        response = self.client.get("/experiments?mode=crossbreed_mutagen&parent_id=999")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b'value="999" selected', response.data)
+
+    @patch.object(app_module.mutation_service, "get_lab_mutation_quantity", return_value=2)
+    @patch.object(app_module.mutation_service, "get_mutation_shop")
+    @patch.object(app_module.creature_service, "get_creatures")
+    def test_mutation_mode_preselects_creature(self, get_creatures, get_shop, _quantity) -> None:
+        get_creatures.return_value = [creature(10)]
+        get_shop.return_value = [{"mutation_id": 3, "mutation_name": "red_mutation", "cost": 100, "rating_effect": 2}]
+
+        response = self.client.get("/experiments?mode=mutation&creature_id=10")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('name="creature_id"', markup)
+        self.assertIn('value="10" selected', markup)
+        self.assertIn("Применить мутацию", markup)
+
+    @patch.object(app_module.lab_service, "get_lab_stats", side_effect=[{"wallet": 1000, "rating": 10}, {"wallet": 950, "rating": 5}])
+    @patch.object(app_module.task_service, "get_tasks", side_effect=[[], []])
+    @patch.object(app_module.crossbreed_service, "crossbreed_with_mutagen", return_value=42)
+    def test_combined_mode_uses_one_service_call_and_one_shot_feedback(
+        self, combined, _tasks, _stats
+    ) -> None:
+        response = self.client.post(
+            "/experiments",
+            data={
+                "mode": "crossbreed_mutagen",
+                "action": "crossbreed_mutagen",
+                "parent1_id": "10",
+                "parent2_id": "11",
+                "offspring_name": "Итоговый потомок",
+                "mutagen_type": "RADIATION",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.headers["Location"].endswith("/creatures/42"))
+        combined.assert_called_once_with("experiment-token", 7, 10, 11, "RADIATION", "Итоговый потомок")
+        with self.client.session_transaction() as flask_session:
+            feedback = flask_session["action_feedback"]
+        self.assertEqual(feedback["kind"], "combined")
+        self.assertEqual(feedback["result_creature_id"], 42)
+        self.assertEqual(feedback["mutagen_label"], "Облучение")
+
+    @patch.object(app_module.crossbreed_service, "crossbreed_with_mutagen", side_effect=ServiceError("Эти родители несовместимы."))
+    @patch.object(app_module.lab_service, "get_lab_stats", return_value={"wallet": 1000, "rating": 10})
+    @patch.object(app_module.task_service, "get_tasks", return_value=[])
+    @patch.object(app_module.creature_service, "get_creatures", return_value=[creature(10), creature(11, 2)])
+    def test_combined_rejection_is_safe_and_creates_no_feedback(
+        self, _creatures, _tasks, _stats, combined
+    ) -> None:
+        response = self.client.post(
+            "/experiments",
+            data={
+                "mode": "crossbreed_mutagen",
+                "action": "crossbreed_mutagen",
+                "parent1_id": "10",
+                "parent2_id": "11",
+                "offspring_name": "Нельзя",
+                "mutagen_type": "CHEMICAL",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Эти родители несовместимы".encode(), response.data)
+        with self.client.session_transaction() as flask_session:
+            self.assertNotIn("action_feedback", flask_session)
+        combined.assert_called_once()
+
+    @patch.object(app_module.history_service, "get_experiment_history")
+    def test_combined_history_is_russian_and_links_result(self, get_history) -> None:
+        get_history.return_value = [{
+            "experiment_id": 1,
+            "experiment_type": "CROSSBREED_MUTAGEN",
+            "parent1_id": 10,
+            "parent2_id": 11,
+            "offspring_id": 42,
+            "mutagen_type": "CHEMICAL",
+            "created_at": None,
+        }]
+
+        response = self.client.get("/experiments?mode=history")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Скрещивание + мутаген", markup)
+        self.assertIn("Химический мутаген", markup)
+        self.assertIn('href="/creatures/42"', markup)
+        self.assertNotIn("CROSSBREED_MUTAGEN", markup)
+        self.assertNotIn("CHEMICAL", markup)
+
+    @patch.object(app_module.history_service, "get_experiment_history")
+    def test_controlled_mutation_history_keeps_mutation_reference(self, get_history) -> None:
+        get_history.return_value = [{
+            "experiment_id": 2,
+            "experiment_type": "MUTATION",
+            "parent1_id": 10,
+            "offspring_id": 10,
+            "mutation_id": 7,
+            "created_at": None,
+        }]
+
+        response = self.client.get("/experiments?mode=history")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Мутация #7", response.get_data(as_text=True))
+
+
+if __name__ == "__main__":
+    unittest.main()

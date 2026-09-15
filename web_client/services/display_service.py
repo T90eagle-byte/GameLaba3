@@ -213,6 +213,12 @@ EXPERIMENT_LABELS = {
     "CROSS": "Скрещивание",
     "MUTATION": "Мутация",
     "MUTAGEN": "Мутагент",
+    "CROSSBREED_MUTAGEN": "Скрещивание + мутаген",
+}
+
+MUTAGEN_LABELS = {
+    "RADIATION": "Облучение",
+    "CHEMICAL": "Химический мутаген",
 }
 
 COLOR_CLASSES = {
@@ -1082,7 +1088,13 @@ def purchased_mutation_views(events: list[dict[str, Any]]) -> list[dict[str, Any
 
 def experiment_view(row: dict[str, Any]) -> dict[str, Any]:
     kind = _text(row.get("experiment_type") or row.get("experiment_type_code")).upper()
-    description = translate_free_text(row.get("description") or row.get("result_description")) or "Шаг лабораторной линии."
+    mutagen_type = _text(row.get("mutagen_type")).upper()
+    mutagen_label = MUTAGEN_LABELS.get(mutagen_type, "")
+    description = translate_free_text(row.get("description") or row.get("result_description"))
+    if not description and kind == "CROSSBREED_MUTAGEN" and mutagen_label:
+        description = f"Скрещивание + мутаген: {mutagen_label}."
+    if not description:
+        description = "Шаг лабораторной линии."
     result_creature_id = row.get("result_creature_id")
     if result_creature_id is None:
         result_creature_id = row.get("offspring_id")
@@ -1091,6 +1103,7 @@ def experiment_view(row: dict[str, Any]) -> dict[str, Any]:
         "result_creature_id": result_creature_id,
         "type_label": EXPERIMENT_LABELS.get(kind, humanize_code(kind)),
         "type_class": f"event-{kind.lower()}" if kind else "event-neutral",
+        "mutagen_label": mutagen_label,
         "description_text": description,
         "created_at_label": date_label(row.get("created_at") or row.get("experiment_date")),
     }

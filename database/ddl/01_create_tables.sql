@@ -377,6 +377,7 @@ create table experiments (
     parent1_id          number not null,
     parent2_id          number null,
     mutation_id         number null,
+    mutagen_type        varchar2(30 char) null,
     offspring_id        number not null,
     experiment_type     varchar2(20 char) not null,
     created_at          timestamp default systimestamp not null,
@@ -385,18 +386,24 @@ create table experiments (
     constraint fk_experiments_parent1_id foreign key (parent1_id) references creatures (creature_id),
     constraint fk_experiments_parent2_id foreign key (parent2_id) references creatures (creature_id),
     constraint fk_experiments_mutation_id foreign key (mutation_id) references mutations (mutation_id),
+    constraint fk_experiments_mutagen_type foreign key (mutagen_type) references ref_mutagen_types (mutagen_type),
     constraint fk_experiments_offspring_id foreign key (offspring_id) references creatures (creature_id),
     constraint fk_experiments_type foreign key (experiment_type) references ref_experiment_types (experiment_type),
     constraint ck_experiments_parents_different check (parent2_id is null or parent1_id <> parent2_id),
     constraint ck_experiments_cross_requires_parent2 check (
-        (experiment_type = 'CROSS' and parent2_id is not null) or
+        (experiment_type in ('CROSS', 'CROSSBREED_MUTAGEN') and parent2_id is not null) or
         (experiment_type in ('MUTATION', 'MUTAGEN') and parent2_id is null)
+    ),
+    constraint ck_experiments_combined_fields check (
+        experiment_type <> 'CROSSBREED_MUTAGEN'
+        or (mutagen_type is not null and mutation_id is null)
     )
 );
 
 comment on table experiments is 'History of crossbreeding, mutation, and mutagen actions.';
 comment on column experiments.experiment_id is 'Primary key.';
-comment on column experiments.experiment_type is 'CROSS, MUTATION, or MUTAGEN.';
+comment on column experiments.experiment_type is 'CROSS, MUTATION, MUTAGEN, or CROSSBREED_MUTAGEN.';
+comment on column experiments.mutagen_type is 'Mutagen code for combined experiments; historical MUTAGEN rows may remain null.';
 
 create table lab_mutations (
     lab_mutation_id     number not null,

@@ -2173,7 +2173,7 @@ end hash_password_sha256;
         end loop;
     end auto_complete_matching_tasks;
 
-    procedure crossbreed(
+    procedure crossbreed_core(
         p_lab_id          in number,
         p_parent1_id      in number,
         p_parent2_id      in number,
@@ -2193,15 +2193,7 @@ end hash_password_sha256;
         v_selected_allele1_id     number;
         v_selected_allele2_id     number;
         v_gene_count              number;
-        v_experiment_id           number;
         v_summary                 varchar2(1000);
-
-        v_wallet                  number;
-        v_rating                  number;
-        v_creature_count          number;
-        v_active_task_count       number;
-        v_completed_task_count    number;
-        v_experiment_count        number;
     begin
         if p_parent1_id is null or p_parent2_id is null then
             raise_application_error(-20031, 'Both parent ids are required.');
@@ -2360,6 +2352,30 @@ end hash_password_sha256;
 
         v_summary := get_phenotype(
             p_creature_id => p_offspring_id
+        );
+    end crossbreed_core;
+
+    procedure crossbreed(
+        p_lab_id          in number,
+        p_parent1_id      in number,
+        p_parent2_id      in number,
+        p_offspring_name  in varchar2,
+        p_offspring_id    out number
+    ) is
+        v_experiment_id           number;
+        v_wallet                  number;
+        v_rating                  number;
+        v_creature_count          number;
+        v_active_task_count       number;
+        v_completed_task_count    number;
+        v_experiment_count        number;
+    begin
+        crossbreed_core(
+            p_lab_id         => p_lab_id,
+            p_parent1_id     => p_parent1_id,
+            p_parent2_id     => p_parent2_id,
+            p_offspring_name => p_offspring_name,
+            p_offspring_id   => p_offspring_id
         );
 
         v_experiment_id := experiments_seq.nextval;
@@ -2834,10 +2850,16 @@ end hash_password_sha256;
             raise;
     end apply_mutation;
 
-    procedure apply_mutagen(
+    procedure mutagen_core(
         p_creature_id      in number,
         p_mutagen_type     in varchar2,
-        p_new_creature_id  out number
+        p_clone_source     in boolean,
+        p_record_side_effects in boolean,
+        p_new_creature_id  out number,
+        p_normalized_type  out varchar2,
+        p_wallet_cost      out number,
+        p_rating_delta     out number,
+        p_display_name     out varchar2
     ) is
         v_lab_id                number;
         v_genetics_version      labs.genetics_version%type;
@@ -2868,7 +2890,7 @@ end hash_password_sha256;
         v_completed_task_count  number;
         v_experiment_count      number;
     begin
-        savepoint apply_mutagen_savepoint;
+        savepoint mutagen_core_savepoint;
 
         if p_mutagen_type is null or trim(p_mutagen_type) is null then
             raise_application_error(-20048, 'Mutagen type cannot be empty.');
@@ -2889,6 +2911,10 @@ end hash_password_sha256;
             v_rating_delta := -2;
             v_mutagen_display_name := 'Химический мутаген';
         end if;
+
+        p_normalized_type := v_mutagen_mode;
+        p_wallet_cost := v_wallet_cost;
+        p_display_name := v_mutagen_display_name;
 
         v_lab_id := assert_creature_access(
             p_creature_id => p_creature_id
@@ -2929,11 +2955,13 @@ end hash_password_sha256;
          where l.lab_id = v_lab_id;
 
         v_rating_actual_delta := v_lab_rating_after - v_lab_rating_before;
+        p_rating_delta := v_rating_actual_delta;
 
-        v_new_name := substr(v_source_name || '_mutagen_' || lower(substr(rawtohex(sys_guid()), 1, 8)), 1, 255);
-        p_new_creature_id := creatures_seq.nextval;
+        if p_clone_source then
+            v_new_name := substr(v_source_name || '_mutagen_' || lower(substr(rawtohex(sys_guid()), 1, 8)), 1, 255);
+            p_new_creature_id := creatures_seq.nextval;
 
-        insert into creatures (
+            insert into creatures (
             creature_id,
             lab_id,
             species_type,
@@ -2943,7 +2971,7 @@ end hash_password_sha256;
             phenotype_has_wings,
             phenotype_nutrition_type,
             phenotype_summary
-        ) values (
+            ) values (
             p_new_creature_id,
             v_lab_id,
             v_species_type,
@@ -2953,26 +2981,29 @@ end hash_password_sha256;
             null,
             null,
             null
-        );
+            );
 
-        insert into genotypes (
+            insert into genotypes (
             genotype_id,
             creature_id,
             gene_id,
             allele1_id,
             allele2_id
         )
-        select
+            select
             genotypes_seq.nextval,
             p_new_creature_id,
             g.gene_id,
             g.allele1_id,
             g.allele2_id
-          from genotypes g
-         where g.creature_id = p_creature_id;
+              from genotypes g
+             where g.creature_id = p_creature_id;
 
-        if sql%rowcount = 0 then
-            raise_application_error(-20050, 'Source creature has no genotype rows.');
+            if sql%rowcount = 0 then
+                raise_application_error(-20050, 'Source creature has no genotype rows.');
+            end if;
+        else
+            p_new_creature_id := p_creature_id;
         end if;
 
         if v_mutagen_mode = 'RADIATION' and dbms_random.value(0, 1) < 0.45 then
@@ -3147,27 +3178,30 @@ end hash_password_sha256;
             p_creature_id => p_new_creature_id
         );
 
-        v_experiment_id := experiments_seq.nextval;
+        if p_record_side_effects then
+            v_experiment_id := experiments_seq.nextval;
 
-        insert into experiments (
-            experiment_id,
-            lab_id,
-            parent1_id,
-            parent2_id,
-            mutation_id,
-            offspring_id,
-            experiment_type
-        ) values (
-            v_experiment_id,
-            v_lab_id,
-            p_creature_id,
-            null,
-            null,
-            p_new_creature_id,
-            'MUTAGEN'
-        );
+            insert into experiments (
+                experiment_id,
+                lab_id,
+                parent1_id,
+                parent2_id,
+                mutation_id,
+                mutagen_type,
+                offspring_id,
+                experiment_type
+            ) values (
+                v_experiment_id,
+                v_lab_id,
+                p_creature_id,
+                null,
+                null,
+                v_mutagen_mode,
+                p_new_creature_id,
+                'MUTAGEN'
+            );
 
-        record_rating_event(
+            record_rating_event(
             p_lab_id        => v_lab_id,
             p_event_type    => 'MUTAGEN_PENALTY',
             p_rating_delta  => v_rating_actual_delta,
@@ -3175,14 +3209,14 @@ end hash_password_sha256;
             p_description   => 'Воздействие мутагена: ' || v_mutagen_display_name,
             p_creature_id   => p_new_creature_id,
             p_experiment_id => v_experiment_id
-        );
+            );
 
-        auto_complete_matching_tasks(
+            auto_complete_matching_tasks(
             p_lab_id      => v_lab_id,
             p_creature_id => p_new_creature_id
-        );
+            );
 
-        get_lab_stats(
+            get_lab_stats(
             p_lab_id               => v_lab_id,
             p_wallet               => v_wallet,
             p_rating               => v_rating,
@@ -3190,12 +3224,36 @@ end hash_password_sha256;
             p_active_task_count    => v_active_task_count,
             p_completed_task_count => v_completed_task_count,
             p_experiment_count     => v_experiment_count
-        );
+            );
+        end if;
     exception
         when others then
-            rollback to apply_mutagen_savepoint;
+            rollback to mutagen_core_savepoint;
             p_new_creature_id := null;
             raise;
+    end mutagen_core;
+
+    procedure apply_mutagen(
+        p_creature_id      in number,
+        p_mutagen_type     in varchar2,
+        p_new_creature_id  out number
+    ) is
+        v_normalized_type varchar2(30);
+        v_wallet_cost     number(12, 2);
+        v_rating_delta    number(12, 2);
+        v_display_name    varchar2(100);
+    begin
+        mutagen_core(
+            p_creature_id        => p_creature_id,
+            p_mutagen_type       => p_mutagen_type,
+            p_clone_source       => true,
+            p_record_side_effects => true,
+            p_new_creature_id    => p_new_creature_id,
+            p_normalized_type    => v_normalized_type,
+            p_wallet_cost        => v_wallet_cost,
+            p_rating_delta       => v_rating_delta,
+            p_display_name       => v_display_name
+        );
     end apply_mutagen;
 
     procedure make_experiment(
@@ -3253,6 +3311,94 @@ end hash_password_sha256;
         end if;
     end make_experiment;
 
+    procedure make_experiment(
+        p_lab_id          in number,
+        p_parent1_id      in number,
+        p_parent2_id      in number,
+        p_mutagen_type    in varchar2,
+        p_offspring_name  in varchar2,
+        p_offspring_id    out number
+    ) is
+        v_mutated_creature_id number;
+        v_normalized_type     varchar2(30);
+        v_wallet_cost         number(12, 2);
+        v_rating_delta        number(12, 2);
+        v_display_name        varchar2(100);
+        v_experiment_id       number;
+    begin
+        savepoint combined_experiment_savepoint;
+
+        if p_mutagen_type is null or trim(p_mutagen_type) is null then
+            raise_application_error(-20048, 'Mutagen type cannot be empty.');
+        end if;
+
+        crossbreed_core(
+            p_lab_id         => p_lab_id,
+            p_parent1_id     => p_parent1_id,
+            p_parent2_id     => p_parent2_id,
+            p_offspring_name => p_offspring_name,
+            p_offspring_id   => p_offspring_id
+        );
+
+        mutagen_core(
+            p_creature_id         => p_offspring_id,
+            p_mutagen_type        => p_mutagen_type,
+            p_clone_source        => false,
+            p_record_side_effects => false,
+            p_new_creature_id     => v_mutated_creature_id,
+            p_normalized_type     => v_normalized_type,
+            p_wallet_cost         => v_wallet_cost,
+            p_rating_delta        => v_rating_delta,
+            p_display_name        => v_display_name
+        );
+
+        if v_mutated_creature_id <> p_offspring_id then
+            raise_application_error(-20090, 'Combined experiment must mutate its offspring in place.');
+        end if;
+
+        v_experiment_id := experiments_seq.nextval;
+
+        insert into experiments (
+            experiment_id,
+            lab_id,
+            parent1_id,
+            parent2_id,
+            mutation_id,
+            mutagen_type,
+            offspring_id,
+            experiment_type
+        ) values (
+            v_experiment_id,
+            p_lab_id,
+            p_parent1_id,
+            p_parent2_id,
+            null,
+            v_normalized_type,
+            p_offspring_id,
+            'CROSSBREED_MUTAGEN'
+        );
+
+        record_rating_event(
+            p_lab_id        => p_lab_id,
+            p_event_type    => 'MUTAGEN_PENALTY',
+            p_rating_delta  => v_rating_delta,
+            p_wallet_delta  => -v_wallet_cost,
+            p_description   => 'Скрещивание + мутаген: ' || v_display_name,
+            p_creature_id   => p_offspring_id,
+            p_experiment_id => v_experiment_id
+        );
+
+        auto_complete_matching_tasks(
+            p_lab_id      => p_lab_id,
+            p_creature_id => p_offspring_id
+        );
+    exception
+        when others then
+            rollback to combined_experiment_savepoint;
+            p_offspring_id := null;
+            raise;
+    end make_experiment;
+
     function get_experiment_history(
         p_lab_id           in number,
         p_experiment_type  in varchar2 default null
@@ -3274,7 +3420,8 @@ end hash_password_sha256;
                 o.creature_name as offspring_name,
                 e.mutation_id,
                 m.mutation_name,
-                e.created_at as created_at
+                e.created_at as created_at,
+                e.mutagen_type
               from experiments e
               join ref_experiment_types ret
                 on ret.experiment_type = e.experiment_type
@@ -4021,6 +4168,7 @@ end hash_password_sha256;
         v_mutation_id                number;
         v_mutation_name              varchar2(4000);
         v_created_at                 timestamp;
+        v_mutagen_type               varchar2(30);
     begin
         v_cursor := get_experiment_history(
             p_lab_id => p_lab_id
@@ -4039,7 +4187,8 @@ end hash_password_sha256;
                 v_offspring_name,
                 v_mutation_id,
                 v_mutation_name,
-                v_created_at;
+                v_created_at,
+                v_mutagen_type;
             exit when v_cursor%notfound;
 
             dbms_output.put_line(

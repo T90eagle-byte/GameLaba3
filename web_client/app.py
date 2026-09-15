@@ -114,6 +114,7 @@ def create_app() -> Flask:
         before_tasks: list[dict[str, Any]],
         after_tasks: list[dict[str, Any]],
         morphology_changes: list[dict[str, str]] | None = None,
+        mutagen_label: str | None = None,
     ) -> dict[str, Any]:
         def delta(field: str) -> float:
             try:
@@ -133,6 +134,7 @@ def create_app() -> Flask:
             "morphology_changes": morphology_changes or [],
             "morphology_observed": morphology_changes is not None,
             "has_hidden_morphology_change": morphology_changes == [],
+            "mutagen_label": mutagen_label,
         }
 
     def morphology_changes(
@@ -153,6 +155,121 @@ def create_app() -> Flask:
                     "after": trait["value"],
                 })
         return changed
+
+    def perform_crossbreed(
+        token: str,
+        lab_id: int,
+        parent1_id: int,
+        parent2_id: int,
+        offspring_name: str,
+    ) -> int:
+        before_tasks = task_service.get_tasks(token, lab_id)
+        before_stats = lab_service.get_lab_stats(token, lab_id)
+        offspring_id = crossbreed_service.crossbreed(
+            token, lab_id, parent1_id, parent2_id, offspring_name
+        )
+        if offspring_id:
+            session["action_feedback"] = action_feedback(
+                "crossbreed",
+                offspring_id,
+                before_stats,
+                lab_service.get_lab_stats(token, lab_id),
+                before_tasks,
+                task_service.get_tasks(token, lab_id),
+            )
+        return offspring_id
+
+    def perform_mutation(
+        token: str,
+        lab_id: int,
+        creature_id: int,
+        mutation_id: int,
+    ) -> int:
+        source = creature_service.get_creature_detail(token, lab_id, creature_id)
+        if not source:
+            raise ServiceError("Существо не найдено в текущей лаборатории.")
+        is_v3 = display_service.creature_genetics_version(source) == 3
+        before_genotype = creature_service.get_genotype(token, creature_id, lab_id)
+        before_morphology = creature_service.get_morphology(token, creature_id, lab_id) if is_v3 else None
+        before_tasks = task_service.get_tasks(token, lab_id)
+        before_stats = lab_service.get_lab_stats(token, lab_id)
+        mutation_service.apply_mutation(token, lab_id, creature_id, mutation_id)
+        after_genotype = creature_service.get_genotype(token, creature_id, lab_id)
+        after_morphology = creature_service.get_morphology(token, creature_id, lab_id) if is_v3 else None
+        session["genotype_highlight"] = {
+            "creature_id": creature_id,
+            "changed_slots": display_service.genotype_change_slots(before_genotype, after_genotype),
+        }
+        session["action_feedback"] = action_feedback(
+            "mutation",
+            creature_id,
+            before_stats,
+            lab_service.get_lab_stats(token, lab_id),
+            before_tasks,
+            task_service.get_tasks(token, lab_id),
+            morphology_changes(before_morphology, after_morphology) if is_v3 else None,
+        )
+        return creature_id
+
+    def perform_mutagen(
+        token: str,
+        lab_id: int,
+        creature_id: int,
+        mutagen_type: str,
+    ) -> int:
+        source = creature_service.get_creature_detail(token, lab_id, creature_id)
+        if not source:
+            raise ServiceError("Существо не найдено в текущей лаборатории.")
+        is_v3 = display_service.creature_genetics_version(source) == 3
+        before_genotype = creature_service.get_genotype(token, creature_id, lab_id)
+        before_morphology = creature_service.get_morphology(token, creature_id, lab_id) if is_v3 else None
+        before_tasks = task_service.get_tasks(token, lab_id)
+        before_stats = lab_service.get_lab_stats(token, lab_id)
+        result_id = mutation_service.apply_mutagen(token, lab_id, creature_id, mutagen_type)
+        if result_id:
+            after_genotype = creature_service.get_genotype(token, result_id, lab_id)
+            after_morphology = creature_service.get_morphology(token, result_id, lab_id) if is_v3 else None
+            session["genotype_highlight"] = {
+                "creature_id": result_id,
+                "changed_slots": display_service.genotype_change_slots(before_genotype, after_genotype),
+            }
+            session["action_feedback"] = action_feedback(
+                "mutagen",
+                result_id,
+                before_stats,
+                lab_service.get_lab_stats(token, lab_id),
+                before_tasks,
+                task_service.get_tasks(token, lab_id),
+                morphology_changes(before_morphology, after_morphology) if is_v3 else None,
+                display_service.MUTAGEN_LABELS.get(mutagen_type),
+            )
+        return result_id
+
+    def perform_combined_experiment(
+        token: str,
+        lab_id: int,
+        parent1_id: int,
+        parent2_id: int,
+        mutagen_type: str,
+        offspring_name: str,
+    ) -> int:
+        before_tasks = task_service.get_tasks(token, lab_id)
+        before_stats = lab_service.get_lab_stats(token, lab_id)
+        offspring_id = crossbreed_service.crossbreed_with_mutagen(
+            token, lab_id, parent1_id, parent2_id, mutagen_type, offspring_name
+        )
+        if offspring_id:
+            session["action_feedback"] = action_feedback(
+                "combined",
+                offspring_id,
+                before_stats,
+                lab_service.get_lab_stats(token, lab_id),
+                before_tasks,
+                task_service.get_tasks(token, lab_id),
+                None,
+                display_service.MUTAGEN_LABELS.get(mutagen_type),
+            )
+        return offspring_id
 
     @app.route("/")
     def index() -> Any:
@@ -604,26 +721,10 @@ def create_app() -> Flask:
                     if not offspring_name:
                         flash("Введите имя потомка перед созданием.", "error")
                     else:
-                        before_tasks = task_service.get_tasks(token, lab_id)
-                        before_stats = lab_service.get_lab_stats(token, lab_id)
-                        offspring_id = crossbreed_service.crossbreed(
-                            token,
-                            lab_id,
-                            parent1_id,
-                            parent2_id,
-                            offspring_name,
+                        offspring_id = perform_crossbreed(
+                            token, lab_id, parent1_id, parent2_id, offspring_name
                         )
                         if offspring_id:
-                            after_tasks = task_service.get_tasks(token, lab_id)
-                            after_stats = lab_service.get_lab_stats(token, lab_id)
-                            session["action_feedback"] = action_feedback(
-                                "crossbreed",
-                                offspring_id,
-                                before_stats,
-                                after_stats,
-                                before_tasks,
-                                after_tasks,
-                            )
                             flash("Скрещивание завершено.", "success")
                             return redirect(url_for("creature_detail", creature_id=offspring_id))
                         return redirect(url_for("creatures"))
@@ -678,33 +779,7 @@ def create_app() -> Flask:
                     mutation_id = int(request.form.get("mutation_id", "0"))
                     if creature_id <= 0 or mutation_id <= 0:
                         raise ValueError
-                    source_creature = creature_service.get_creature_detail(token, lab_id, creature_id)
-                    if not source_creature:
-                        flash("Существо не найдено в текущей лаборатории.", "warning")
-                        return redirect(url_for("mutations"))
-                    is_v3 = display_service.creature_genetics_version(source_creature) == 3
-                    before_genotype = creature_service.get_genotype(token, creature_id, lab_id)
-                    before_morphology = creature_service.get_morphology(token, creature_id, lab_id) if is_v3 else None
-                    before_tasks = task_service.get_tasks(token, lab_id)
-                    before_stats = lab_service.get_lab_stats(token, lab_id)
-                    mutation_service.apply_mutation(token, lab_id, creature_id, mutation_id)
-                    after_genotype = creature_service.get_genotype(token, creature_id, lab_id)
-                    after_morphology = creature_service.get_morphology(token, creature_id, lab_id) if is_v3 else None
-                    after_tasks = task_service.get_tasks(token, lab_id)
-                    after_stats = lab_service.get_lab_stats(token, lab_id)
-                    session["genotype_highlight"] = {
-                        "creature_id": creature_id,
-                        "changed_slots": display_service.genotype_change_slots(before_genotype, after_genotype),
-                    }
-                    session["action_feedback"] = action_feedback(
-                        "mutation",
-                        creature_id,
-                        before_stats,
-                        after_stats,
-                        before_tasks,
-                        after_tasks,
-                        morphology_changes(before_morphology, after_morphology) if is_v3 else None,
-                    )
+                    perform_mutation(token, lab_id, creature_id, mutation_id)
                     flash("Мутация применена.", "success")
                     return redirect(url_for("creature_detail", creature_id=creature_id))
 
@@ -713,34 +788,8 @@ def create_app() -> Flask:
                     mutagen_type = request.form.get("mutagen_type", "").strip().upper()
                     if creature_id <= 0 or mutagen_type not in {"RADIATION", "CHEMICAL"}:
                         raise ValueError
-                    source_creature = creature_service.get_creature_detail(token, lab_id, creature_id)
-                    if not source_creature:
-                        flash("Существо не найдено в текущей лаборатории.", "warning")
-                        return redirect(url_for("mutations"))
-                    is_v3 = display_service.creature_genetics_version(source_creature) == 3
-                    before_genotype = creature_service.get_genotype(token, creature_id, lab_id)
-                    before_morphology = creature_service.get_morphology(token, creature_id, lab_id) if is_v3 else None
-                    before_tasks = task_service.get_tasks(token, lab_id)
-                    before_stats = lab_service.get_lab_stats(token, lab_id)
-                    new_creature_id = mutation_service.apply_mutagen(token, lab_id, creature_id, mutagen_type)
+                    new_creature_id = perform_mutagen(token, lab_id, creature_id, mutagen_type)
                     if new_creature_id:
-                        after_genotype = creature_service.get_genotype(token, new_creature_id, lab_id)
-                        after_morphology = creature_service.get_morphology(token, new_creature_id, lab_id) if is_v3 else None
-                        after_tasks = task_service.get_tasks(token, lab_id)
-                        after_stats = lab_service.get_lab_stats(token, lab_id)
-                        session["genotype_highlight"] = {
-                            "creature_id": new_creature_id,
-                            "changed_slots": display_service.genotype_change_slots(before_genotype, after_genotype),
-                        }
-                        session["action_feedback"] = action_feedback(
-                            "mutagen",
-                            new_creature_id,
-                            before_stats,
-                            after_stats,
-                            before_tasks,
-                            after_tasks,
-                            morphology_changes(before_morphology, after_morphology) if is_v3 else None,
-                        )
                         flash(
                             "Облучение применено." if mutagen_type == "RADIATION" else "Химический мутаген применён.",
                             "success",
@@ -827,7 +876,7 @@ def create_app() -> Flask:
             selected_creature_id=selected_creature_id,
             lab_id=lab_id,
         )
-    @app.route("/experiments")
+    @app.route("/experiments", methods=["GET", "POST"])
     @login_required
     def experiments() -> Any:
         token = str(session["session_token"])
@@ -836,13 +885,135 @@ def create_app() -> Flask:
             flash("Сначала выберите лабораторию.", "warning")
             return redirect(url_for("labs"))
 
+        allowed_modes = {"crossbreed", "mutation", "crossbreed_mutagen", "history"}
+        mode = request.values.get("mode", "history")
+        if mode not in allowed_modes:
+            mode = "history"
+
+        selected_parent1 = request.values.get("parent1_id", "")
+        selected_parent2 = request.values.get("parent2_id", "")
+        selected_creature_id = request.values.get("creature_id", "")
+        offspring_name = request.form.get("offspring_name", "").strip()
+        selected_mutagen = request.form.get("mutagen_type", "RADIATION").strip().upper()
+        preview_options: list[dict[str, Any]] = []
+
+        if request.method == "GET" and request.args.get("parent_id"):
+            selected_parent1 = request.args.get("parent_id", "")
+
+        if request.method == "POST":
+            action = request.form.get("action", "")
+            try:
+                if action == "preview":
+                    parent1_id = int(selected_parent1 or "0")
+                    parent2_id = int(selected_parent2 or "0")
+                    preview_options = display_service.preview_views(
+                        crossbreed_service.preview_offspring_options(
+                            token, lab_id, parent1_id, parent2_id, options_count=3
+                        )
+                    )
+                    flash(f"Показано различных примеров: {len(preview_options)}.", "success")
+                elif action == "crossbreed":
+                    parent1_id = int(selected_parent1 or "0")
+                    parent2_id = int(selected_parent2 or "0")
+                    if not offspring_name:
+                        raise ValueError
+                    offspring_id = perform_crossbreed(
+                        token, lab_id, parent1_id, parent2_id, offspring_name
+                    )
+                    flash("Скрещивание завершено.", "success")
+                    return redirect(url_for("creature_detail", creature_id=offspring_id))
+                elif action == "mutation":
+                    creature_id = int(selected_creature_id or "0")
+                    mutation_id = int(request.form.get("mutation_id", "0"))
+                    perform_mutation(token, lab_id, creature_id, mutation_id)
+                    flash("Мутация применена.", "success")
+                    return redirect(url_for("creature_detail", creature_id=creature_id))
+                elif action == "crossbreed_mutagen":
+                    parent1_id = int(selected_parent1 or "0")
+                    parent2_id = int(selected_parent2 or "0")
+                    if not offspring_name or selected_mutagen not in display_service.MUTAGEN_LABELS:
+                        raise ValueError
+                    offspring_id = perform_combined_experiment(
+                        token,
+                        lab_id,
+                        parent1_id,
+                        parent2_id,
+                        selected_mutagen,
+                        offspring_name,
+                    )
+                    flash("Эксперимент завершён.", "success")
+                    return redirect(url_for("creature_detail", creature_id=offspring_id))
+                else:
+                    flash("Неизвестный режим эксперимента.", "error")
+            except (TypeError, ValueError):
+                flash("Заполните все поля эксперимента корректно.", "error")
+            except ServiceError as exc:
+                flash(str(exc), "error")
+
         try:
-            rows = history_service.get_experiment_history(token, lab_id)
+            history_rows = history_service.get_experiment_history(token, lab_id) if mode == "history" else []
+            creature_rows = creature_service.get_creatures(token, lab_id) if mode != "history" else []
+            if creature_rows:
+                creature_views, morphology_by_creature = display_creatures_for_lab(token, lab_id, creature_rows)
+                parent_cards = display_service.parent_creature_views(creature_rows, morphology_by_creature)
+            else:
+                creature_views, parent_cards = [], []
+            mutation_rows = mutation_service.get_mutation_shop(token, lab_id) if mode == "mutation" else []
         except ServiceError as exc:
             flash(str(exc), "error")
             return redirect(url_for("dashboard"))
 
-        return render_template("experiments.html", experiments=display_service.experiment_views(rows), lab_id=lab_id)
+        current_ids = {int(row.get("creature_id") or 0) for row in creature_rows}
+        try:
+            parent1_id = int(selected_parent1 or "0")
+        except (TypeError, ValueError):
+            parent1_id = 0
+        try:
+            parent2_id = int(selected_parent2 or "0")
+        except (TypeError, ValueError):
+            parent2_id = 0
+        try:
+            creature_id = int(selected_creature_id or "0")
+        except (TypeError, ValueError):
+            creature_id = 0
+        if parent1_id not in current_ids:
+            parent1_id = 0
+        if parent2_id not in current_ids:
+            parent2_id = 0
+        if creature_id not in current_ids:
+            creature_id = 0
+
+        mutations = display_service.mutation_views(mutation_rows)
+        for mutation in mutations:
+            mutation_id = int(mutation.get("mutation_id") or 0)
+            try:
+                quantity = mutation_service.get_lab_mutation_quantity(token, lab_id, mutation_id)
+            except ServiceError:
+                quantity = 0
+            mutation["quantity"] = quantity
+            mutation["quantity_label"] = display_service.number_label(quantity)
+
+        return render_template(
+            "experiments.html",
+            mode=mode,
+            modes=(
+                ("crossbreed", "Скрещивание"),
+                ("mutation", "Мутация"),
+                ("crossbreed_mutagen", "Скрещивание + мутаген"),
+                ("history", "История"),
+            ),
+            creatures=creature_views,
+            parent_cards=parent_cards,
+            mutations=mutations,
+            experiments=display_service.experiment_views(history_rows),
+            preview_options=preview_options,
+            selected_parent1=str(parent1_id or ""),
+            selected_parent2=str(parent2_id or ""),
+            selected_creature_id=str(creature_id or ""),
+            selected_mutagen=selected_mutagen,
+            offspring_name=offspring_name,
+            lab_id=lab_id,
+        )
 
     @app.route("/rating-events")
     @login_required

@@ -66,6 +66,7 @@ REQUIRED_ROUTINES = frozenset(
         "BUY_MUTATION",
         "APPLY_MUTATION",
         "APPLY_MUTAGEN",
+        "MAKE_EXPERIMENT",
         "GET_EXPERIMENT_HISTORY",
         "GET_RATING_EVENTS_CURSOR",
         "GET_TASKS_CURSOR",
@@ -92,6 +93,10 @@ REQUIRED_SIGNATURES: dict[str, tuple[frozenset[str], ...]] = {
     "BUY_MUTATION": (frozenset({"P_LAB_ID", "P_MUTATION_ID"}),),
     "APPLY_MUTATION": (frozenset({"P_CREATURE_ID", "P_MUTATION_ID"}),),
     "APPLY_MUTAGEN": (frozenset({"P_CREATURE_ID", "P_MUTAGEN_TYPE", "P_NEW_CREATURE_ID"}),),
+    "MAKE_EXPERIMENT": (
+        frozenset({"P_LAB_ID", "P_PARENT1_ID", "P_PARENT2_ID", "P_MUTATION_ID", "P_OFFSPRING_NAME", "P_OFFSPRING_ID"}),
+        frozenset({"P_LAB_ID", "P_PARENT1_ID", "P_PARENT2_ID", "P_MUTAGEN_TYPE", "P_OFFSPRING_NAME", "P_OFFSPRING_ID"}),
+    ),
     "CHECK_TASK": (frozenset({"P_LAB_ID", "P_TASK_ID", "P_CREATURE_ID"}),),
     "COMPLETE_TASK": (
         frozenset({"P_LAB_ID", "P_TASK_ID", "P_CREATURE_ID", "P_IS_COMPLETED", "P_WALLET_AFTER", "P_RATING_AFTER"}),

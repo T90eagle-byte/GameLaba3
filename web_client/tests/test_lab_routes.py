@@ -640,8 +640,8 @@ class LabRouteTests(unittest.TestCase):
         get_morphology.assert_called_once_with("current-token", 18, 7)
         self.assertIn("Морфология".encode(), response.data)
         self.assertIn("Синий".encode(), response.data)
-        self.assertIn(b'href="/crossbreed?parent_id=18"', response.data)
-        self.assertIn(b'href="/mutations?creature_id=18"', response.data)
+        self.assertIn(b'href="/experiments?mode=crossbreed&amp;parent_id=18"', response.data)
+        self.assertIn(b'href="/experiments?mode=mutation&amp;creature_id=18"', response.data)
         self.assertNotIn(b"legacy_green", response.data)
         self.assertNotIn(b"legacy_small", response.data)
 

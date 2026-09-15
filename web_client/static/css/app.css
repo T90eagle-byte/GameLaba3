@@ -1021,6 +1021,19 @@ button,
 .feature-soft-fur .creature-svg .fur-lines { opacity: .72; stroke-dasharray: 2 5; }
 .feature-dense-fur .creature-svg .fur-lines { opacity: 1; stroke-width: 3.1; }
 
+.experiment-tabs { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0 0 1rem; }
+.experiment-tabs .button { flex: 0 1 auto; min-width: 9.5rem; }
+.experiment-workspace { margin-bottom: 1.25rem; }
+.mutagen-choice { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: 8px; }
+.mutagen-choice legend { padding: 0 .35rem; font-weight: 700; }
+.mutagen-choice label { display: inline-flex; align-items: center; gap: .4rem; }
+.experiment-history { margin-top: 1rem; }
+
+@media (max-width: 620px) {
+  .experiment-tabs { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .experiment-tabs .button { width: 100%; }
+}
+
 @media (max-width: 760px) {
   .creature-portrait { min-height: 178px; }
   .creature-portrait.large { min-height: 244px; }

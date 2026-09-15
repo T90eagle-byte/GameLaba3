@@ -168,6 +168,26 @@ def main() -> None:
         after_create_count = len(creature_service.get_creatures(token, lab_id))
         require(after_create_count > after_preview_count, "real crossbreed did not create offspring")
         ok("crossbreed preview is stateless and real crossbreed creates offspring")
+
+        response = client.post(
+            "/experiments",
+            data={
+                "mode": "crossbreed_mutagen",
+                "action": "crossbreed_mutagen",
+                "parent1_id": parent1_id,
+                "parent2_id": parent2_id,
+                "offspring_name": "Smoke combined offspring",
+                "mutagen_type": "RADIATION",
+            },
+            follow_redirects=True,
+        )
+        require(response.status_code == 200, "combined experiment route failed")
+        combined_html = response.get_data(as_text=True)
+        require("Эксперимент завершён" in combined_html, "combined experiment feedback is missing")
+        require("Облучение" in combined_html, "combined experiment mutagen label is missing")
+        after_combined_count = len(creature_service.get_creatures(token, lab_id))
+        require(after_combined_count == after_create_count + 1, "combined experiment did not create exactly one offspring")
+        ok("combined experiment route creates one in-place-mutated offspring")
     else:
         skip("no compatible parent pair found")
 
