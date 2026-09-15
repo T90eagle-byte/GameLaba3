@@ -134,6 +134,68 @@ class CrossbreedPreviewRouteTests(unittest.TestCase):
         svg_ids = re.findall(r'\bid="((?:portraitGlow|bodyTone|creatureShade|wingTone|portraitShadow)-[^"]+)"', markup)
         self.assertEqual(len(svg_ids), len(set(svg_ids)))
 
+    @patch.object(app_module.creature_service, "get_creatures")
+    def test_parent_from_detail_is_preselected_by_query_parameter(self, get_creatures) -> None:
+        get_creatures.return_value = [creature(10), creature(11)]
+
+        response = self.client.get("/crossbreed?parent_id=10")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('value="10" selected', markup)
+        self.assertIn('data-parent-card="one" data-creature-id="10"', markup)
+
+    @patch.object(app_module.creature_service, "get_creatures")
+    def test_foreign_or_invalid_parent_is_not_preselected(self, get_creatures) -> None:
+        get_creatures.return_value = [creature(10)]
+
+        response = self.client.get("/crossbreed?parent_id=999")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('value="999" selected', markup)
+        self.assertIn("Выбранное существо недоступно для скрещивания", markup)
+
+    @patch.object(app_module.lab_service, "get_lab_stats", side_effect=[{"wallet": 1000, "rating": 0}, {"wallet": 1300, "rating": 35}])
+    @patch.object(
+        app_module.task_service,
+        "get_tasks",
+        side_effect=[
+            [{"task_id": 5, "task_name": "task_armored_crustacean", "task_status": "ACTIVE", "reward_money": 300, "reward_rating": 35}],
+            [{"task_id": 5, "task_name": "task_armored_crustacean", "task_status": "COMPLETED", "reward_money": 300, "reward_rating": 35}],
+        ],
+    )
+    @patch.object(app_module.crossbreed_service, "crossbreed", return_value=42)
+    @patch.object(app_module.creature_service, "get_creatures")
+    def test_crossbreed_feedback_keeps_only_new_task_reward(
+        self,
+        get_creatures,
+        crossbreed,
+        _get_tasks,
+        _get_stats,
+    ) -> None:
+        get_creatures.return_value = [creature(10), creature(11)]
+
+        response = self.client.post(
+            "/crossbreed",
+            data={"action": "create", "parent1_id": "10", "parent2_id": "11", "offspring_name": "Новый потомок"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, "/creatures/42")
+        crossbreed.assert_called_once_with("preview-token", 7, 10, 11, "Новый потомок")
+        with self.client.session_transaction() as flask_session:
+            feedback = flask_session["action_feedback"]
+        self.assertEqual(feedback["completed_tasks"], [{
+            "name": "Бронированный ракообразный",
+            "money": 300,
+            "rating": 35,
+            "money_label": "+300",
+            "rating_label": "+35",
+        }])
+        self.assertEqual(feedback["wallet_delta_label"], "+300")
+        self.assertEqual(feedback["rating_delta_label"], "+35")
+
 
 if __name__ == "__main__":
     unittest.main()

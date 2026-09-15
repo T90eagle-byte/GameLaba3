@@ -68,6 +68,92 @@ def create_app() -> Flask:
             )
         return display_service.creature_views(rows, morphology_by_creature), morphology_by_creature
 
+    def selected_creature_row(
+        rows: list[dict[str, Any]],
+        creature_id: int,
+    ) -> dict[str, Any] | None:
+        return next(
+            (
+                row for row in rows
+                if int(row.get("creature_id") or 0) == creature_id
+            ),
+            None,
+        )
+
+    def completed_task_feedback(
+        before_rows: list[dict[str, Any]],
+        after_rows: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Return only completions caused by the just-finished package operation."""
+        before_statuses = {
+            int(row.get("task_id") or 0): str(row.get("task_status") or "").upper()
+            for row in before_rows
+        }
+        completed: list[dict[str, Any]] = []
+        for task in display_service.task_views(after_rows):
+            task_id = int(task.get("task_id") or 0)
+            if (
+                task_id
+                and str(task.get("task_status") or "").upper() == "COMPLETED"
+                and before_statuses.get(task_id) != "COMPLETED"
+            ):
+                completed.append({
+                    "name": task["display_name"],
+                    "money": task.get("reward_money") or 0,
+                    "rating": task.get("reward_rating") or 0,
+                    "money_label": display_service.signed_number_label(task.get("reward_money") or 0),
+                    "rating_label": display_service.signed_number_label(task.get("reward_rating") or 0),
+                })
+        return completed
+
+    def action_feedback(
+        kind: str,
+        result_creature_id: int,
+        before_stats: dict[str, Any],
+        after_stats: dict[str, Any],
+        before_tasks: list[dict[str, Any]],
+        after_tasks: list[dict[str, Any]],
+        morphology_changes: list[dict[str, str]] | None = None,
+    ) -> dict[str, Any]:
+        def delta(field: str) -> float:
+            try:
+                return float(after_stats.get(field) or 0) - float(before_stats.get(field) or 0)
+            except (TypeError, ValueError):
+                return 0.0
+
+        wallet_delta = delta("wallet")
+        rating_delta = delta("rating")
+        return {
+            "kind": kind,
+            "result_creature_id": result_creature_id,
+            "wallet_delta_label": display_service.signed_number_label(wallet_delta),
+            "rating_delta_label": display_service.signed_number_label(rating_delta),
+            "has_balance_delta": bool(wallet_delta or rating_delta),
+            "completed_tasks": completed_task_feedback(before_tasks, after_tasks),
+            "morphology_changes": morphology_changes or [],
+            "morphology_observed": morphology_changes is not None,
+            "has_hidden_morphology_change": morphology_changes == [],
+        }
+
+    def morphology_changes(
+        before_rows: list[dict[str, Any]],
+        after_rows: list[dict[str, Any]],
+    ) -> list[dict[str, str]]:
+        before = {
+            trait["key"]: trait
+            for trait in display_service.morphology_traits(before_rows)
+        }
+        changed: list[dict[str, str]] = []
+        for trait in display_service.morphology_traits(after_rows):
+            previous = before.get(trait["key"])
+            if previous and previous["value"] != trait["value"]:
+                changed.append({
+                    "label": trait["label"],
+                    "before": previous["value"],
+                    "after": trait["value"],
+                })
+        return changed
+
     @app.route("/")
     def index() -> Any:
         if session.get("session_token"):
@@ -356,6 +442,9 @@ def create_app() -> Flask:
             return redirect(url_for("creatures"))
 
         highlight = session.pop("genotype_highlight", None)
+        action_result = session.pop("action_feedback", None)
+        if not isinstance(action_result, dict) or action_result.get("result_creature_id") != creature_id:
+            action_result = None
         changed_slots: dict[str, list[str]] = {}
         if isinstance(highlight, dict) and highlight.get("creature_id") == creature_id:
             candidate = highlight.get("changed_slots")
@@ -371,6 +460,7 @@ def create_app() -> Flask:
             "creature_detail.html",
             creature=creature_view,
             genotype=display_service.genotype_view(genotype, creature_view["phenotype_items"], changed_slots),
+            action_result=action_result,
             lab_id=lab_id,
         )
 
@@ -400,11 +490,18 @@ def create_app() -> Flask:
                     return redirect(url_for("tasks"))
 
                 if action == "complete":
+                    task_rows = task_service.get_tasks(token, lab_id)
                     result = task_service.complete_task(token, lab_id, task_id, creature_id)
                     if result["is_completed"]:
+                        task = next(
+                            (item for item in display_service.task_views(task_rows) if int(item.get("task_id") or 0) == task_id),
+                            None,
+                        )
+                        task_name = task["display_name"] if task else "Задание"
+                        money = display_service.number_label(task.get("reward_money") if task else 0)
+                        rating = display_service.number_label(task.get("reward_rating") if task else 0)
                         flash(
-                            "Задание выполнено. Монеты: "
-                            f"{display_service.number_label(result['wallet_after'])}, рейтинг: {display_service.number_label(result['rating_after'])}.",
+                            f"Задание выполнено: {task_name}. Получено: +{money} монет, +{rating} рейтинга.",
                             "success",
                         )
                     else:
@@ -469,6 +566,18 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("dashboard"))
 
+        if request.method == "GET":
+            requested_parent = request.args.get("parent_id", "")
+            if requested_parent:
+                try:
+                    parent_id = int(requested_parent)
+                except (TypeError, ValueError):
+                    parent_id = 0
+                if parent_id > 0 and selected_creature_row(creatures_rows, parent_id):
+                    selected_parent1 = str(parent_id)
+                else:
+                    flash("Выбранное существо недоступно для скрещивания в текущей лаборатории.", "warning")
+
         if request.method == "POST":
             action = request.form.get("action", "")
             try:
@@ -495,6 +604,8 @@ def create_app() -> Flask:
                     if not offspring_name:
                         flash("Введите имя потомка перед созданием.", "error")
                     else:
+                        before_tasks = task_service.get_tasks(token, lab_id)
+                        before_stats = lab_service.get_lab_stats(token, lab_id)
                         offspring_id = crossbreed_service.crossbreed(
                             token,
                             lab_id,
@@ -502,8 +613,18 @@ def create_app() -> Flask:
                             parent2_id,
                             offspring_name,
                         )
-                        flash(f"Потомок создан: #{offspring_id}.", "success")
                         if offspring_id:
+                            after_tasks = task_service.get_tasks(token, lab_id)
+                            after_stats = lab_service.get_lab_stats(token, lab_id)
+                            session["action_feedback"] = action_feedback(
+                                "crossbreed",
+                                offspring_id,
+                                before_stats,
+                                after_stats,
+                                before_tasks,
+                                after_tasks,
+                            )
+                            flash("Скрещивание завершено.", "success")
                             return redirect(url_for("creature_detail", creature_id=offspring_id))
                         return redirect(url_for("creatures"))
                 else:
@@ -557,14 +678,34 @@ def create_app() -> Flask:
                     mutation_id = int(request.form.get("mutation_id", "0"))
                     if creature_id <= 0 or mutation_id <= 0:
                         raise ValueError
+                    source_creature = creature_service.get_creature_detail(token, lab_id, creature_id)
+                    if not source_creature:
+                        flash("Существо не найдено в текущей лаборатории.", "warning")
+                        return redirect(url_for("mutations"))
+                    is_v3 = display_service.creature_genetics_version(source_creature) == 3
                     before_genotype = creature_service.get_genotype(token, creature_id, lab_id)
+                    before_morphology = creature_service.get_morphology(token, creature_id, lab_id) if is_v3 else None
+                    before_tasks = task_service.get_tasks(token, lab_id)
+                    before_stats = lab_service.get_lab_stats(token, lab_id)
                     mutation_service.apply_mutation(token, lab_id, creature_id, mutation_id)
                     after_genotype = creature_service.get_genotype(token, creature_id, lab_id)
+                    after_morphology = creature_service.get_morphology(token, creature_id, lab_id) if is_v3 else None
+                    after_tasks = task_service.get_tasks(token, lab_id)
+                    after_stats = lab_service.get_lab_stats(token, lab_id)
                     session["genotype_highlight"] = {
                         "creature_id": creature_id,
                         "changed_slots": display_service.genotype_change_slots(before_genotype, after_genotype),
                     }
-                    flash("Мутация применена. Откройте карточку существа, чтобы увидеть изменения.", "success")
+                    session["action_feedback"] = action_feedback(
+                        "mutation",
+                        creature_id,
+                        before_stats,
+                        after_stats,
+                        before_tasks,
+                        after_tasks,
+                        morphology_changes(before_morphology, after_morphology) if is_v3 else None,
+                    )
+                    flash("Мутация применена.", "success")
                     return redirect(url_for("creature_detail", creature_id=creature_id))
 
                 if action == "apply_mutagen":
@@ -572,15 +713,38 @@ def create_app() -> Flask:
                     mutagen_type = request.form.get("mutagen_type", "").strip().upper()
                     if creature_id <= 0 or mutagen_type not in {"RADIATION", "CHEMICAL"}:
                         raise ValueError
+                    source_creature = creature_service.get_creature_detail(token, lab_id, creature_id)
+                    if not source_creature:
+                        flash("Существо не найдено в текущей лаборатории.", "warning")
+                        return redirect(url_for("mutations"))
+                    is_v3 = display_service.creature_genetics_version(source_creature) == 3
                     before_genotype = creature_service.get_genotype(token, creature_id, lab_id)
+                    before_morphology = creature_service.get_morphology(token, creature_id, lab_id) if is_v3 else None
+                    before_tasks = task_service.get_tasks(token, lab_id)
+                    before_stats = lab_service.get_lab_stats(token, lab_id)
                     new_creature_id = mutation_service.apply_mutagen(token, lab_id, creature_id, mutagen_type)
-                    flash("Мутагент применён. Проверьте изменения рейтинга, монет и список существ.", "success")
                     if new_creature_id:
                         after_genotype = creature_service.get_genotype(token, new_creature_id, lab_id)
+                        after_morphology = creature_service.get_morphology(token, new_creature_id, lab_id) if is_v3 else None
+                        after_tasks = task_service.get_tasks(token, lab_id)
+                        after_stats = lab_service.get_lab_stats(token, lab_id)
                         session["genotype_highlight"] = {
                             "creature_id": new_creature_id,
                             "changed_slots": display_service.genotype_change_slots(before_genotype, after_genotype),
                         }
+                        session["action_feedback"] = action_feedback(
+                            "mutagen",
+                            new_creature_id,
+                            before_stats,
+                            after_stats,
+                            before_tasks,
+                            after_tasks,
+                            morphology_changes(before_morphology, after_morphology) if is_v3 else None,
+                        )
+                        flash(
+                            "Облучение применено." if mutagen_type == "RADIATION" else "Химический мутаген применён.",
+                            "success",
+                        )
                         return redirect(url_for("creature_detail", creature_id=new_creature_id))
                     return redirect(url_for("mutations"))
 
@@ -601,7 +765,23 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("dashboard"))
 
-        creature_views = display_service.creature_views(creatures_rows)
+        creature_views, _ = display_creatures_for_lab(token, lab_id, creatures_rows)
+        selected_creature_id = 0
+        if request.method == "GET" and request.args.get("creature_id"):
+            try:
+                selected_creature_id = int(request.args.get("creature_id", "0"))
+            except (TypeError, ValueError):
+                selected_creature_id = 0
+            if selected_creature_id and not selected_creature_row(creatures_rows, selected_creature_id):
+                flash("Выбранное существо недоступно в текущей лаборатории.", "warning")
+                selected_creature_id = 0
+        selected_creature = next(
+            (
+                creature for creature in creature_views
+                if int(creature.get("creature_id") or 0) == selected_creature_id
+            ),
+            None,
+        )
         mutations = display_service.mutation_views(shop_rows)
         for mutation in mutations:
             mutation_id = int(mutation.get("mutation_id") or 0)
@@ -643,6 +823,8 @@ def create_app() -> Flask:
             mutations=mutations,
             purchased_mutations=purchased_mutations,
             mutation_purchase_count=display_service.count_mutation_purchases(rating_rows),
+            selected_creature=selected_creature,
+            selected_creature_id=selected_creature_id,
             lab_id=lab_id,
         )
     @app.route("/experiments")

@@ -343,6 +343,197 @@ class LabRouteTests(unittest.TestCase):
                 flask_session["_flashes"],
             )
 
+    @patch.object(app_module.rating_service, "get_rating_events", return_value=[])
+    @patch.object(app_module.mutation_service, "get_mutation_shop", return_value=[])
+    @patch.object(app_module.creature_service, "get_creatures")
+    @patch.object(app_module.lab_service, "get_lab_stats", return_value={"wallet": 1000, "rating": 0})
+    def test_mutation_query_preselects_current_lab_creature_and_portrait(
+        self,
+        _get_stats: Mock,
+        get_creatures: Mock,
+        _get_shop: Mock,
+        _get_events: Mock,
+    ) -> None:
+        get_creatures.return_value = [{
+            "creature_id": 17,
+            "creature_name": "Рыба-исследователь",
+            "species_type": "cartilaginous_fish",
+            "phenotype_summary": "color=blue_color; has_wings=no_wings; nutrition_type=herbivore; size=medium_size",
+        }]
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/mutations?creature_id=17")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Выбранное существо".encode(), response.data)
+        self.assertIn(b"mutation-selected-17", response.data)
+        self.assertIn('id="mutation-creature-select"', markup)
+        self.assertIn('value="17" data-creature-name="#17', markup)
+        self.assertIn('value="17" selected', markup)
+
+    @patch.object(app_module.rating_service, "get_rating_events", return_value=[])
+    @patch.object(app_module.mutation_service, "get_mutation_shop", return_value=[])
+    @patch.object(app_module.creature_service, "get_creatures", return_value=[])
+    @patch.object(app_module.lab_service, "get_lab_stats", return_value={"wallet": 1000, "rating": 0})
+    def test_foreign_or_invalid_mutation_creature_is_safe(
+        self,
+        _get_stats: Mock,
+        _get_creatures: Mock,
+        _get_shop: Mock,
+        _get_events: Mock,
+    ) -> None:
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/mutations?creature_id=999")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Выбранное существо недоступно в текущей лаборатории".encode(), response.data)
+        self.assertNotIn(b"mutation-selected-999", response.data)
+
+    @patch.object(app_module.task_service, "complete_task", return_value={"is_completed": 1, "wallet_after": 1300, "rating_after": 35})
+    @patch.object(app_module.task_service, "get_tasks", return_value=[{
+        "task_id": 5,
+        "task_name": "task_armored_crustacean",
+        "task_status": "ACTIVE",
+        "reward_money": 300,
+        "reward_rating": 35,
+    }])
+    def test_manual_task_completion_shows_actual_reward_delta(
+        self,
+        _get_tasks: Mock,
+        _complete_task: Mock,
+    ) -> None:
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.post(
+            "/tasks",
+            data={"action": "complete", "task_id": "5", "creature_id": "17"},
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Задание выполнено: Бронированный ракообразный.".encode(), response.data)
+        self.assertIn("Получено: +300 монет, +35 рейтинга.".encode(), response.data)
+
+    @patch.object(app_module.lab_service, "get_lab_stats", side_effect=[{"wallet": 1000, "rating": 0}, {"wallet": 1900, "rating": 30}])
+    @patch.object(app_module.task_service, "get_tasks", side_effect=[
+        [{"task_id": 181, "task_name": "task_v3_brown_cetacean", "task_status": "ACTIVE", "reward_money": 900, "reward_rating": 30}],
+        [{"task_id": 181, "task_name": "task_v3_brown_cetacean", "task_status": "COMPLETED", "reward_money": 900, "reward_rating": 30}],
+    ])
+    @patch.object(app_module.creature_service, "get_morphology")
+    @patch.object(app_module.creature_service, "get_creature_detail", return_value=v3_creature())
+    @patch.object(app_module.creature_service, "get_genotype")
+    @patch.object(app_module.mutation_service, "apply_mutation")
+    def test_v3_mutation_feedback_uses_oracle_morphology_and_new_task_delta(
+        self,
+        _apply_mutation: Mock,
+        get_genotype: Mock,
+        _get_detail: Mock,
+        get_morphology: Mock,
+        _get_tasks: Mock,
+        _get_stats: Mock,
+    ) -> None:
+        before_morphology = v3_morphology_rows()
+        after_morphology = [dict(row) for row in before_morphology]
+        for row in before_morphology:
+            if row["gene_code"] == "body_color":
+                row["gene_display_name"] = "Цвет тела"
+                row["expressed_display_name"] = "Синий"
+        for row in after_morphology:
+            if row["gene_code"] == "body_color":
+                row["gene_display_name"] = "Цвет тела"
+                row["expressed_display_name"] = "Красный"
+                row["expressed_allele_code"] = "red"
+        get_morphology.side_effect = [before_morphology, after_morphology]
+        get_genotype.side_effect = [
+            [{"gene_id": 1, "gene_name": "body_color", "allele1_id": 10, "allele2_id": 20}],
+            [{"gene_id": 1, "gene_name": "body_color", "allele1_id": 30, "allele2_id": 20}],
+        ]
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.post("/mutations", data={"action": "apply_mutation", "creature_id": "17", "mutation_id": "5"})
+
+        self.assertEqual(response.status_code, 302)
+        with self.client.session_transaction() as flask_session:
+            feedback = flask_session["action_feedback"]
+        self.assertEqual(feedback["morphology_changes"], [{"label": "Цвет тела", "before": "Синий", "after": "Красный"}])
+        self.assertEqual(feedback["completed_tasks"][0]["name"], "Специальное задание")
+        self.assertEqual(feedback["wallet_delta_label"], "+900")
+        self.assertEqual(feedback["rating_delta_label"], "+30")
+
+    @patch.object(app_module.creature_service, "get_morphology")
+    @patch.object(app_module.creature_service, "get_genotype", return_value=[])
+    @patch.object(app_module.creature_service, "get_creature_detail")
+    def test_v3_action_result_shows_russian_trait_and_task_rewards(
+        self,
+        get_detail: Mock,
+        _get_genotype: Mock,
+        get_morphology: Mock,
+    ) -> None:
+        get_detail.return_value = v3_creature()
+        get_morphology.return_value = v3_morphology_rows()
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+            flask_session["action_feedback"] = {
+                "kind": "mutation",
+                "result_creature_id": 17,
+                "morphology_observed": True,
+                "morphology_changes": [{"label": "Цвет тела", "before": "Синий", "after": "Красный"}],
+                "has_hidden_morphology_change": False,
+                "completed_tasks": [{"name": "Дискообразный пилонос", "money_label": "+900", "rating_label": "+30"}],
+                "has_balance_delta": True,
+                "wallet_delta_label": "+900",
+                "rating_delta_label": "+30",
+            }
+
+        response = self.client.get("/creatures/17")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Мутация применена".encode(), response.data)
+        self.assertIn("Цвет тела".encode(), response.data)
+        self.assertIn("Синий → Красный".encode(), response.data)
+        self.assertIn("Дискообразный пилонос".encode(), response.data)
+        self.assertIn("+900 монет".encode(), response.data)
+        feedback_markup = markup.split("action-result-panel", 1)[1].split("</section>", 1)[0]
+        self.assertNotIn("body_color", feedback_markup)
+        self.assertNotIn("task_v3_", feedback_markup)
+
+        refreshed = self.client.get("/creatures/17")
+        self.assertNotIn(b"action-result-panel", refreshed.data)
+
+    @patch.object(app_module.creature_service, "get_morphology", return_value=v3_morphology_rows())
+    @patch.object(app_module.creature_service, "get_genotype", return_value=[])
+    @patch.object(app_module.creature_service, "get_creature_detail")
+    def test_hidden_v3_mutation_does_not_claim_visible_change(
+        self,
+        get_detail: Mock,
+        _get_genotype: Mock,
+        _get_morphology: Mock,
+    ) -> None:
+        get_detail.return_value = {**v3_creature(), "creature_name": "Скат"}
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+            flask_session["action_feedback"] = {
+                "kind": "mutation",
+                "result_creature_id": 17,
+                "morphology_observed": True,
+                "morphology_changes": [],
+                "has_hidden_morphology_change": True,
+                "completed_tasks": [],
+                "has_balance_delta": False,
+            }
+
+        response = self.client.get("/creatures/17")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Мутация произошла, но проявившийся признак не изменился.".encode(), response.data)
+
     @patch.object(app_module.history_service, "get_experiment_history")
     def test_experiments_links_to_offspring_id_from_history_cursor(self, get_history: Mock) -> None:
         get_history.return_value = [{
@@ -449,6 +640,8 @@ class LabRouteTests(unittest.TestCase):
         get_morphology.assert_called_once_with("current-token", 18, 7)
         self.assertIn("Морфология".encode(), response.data)
         self.assertIn("Синий".encode(), response.data)
+        self.assertIn(b'href="/crossbreed?parent_id=18"', response.data)
+        self.assertIn(b'href="/mutations?creature_id=18"', response.data)
         self.assertNotIn(b"legacy_green", response.data)
         self.assertNotIn(b"legacy_small", response.data)
 
@@ -490,12 +683,18 @@ class LabRouteTests(unittest.TestCase):
         self.assertNotIn(b"gene-card-changed", ordinary.data)
         self.assertNotIn(b"allele-changed", ordinary.data)
 
+    @patch.object(app_module.lab_service, "get_lab_stats", return_value={"wallet": 1000, "rating": 0})
+    @patch.object(app_module.task_service, "get_tasks", return_value=[])
+    @patch.object(app_module.creature_service, "get_creature_detail", return_value={"creature_id": 17, "genetics_version": 1})
     @patch.object(app_module.creature_service, "get_genotype")
     @patch.object(app_module.mutation_service, "apply_mutation")
     def test_apply_mutation_records_actual_genotype_diff_for_next_detail(
         self,
         apply_mutation: Mock,
         get_genotype: Mock,
+        _get_creature_detail: Mock,
+        _get_tasks: Mock,
+        _get_stats: Mock,
     ) -> None:
         get_genotype.side_effect = [
             [{"gene_id": 1, "gene_name": "color", "allele1_id": 10, "allele2_id": 20}],
@@ -511,12 +710,18 @@ class LabRouteTests(unittest.TestCase):
         with self.client.session_transaction() as flask_session:
             self.assertEqual(flask_session["genotype_highlight"], {"creature_id": 17, "changed_slots": {"color": ["allele1"]}})
 
+    @patch.object(app_module.lab_service, "get_lab_stats", return_value={"wallet": 950, "rating": -5})
+    @patch.object(app_module.task_service, "get_tasks", return_value=[])
+    @patch.object(app_module.creature_service, "get_creature_detail", return_value={"creature_id": 17, "genetics_version": 1})
     @patch.object(app_module.creature_service, "get_genotype")
     @patch.object(app_module.mutation_service, "apply_mutagen", return_value=33)
     def test_apply_mutagen_records_new_creature_genotype_diff_for_next_detail(
         self,
         apply_mutagen: Mock,
         get_genotype: Mock,
+        _get_creature_detail: Mock,
+        _get_tasks: Mock,
+        _get_stats: Mock,
     ) -> None:
         get_genotype.side_effect = [
             [{"gene_id": 2, "gene_name": "size", "allele1_id": 10, "allele2_id": 20}],
