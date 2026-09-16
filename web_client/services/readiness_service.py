@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 import re
 from typing import Any
 
@@ -10,6 +11,62 @@ from services.oracle import ServiceError, get_connection, map_oracle_error
 
 
 PACKAGE_NAME = "PKG_GENETICS_GAME"
+
+
+def _load_current_schema_version() -> int:
+    candidates = (
+        Path(__file__).resolve().parents[2] / "database" / "installers" / "mark_current_schema_version.sql",
+        Path(__file__).resolve().parents[1] / "database" / "installers" / "mark_current_schema_version.sql",
+    )
+    for path in candidates:
+        if not path.exists():
+            continue
+        match = re.search(
+            r"^\s*v_current_version\s+constant\s+number\s*:=\s*(\d+);\s*$",
+            path.read_text(encoding="utf-8"),
+            flags=re.MULTILINE | re.IGNORECASE,
+        )
+        if match:
+            return int(match.group(1))
+    raise RuntimeError("BioSborka schema version contract is missing or invalid.")
+
+
+CURRENT_SCHEMA_VERSION = _load_current_schema_version()
+EXPECTED_ARCHETYPE_CODES = frozenset(
+    {
+        "shark", "ray", "sawfish", "generic_bony_fish", "eel", "pufferfish",
+        "crab", "crayfish", "shrimp", "octopus", "squid", "snail",
+        "sea_turtle", "sea_snake", "whale", "dolphin", "seal", "walrus",
+    }
+)
+EXPECTED_MORPHOLOGY_GENES = frozenset(
+    {
+        "body_shape", "body_proportion", "body_size", "body_cover", "body_color",
+        "mouth_type", "snout_type", "eye_type", "front_appendage_count",
+        "front_appendage_type", "front_appendage_size", "rear_appendage_count",
+        "rear_appendage_type", "rear_appendage_size", "tail_type", "tail_size",
+        "dorsal_type", "dorsal_size",
+    }
+)
+EXPECTED_MODEL_GENES = {
+    1: frozenset(
+        {
+            "0:color", "0:size", "0:nutrition_type", "0:has_wings",
+            "1:fin_shape", "2:fin_shape", "3:claw_form", "3:shell_armor",
+            "4:beak_nose_shape", "5:shell_armor", "5:speed_level", "6:fur_density",
+        }
+    ),
+    3: frozenset({f"0:{name}" for name in EXPECTED_MORPHOLOGY_GENES} | {"0:nutrition_type"}),
+}
+EXPECTED_V3_TASKS = frozenset(
+    {
+        "task_v3_disc_saw", "task_v3_eel_yellow", "task_v3_shrimp_claws",
+        "task_v3_cephalopod_shell", "task_v3_snake_shell", "task_v3_cetacean_broad",
+        "task_v3_brown_cetacean", "task_v3_giant_pinniped", "task_v3_disc_fish_tail",
+        "task_v3_cetacean_rear_flippers", "task_v3_white_broad_cephalopod",
+        "task_v3_long_tailed_pointed",
+    }
+)
 REQUIRED_TABLES = frozenset(
     {
         "USERS",
@@ -37,6 +94,10 @@ REQUIRED_TABLES = frozenset(
         "REF_TASK_DIFFICULTIES",
         "REF_RATING_EVENT_TYPES",
         "REF_EXPERIMENT_ECONOMICS",
+        "REF_CREATURE_ARCHETYPES",
+        "REF_ARCHETYPE_ALLELES",
+        "REF_GENETICS_MODEL_GENES",
+        "APP_INSTALL_STATE",
     }
 )
 REQUIRED_ROUTINES = frozenset(
@@ -109,11 +170,11 @@ REQUIRED_SIGNATURES: dict[str, tuple[frozenset[str], ...]] = {
 }
 SEED_MINIMUMS = {
     "species": ("REF_SPECIES_TYPES", 8),
-    "genes": ("GENES", 12),
-    "alleles": ("ALLELES", 38),
+    "genes": ("GENES", 30),
+    "alleles": ("ALLELES", 136),
     "mutations": ("MUTATIONS", 20),
     "mutation_rules": ("MUTATION_RULES", 20),
-    "tasks": ("TASKS", 21),
+    "tasks": ("TASKS", 33),
     "task_markers": ("TASK_MARKERS", 21),
 }
 
@@ -135,6 +196,14 @@ class SchemaSnapshot:
     experiment_types: frozenset[str]
     rating_event_types: frozenset[str]
     hybrid_economics_ready: bool
+    install_version: int | None
+    schema_columns: frozenset[str]
+    archetype_codes: frozenset[str]
+    archetype_template_count: int
+    archetypes_with_invalid_template_count: int
+    morphology_genes: frozenset[str]
+    model_genes: dict[int, frozenset[str]]
+    v3_task_names: frozenset[str]
 
 
 def _in_binds(prefix: str, values: list[str]) -> tuple[str, dict[str, str]]:
@@ -197,6 +266,27 @@ def collect_schema_snapshot(connection: oracledb.Connection) -> SchemaSnapshot:
         package_error_count = int(cursor.fetchone()[0] or 0)
 
         columns: dict[str, str] = {}
+        schema_columns: frozenset[str] = frozenset()
+        tracked_columns = {
+            "LABS": {"SESSION_ID", "LAB_NAME", "GENETICS_VERSION"},
+            "TASKS": {"GENETICS_VERSION"},
+            "EXPERIMENTS": {"MUTAGEN_TYPE"},
+            "CREATURES": {"ARCHETYPE_ID"},
+            "GENES": {"GAMEPLAY_ENABLED"},
+            "ALLELES": {"DISPLAY_NAME"},
+        }
+        cursor.execute(
+            """
+            select table_name, column_name
+              from user_tab_columns
+             where table_name in ('LABS', 'TASKS', 'EXPERIMENTS', 'CREATURES', 'GENES', 'ALLELES')
+            """
+        )
+        schema_columns = frozenset(
+            f"{str(table_name).upper()}.{str(column_name).upper()}"
+            for table_name, column_name in cursor.fetchall()
+            if str(column_name).upper() in tracked_columns.get(str(table_name).upper(), set())
+        )
         if "LABS" in tables:
             cursor.execute(
                 """
@@ -302,6 +392,74 @@ def collect_schema_snapshot(connection: oracledb.Connection) -> SchemaSnapshot:
             )
             hybrid_economics_ready = int(cursor.fetchone()[0] or 0) == 1
 
+        install_version: int | None = None
+        if "APP_INSTALL_STATE" in tables:
+            cursor.execute(
+                "select install_version from app_install_state where install_key = 'schema'"
+            )
+            marker_row = cursor.fetchone()
+            if marker_row is not None:
+                install_version = int(marker_row[0])
+
+        archetype_codes: frozenset[str] = frozenset()
+        archetype_template_count = 0
+        archetypes_with_invalid_template_count = len(EXPECTED_ARCHETYPE_CODES)
+        if "REF_CREATURE_ARCHETYPES" in tables:
+            archetype_codes = _fetch_names(
+                cursor,
+                "select archetype_code from ref_creature_archetypes",
+            )
+        if {"REF_CREATURE_ARCHETYPES", "REF_ARCHETYPE_ALLELES"}.issubset(tables):
+            cursor.execute("select count(*) from ref_archetype_alleles")
+            archetype_template_count = int(cursor.fetchone()[0] or 0)
+            cursor.execute(
+                """
+                select count(*)
+                  from (
+                      select r.archetype_id
+                        from ref_creature_archetypes r
+                        left join ref_archetype_alleles a on a.archetype_id = r.archetype_id
+                       group by r.archetype_id
+                      having count(a.gene_id) <> 18
+                  )
+                """
+            )
+            archetypes_with_invalid_template_count = int(cursor.fetchone()[0] or 0)
+
+        morphology_genes: frozenset[str] = frozenset()
+        if "GENES" in tables and "GENES.GAMEPLAY_ENABLED" in schema_columns:
+            morphology_genes = _fetch_names(
+                cursor,
+                """
+                select gene_name
+                  from genes
+                 where species_type = 0
+                   and gameplay_enabled = 'N'
+                """,
+            )
+
+        model_genes: dict[int, frozenset[str]] = {1: frozenset(), 3: frozenset()}
+        if {"REF_GENETICS_MODEL_GENES", "GENES"}.issubset(tables):
+            cursor.execute(
+                """
+                select membership.genetics_version, g.species_type, g.gene_name
+                  from ref_genetics_model_genes membership
+                  join genes g on g.gene_id = membership.gene_id
+                 where membership.genetics_version in (1, 3)
+                """
+            )
+            mutable_model_genes: dict[int, set[str]] = {1: set(), 3: set()}
+            for version, species_type, gene_name in cursor.fetchall():
+                mutable_model_genes[int(version)].add(f"{int(species_type)}:{str(gene_name).lower()}")
+            model_genes = {version: frozenset(names) for version, names in mutable_model_genes.items()}
+
+        v3_task_names: frozenset[str] = frozenset()
+        if "TASKS" in tables and "TASKS.GENETICS_VERSION" in schema_columns:
+            v3_task_names = _fetch_names(
+                cursor,
+                "select task_name from tasks where genetics_version = 3",
+            )
+
         mutations_without_rules = 0
         if {"MUTATIONS", "MUTATION_RULES"}.issubset(tables):
             cursor.execute(
@@ -342,6 +500,14 @@ def collect_schema_snapshot(connection: oracledb.Connection) -> SchemaSnapshot:
         experiment_types=experiment_types,
         rating_event_types=rating_event_types,
         hybrid_economics_ready=hybrid_economics_ready,
+        install_version=install_version,
+        schema_columns=schema_columns,
+        archetype_codes=frozenset(code.lower() for code in archetype_codes),
+        archetype_template_count=archetype_template_count,
+        archetypes_with_invalid_template_count=archetypes_with_invalid_template_count,
+        morphology_genes=frozenset(name.lower() for name in morphology_genes),
+        model_genes=model_genes,
+        v3_task_names=frozenset(name.lower() for name in v3_task_names),
     )
 
 
@@ -371,6 +537,26 @@ def schema_report(snapshot: SchemaSnapshot) -> dict[str, Any]:
         "hybridization_economics": snapshot.hybrid_economics_ready,
     }
     seed_ready = all(item["count"] >= item["minimum"] for item in seed_report.values()) and all(seed_integrity.values())
+    expected_columns = frozenset(
+        {
+            "LABS.SESSION_ID", "LABS.LAB_NAME", "LABS.GENETICS_VERSION",
+            "TASKS.GENETICS_VERSION", "EXPERIMENTS.MUTAGEN_TYPE",
+            "CREATURES.ARCHETYPE_ID", "GENES.GAMEPLAY_ENABLED", "ALLELES.DISPLAY_NAME",
+        }
+    )
+    schema_contract = {
+        "install_version": snapshot.install_version == CURRENT_SCHEMA_VERSION,
+        "columns": expected_columns.issubset(snapshot.schema_columns),
+        "archetypes": snapshot.archetype_codes == EXPECTED_ARCHETYPE_CODES,
+        "archetype_templates": (
+            snapshot.archetype_template_count == 324
+            and snapshot.archetypes_with_invalid_template_count == 0
+        ),
+        "morphology_genes": snapshot.morphology_genes == EXPECTED_MORPHOLOGY_GENES,
+        "v1_model_membership": snapshot.model_genes.get(1, frozenset()) == EXPECTED_MODEL_GENES[1],
+        "v3_model_membership": snapshot.model_genes.get(3, frozenset()) == EXPECTED_MODEL_GENES[3],
+        "v3_tasks": snapshot.v3_task_names == EXPECTED_V3_TASKS,
+    }
     migrations = {
         "session_bindings_released": snapshot.lab_session_nullable,
         "lab_names": snapshot.lab_name_not_null,
@@ -388,6 +574,7 @@ def schema_report(snapshot: SchemaSnapshot) -> dict[str, Any]:
             seed_ready,
             api_ready,
             signatures_ready,
+            all(schema_contract.values()),
         )
     )
     return {
@@ -405,6 +592,19 @@ def schema_report(snapshot: SchemaSnapshot) -> dict[str, Any]:
         "seed": {"ready": seed_ready, "counts": seed_report, "integrity": seed_integrity},
         "api": {"ready": api_ready, "missing_routines": missing_routines},
         "signatures": {"ready": signatures_ready, "missing": missing_signatures},
+        "contract": {
+            "ready": all(schema_contract.values()),
+            "checks": schema_contract,
+            "expected_install_version": CURRENT_SCHEMA_VERSION,
+            "actual_install_version": snapshot.install_version,
+            "archetype_count": len(snapshot.archetype_codes),
+            "archetype_template_count": snapshot.archetype_template_count,
+            "model_membership": {
+                "v1": len(snapshot.model_genes.get(1, frozenset())),
+                "v3": len(snapshot.model_genes.get(3, frozenset())),
+            },
+            "v3_task_count": len(snapshot.v3_task_names),
+        },
     }
 
 

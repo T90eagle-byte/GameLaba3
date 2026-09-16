@@ -18,19 +18,10 @@ PACKAGE_FILES = [
     REPO_ROOT / "database" / "packages" / "body" / "pkg_genetics_game.pkb",
 ]
 
-SMOKE_TEST_FILES = [
-    REPO_ROOT / "database" / "tests" / "01_auth_labs_smoke_test.sql",
-    REPO_ROOT / "database" / "tests" / "02_seed_data_smoke_test.sql",
-    REPO_ROOT / "database" / "tests" / "03_creature_generation_smoke_test.sql",
-    REPO_ROOT / "database" / "tests" / "04_crossbreed_smoke_test.sql",
-    REPO_ROOT / "database" / "tests" / "05_mutations_experiments_smoke_test.sql",
-    REPO_ROOT / "database" / "tests" / "06_tasks_smoke_test.sql",
-    REPO_ROOT / "database" / "tests" / "07_strict_compliance_smoke_test.sql",
-    REPO_ROOT / "database" / "tests" / "08_multiuser_sessions_smoke_test.sql",
-    REPO_ROOT / "database" / "tests" / "09_lr2_package_api_compat_smoke_test.sql",
-    REPO_ROOT / "database" / "tests" / "10_rating_events_smoke_test.sql",
-    REPO_ROOT / "database" / "tests" / "11_offspring_preview_smoke_test.sql",
-]
+SMOKE_TEST_FILES = sorted(
+    (REPO_ROOT / "database" / "tests").glob("[0-9][0-9]_*.sql"),
+    key=lambda path: path.name,
+)
 
 PLSQL_START_RE = re.compile(
     r"^(declare|begin|create\s+or\s+replace\s+(package(\s+body)?|procedure|function|trigger|type(\s+body)?))\b",

@@ -38,6 +38,20 @@ def ready_snapshot(**changes: object) -> readiness_service.SchemaSnapshot:
         "experiment_types": frozenset({"CROSS", "MUTATION", "MUTAGEN", "CROSSBREED_MUTAGEN", "HYBRIDIZATION"}),
         "rating_event_types": frozenset({"TASK_REWARD", "MUTAGEN_PENALTY", "HYBRIDIZATION_PENALTY"}),
         "hybrid_economics_ready": True,
+        "install_version": readiness_service.CURRENT_SCHEMA_VERSION,
+        "schema_columns": frozenset(
+            {
+                "LABS.SESSION_ID", "LABS.LAB_NAME", "LABS.GENETICS_VERSION",
+                "TASKS.GENETICS_VERSION", "EXPERIMENTS.MUTAGEN_TYPE",
+                "CREATURES.ARCHETYPE_ID", "GENES.GAMEPLAY_ENABLED", "ALLELES.DISPLAY_NAME",
+            }
+        ),
+        "archetype_codes": readiness_service.EXPECTED_ARCHETYPE_CODES,
+        "archetype_template_count": 324,
+        "archetypes_with_invalid_template_count": 0,
+        "morphology_genes": readiness_service.EXPECTED_MORPHOLOGY_GENES,
+        "model_genes": readiness_service.EXPECTED_MODEL_GENES,
+        "v3_task_names": readiness_service.EXPECTED_V3_TASKS,
     }
     values.update(changes)
     return readiness_service.SchemaSnapshot(**values)  # type: ignore[arg-type]
@@ -109,6 +123,54 @@ class SchemaReportTests(unittest.TestCase):
 
         self.assertFalse(report["ready"])
         self.assertFalse(report["seed"]["integrity"]["hybridization_economics"])
+
+    def test_old_install_marker_is_not_ready(self) -> None:
+        report = readiness_service.schema_report(ready_snapshot(install_version=2))
+
+        self.assertFalse(report["ready"])
+        self.assertFalse(report["contract"]["checks"]["install_version"])
+
+    def test_incomplete_archetype_templates_are_not_ready(self) -> None:
+        report = readiness_service.schema_report(
+            ready_snapshot(archetype_template_count=323, archetypes_with_invalid_template_count=1)
+        )
+
+        self.assertFalse(report["ready"])
+        self.assertFalse(report["contract"]["checks"]["archetype_templates"])
+
+    def test_missing_archetype_is_not_ready(self) -> None:
+        report = readiness_service.schema_report(
+            ready_snapshot(
+                archetype_codes=frozenset(set(readiness_service.EXPECTED_ARCHETYPE_CODES) - {"shark"})
+            )
+        )
+
+        self.assertFalse(report["ready"])
+        self.assertFalse(report["contract"]["checks"]["archetypes"])
+
+    def test_incomplete_v3_membership_is_not_ready(self) -> None:
+        model_genes = dict(readiness_service.EXPECTED_MODEL_GENES)
+        model_genes[3] = frozenset(set(model_genes[3]) - {"0:body_shape"})
+        report = readiness_service.schema_report(ready_snapshot(model_genes=model_genes))
+
+        self.assertFalse(report["ready"])
+        self.assertFalse(report["contract"]["checks"]["v3_model_membership"])
+
+    def test_missing_v3_task_is_not_ready(self) -> None:
+        report = readiness_service.schema_report(
+            ready_snapshot(v3_task_names=frozenset(set(readiness_service.EXPECTED_V3_TASKS) - {"task_v3_disc_saw"}))
+        )
+
+        self.assertFalse(report["ready"])
+        self.assertFalse(report["contract"]["checks"]["v3_tasks"])
+
+    def test_missing_hybridization_reference_is_not_ready(self) -> None:
+        report = readiness_service.schema_report(
+            ready_snapshot(experiment_types=frozenset({"CROSS", "MUTATION", "MUTAGEN", "CROSSBREED_MUTAGEN"}))
+        )
+
+        self.assertFalse(report["ready"])
+        self.assertFalse(report["seed"]["integrity"]["hybridization_experiment_type"])
 
     def test_credentials_and_listener_errors_have_different_kinds(self) -> None:
         self.assertEqual(readiness_service.classify_oracle_error_code(1017), "credentials")
@@ -230,13 +292,24 @@ class DeploymentSafetyTests(unittest.TestCase):
 
     def test_db_init_has_a_safe_recognized_version_upgrade(self) -> None:
         script = (WEB_ROOT.parent / "docker" / "db-init.sh").read_text(encoding="utf-8")
-        self.assertIn("CURRENT_SCHEMA_VERSION=2", script)
-        self.assertIn('if (( install_version != 1 )); then', script)
+        self.assertIn("mark_current_schema_version.sql", script)
         self.assertIn("apply_current_schema_files", script)
-        self.assertIn("@/workspace/database/migrations/03_align_task_requirement_descriptions.sql", script)
-        self.assertIn("@/workspace/database/packages/spec/pkg_genetics_game.pks", script)
-        self.assertIn("@/workspace/database/packages/body/pkg_genetics_game.pkb", script)
-        self.assertLess(script.index("validate_schema\n    app_sqlplus <<SQL"), script.index("set install_version = ${CURRENT_SCHEMA_VERSION}"))
+        self.assertIn("@/workspace/database/installers/apply_current_schema_update.sql", script)
+        self.assertIn("@/workspace/database/installers/mark_current_schema_version.sql", script)
+        self.assertLess(script.index("validate_schema\n    mark_current_schema_version"), script.index("Schema upgrade to version"))
+
+        update_script = (
+            WEB_ROOT.parent / "database" / "installers" / "apply_current_schema_update.sql"
+        ).read_text(encoding="utf-8")
+        for number in range(1, 14):
+            self.assertIn(f"../migrations/{number:02d}_", update_script)
+        for number in range(1, 6):
+            self.assertIn(f"../seeds/{number:02d}_", update_script)
+
+    def test_schema_version_has_one_installer_source(self) -> None:
+        version_file = WEB_ROOT.parent / "database" / "installers" / "mark_current_schema_version.sql"
+        self.assertEqual(readiness_service.CURRENT_SCHEMA_VERSION, 13)
+        self.assertIn("v_current_version constant number := 13", version_file.read_text(encoding="utf-8"))
 
     def test_university_installers_are_non_destructive(self) -> None:
         installers = WEB_ROOT.parent / "database" / "installers"

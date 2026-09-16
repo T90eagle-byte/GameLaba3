@@ -51,7 +51,7 @@ Run the GUI from repository root:
 Practical notes:
 
 - The DDL does not contain `DROP` blocks, so the first full run is best done in a clean schema.
-- This version adds domain reference tables and `tasks.difficulty_code`; existing schemas should be recreated for verification unless a separate migration is prepared.
+- Existing BioSborka schemas must be updated through the non-destructive versioned installer; do not recreate them to apply v3.
 - If the project path contains spaces or Cyrillic characters, run SQL Developer/SQLcl from the project root or use quoted absolute paths to the `.sql` files.
 
 ## Особенности вузовского стенда
@@ -80,7 +80,26 @@ If DBeaver breaks package or smoke-test execution, use SQLcl/SQL*Plus or run the
 
 The runner is an execution helper only. It must not add gameplay SQL to the Python GUI client.
 
-## 1) Run DDL
+## 1) Install or update the schema
+
+Use one entry point while the web application is stopped:
+
+- fresh assigned schema: run `database/installers/university_existing_schema_install.sql` with `F5`;
+- existing BioSborka schema: run `database/installers/university_existing_schema_update.sql` with `F5`.
+
+The fresh path applies the canonical DDL first. Both paths then use the shared
+`apply_current_schema_update.sql` order: migrations `01..13`, production seeds
+`01..05`, current package spec/body, full v3 validation, and finally schema
+version marker `13`. Validation must pass before the marker advances. The update
+path does not drop or truncate objects and preserves users, sessions,
+laboratories, creatures, genotypes, task assignments, experiments, mutation
+stocks, and rating history. Existing laboratories remain genetics v1; only new
+laboratories use v3.
+
+The individual component commands below are useful for diagnosis and focused
+development. They are not a substitute for the two deployment entry points.
+
+### Canonical DDL
 
 From repository root:
 
@@ -119,8 +138,7 @@ the idempotent data migration after stopping the application:
 It only clarifies task text. Task markers and the genotype-based `check_task`
 rule are unchanged.
 
-For the optional lr3-v3 morphology foundation, run the following migration
-separately after the core schema and seed are present:
+Migration 04 introduces the required lr3-v3 morphology foundation:
 
 ```sql
 @database/migrations/04_add_creature_archetypes.sql
@@ -128,14 +146,13 @@ separately after the core schema and seed are present:
 
 It creates reference-only archetype tables and 18 empty morphology archetypes.
 It does not alter creatures, genotypes, package behavior, or starter generation.
-The current university installers intentionally do not invoke this optional
-migration; verify it independently with:
+The versioned installers invoke it automatically; verify it independently with:
 
 ```sql
 @database/tests/12_creature_archetypes_smoke_test.sql
 ```
 
-The next optional migration adds a universal morphology dictionary with an
+The next migration adds a universal morphology dictionary with an
 explicit gameplay gate:
 
 ```sql
@@ -143,14 +160,13 @@ explicit gameplay gate:
 ```
 
 It marks all legacy genes as `Y` and adds 18 reference-only morphology genes
-as `N`. Existing genotype rows remain valid. The stable university installers
-do not invoke this migration. Verify it independently with:
+as `N`. Existing genotype rows remain valid. Verify it independently with:
 
 ```sql
 @database/tests/13_universal_morphology_smoke_test.sql
 ```
 
-The following optional migration fills the reference genotype of every
+The following migration fills the reference genotype of every
 archetype after migrations 04 and 05 are installed:
 
 ```sql
@@ -166,7 +182,7 @@ update. Verify the template data separately with:
 @database/tests/14_archetype_templates_smoke_test.sql
 ```
 
-The next optional migration adds nullable metadata linking future starter
+The next migration adds nullable metadata linking future starter
 creatures to their base archetype:
 
 ```sql
@@ -310,6 +326,7 @@ Default runner behavior:
 - reads Oracle connection settings from `python_client/.env`;
 - supports either `ORACLE_SERVICE` or `ORACLE_SID`;
 - recompiles package spec/body before smoke-tests when `--files` is not used;
+- discovers and runs all numbered `database/tests/NN_*.sql` files in filename order;
 - executes SQL files as whole scripts;
 - ignores SQL*Plus directives such as `set define off`, `set serveroutput on`, `show errors`;
 - treats a single `/` on its own line as a PL/SQL script delimiter;
@@ -582,23 +599,15 @@ Notes:
 
 ## Full smoke-test order
 
-After DDL, seed, package spec, and package body are applied, run smoke-tests in this order:
+After the versioned installer succeeds, the default Python runner discovers and
+runs the complete numbered suite (`01..29`) in order:
 
-```sql
-@database/tests/01_auth_labs_smoke_test.sql
-@database/tests/02_seed_data_smoke_test.sql
-@database/tests/03_creature_generation_smoke_test.sql
-@database/tests/04_crossbreed_smoke_test.sql
-@database/tests/05_mutations_experiments_smoke_test.sql
-@database/tests/06_tasks_smoke_test.sql
-@database/tests/07_strict_compliance_smoke_test.sql
-@database/tests/08_multiuser_sessions_smoke_test.sql
-@database/tests/09_lr2_package_api_compat_smoke_test.sql
-@database/tests/10_rating_events_smoke_test.sql
-@database/tests/11_offspring_preview_smoke_test.sql
+```powershell
+.\.venv\Scripts\python.exe database\scripts\run_tests.py
 ```
 
-When deploying into a fresh schema, run the seed before smoke-tests.
+Test 29 verifies the installed v3 reference contract and schema marker. The
+runner is a validation tool and is not executed during a normal Docker start.
 
 The SQL runner uses one Oracle connection. Run the additional test below to verify simultaneous attempts from independent physical connections, selected-lab takeover, and abandoned-browser recovery:
 

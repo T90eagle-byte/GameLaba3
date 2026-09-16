@@ -595,29 +595,45 @@ begin
     when matched then update set tgt.display_name = src.display_name
     when not matched then insert (event_type, display_name) values (src.event_type, src.display_name);
 
-    merge into ref_experiment_economics tgt
-    using (
-        select 'HYBRIDIZATION' as experiment_type, 3 as genetics_version,
-               'RADIATION' as mutagen_type, 0 as wallet_cost,
-               -50 as rating_effect, 'Y' as active_flag
-          from dual
-    ) src
-    on (
-        tgt.experiment_type = src.experiment_type
-        and tgt.genetics_version = src.genetics_version
-        and tgt.mutagen_type = src.mutagen_type
-    )
-    when matched then update set
-        tgt.wallet_cost = src.wallet_cost,
-        tgt.rating_effect = src.rating_effect,
-        tgt.active_flag = src.active_flag
-    when not matched then insert (
-        experiment_type, genetics_version, mutagen_type,
-        wallet_cost, rating_effect, active_flag
-    ) values (
-        src.experiment_type, src.genetics_version, src.mutagen_type,
-        src.wallet_cost, src.rating_effect, src.active_flag
-    );
+    -- Legacy installations do not have this migration-13 table yet. Keep the
+    -- core seed usable during upgrade; migration 13 performs the canonical
+    -- upsert after creating the table.
+    declare
+        v_economics_table_count number;
+    begin
+        select count(*)
+          into v_economics_table_count
+          from user_tables
+         where table_name = 'REF_EXPERIMENT_ECONOMICS';
+
+        if v_economics_table_count = 1 then
+            execute immediate q'[
+                merge into ref_experiment_economics tgt
+                using (
+                    select 'HYBRIDIZATION' as experiment_type, 3 as genetics_version,
+                           'RADIATION' as mutagen_type, 0 as wallet_cost,
+                           -50 as rating_effect, 'Y' as active_flag
+                      from dual
+                ) src
+                on (
+                    tgt.experiment_type = src.experiment_type
+                    and tgt.genetics_version = src.genetics_version
+                    and tgt.mutagen_type = src.mutagen_type
+                )
+                when matched then update set
+                    tgt.wallet_cost = src.wallet_cost,
+                    tgt.rating_effect = src.rating_effect,
+                    tgt.active_flag = src.active_flag
+                when not matched then insert (
+                    experiment_type, genetics_version, mutagen_type,
+                    wallet_cost, rating_effect, active_flag
+                ) values (
+                    src.experiment_type, src.genetics_version, src.mutagen_type,
+                    src.wallet_cost, src.rating_effect, src.active_flag
+                )
+            ]';
+        end if;
+    end;
     -- -------------------------------------------------------------------------
     -- 1) Genes (4 universal + species-specific genes)
     -- -------------------------------------------------------------------------
@@ -999,5 +1015,3 @@ end;
 /
 
 commit;
-
-@@02_seed_universal_morphology.sql

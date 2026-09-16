@@ -11,6 +11,7 @@ RUN python -m pip install --upgrade pip \
     && python -m pip install -r /tmp/requirements.txt
 
 COPY web_client/ /app/
+COPY database/installers/mark_current_schema_version.sql /app/database/installers/mark_current_schema_version.sql
 
 EXPOSE 8000
 

@@ -29,13 +29,20 @@ Open one of the scripts below in SQL Developer while connected **as
   empty schema. It stops before changing anything if BioSborka tables already
   exist.
 - `database/installers/university_existing_schema_update.sql` for an existing
-  BioSborka schema. It applies idempotent migrations, reference seed data and
-  recompiles the package without deleting players, labs or progress.
+  BioSborka schema. Stop Waitress first. It applies migrations `01..13` in
+  order, all production reference seeds `01..05`, and recompiles the current
+  package without deleting players, labs or progress.
 
 Neither script creates or drops an Oracle user, truncates tables, or removes
-user data. Each ends by checking the package, `USER_ERRORS`, and basic schema
-readiness. Do not run the clean installer against a schema that already has
-BioSborka data.
+user data. Each validates the full v3 contract (18 archetypes, 324 templates,
+model membership 12/19, 12 v3 tasks and hybridization references) before
+recording schema version `13`. Do not run the clean installer against a schema
+that already has BioSborka data.
+
+After a successful database update, replace the Python project files, verify
+dependencies with the requirements command above, run the readiness CLI below,
+and then restart `deployment\windows\start-web.cmd`. Oracle itself does not need
+to be reinstalled.
 
 ## 3. Run the web application
 

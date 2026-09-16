@@ -3,7 +3,9 @@
 -- This script preserves the assigned user and all existing game data.
 
 whenever sqlerror exit sql.sqlcode rollback;
-set define off serveroutput on size unlimited verify off;
+set define off;
+set serveroutput on size unlimited;
+set verify off;
 
 declare
     v_game_table_count number;
@@ -28,10 +30,6 @@ end;
 /
 
 @@../ddl/01_create_tables.sql
-@@../migrations/01_release_lab_session_bindings.sql
-@@../migrations/02_add_lab_names.sql
-@@../seeds/01_seed_core_game_data.sql
-@@../migrations/03_align_task_requirement_descriptions.sql
-@@../packages/spec/pkg_genetics_game.pks
-@@../packages/body/pkg_genetics_game.pkb
+@@apply_current_schema_update.sql
 @@university_readiness_validation.sql
+@@mark_current_schema_version.sql

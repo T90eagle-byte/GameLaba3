@@ -12,7 +12,10 @@
 **/docker-data
 **/volumes
 python_client
-database
+database/*
+!database/installers/
+database/installers/*
+!database/installers/mark_current_schema_version.sql
 docs
 tests
 README_TESTING.md
