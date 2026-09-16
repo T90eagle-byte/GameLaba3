@@ -308,8 +308,8 @@ class DeploymentSafetyTests(unittest.TestCase):
 
     def test_schema_version_has_one_installer_source(self) -> None:
         version_file = WEB_ROOT.parent / "database" / "installers" / "mark_current_schema_version.sql"
-        self.assertEqual(readiness_service.CURRENT_SCHEMA_VERSION, 13)
-        self.assertIn("v_current_version constant number := 13", version_file.read_text(encoding="utf-8"))
+        self.assertEqual(readiness_service.CURRENT_SCHEMA_VERSION, 14)
+        self.assertIn("v_current_version constant number := 14", version_file.read_text(encoding="utf-8"))
 
     def test_university_installers_are_non_destructive(self) -> None:
         installers = WEB_ROOT.parent / "database" / "installers"

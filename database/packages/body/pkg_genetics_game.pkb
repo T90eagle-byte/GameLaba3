@@ -483,16 +483,16 @@ end hash_password_sha256;
     function mutation_rules_match_genetics_version(
         p_mutation_id      in number,
         p_genetics_version in number
-    ) return boolean is
+    ) return number is
         v_rule_count    number;
         v_allowed_count number;
     begin
         if p_genetics_version = 1 then
-            return true;
+            return 1;
         end if;
 
         if p_genetics_version <> 3 then
-            return false;
+            return 0;
         end if;
 
         select
@@ -516,7 +516,7 @@ end hash_password_sha256;
            and rmg.gene_id = mr.gene_id
          where mr.mutation_id = p_mutation_id;
 
-        return v_rule_count > 0 and v_rule_count = v_allowed_count;
+        return case when v_rule_count > 0 and v_rule_count = v_allowed_count then 1 else 0 end;
     end mutation_rules_match_genetics_version;
 
     procedure register_user(
@@ -2468,6 +2468,36 @@ end hash_password_sha256;
         return v_cursor;
     end show_mutation_shop;
 
+    function show_lab_mutation_shop(
+        p_lab_id          in number
+    ) return sys_refcursor is
+        v_cursor           sys_refcursor;
+        v_genetics_version labs.genetics_version%type;
+    begin
+        assert_lab_access(p_lab_id => p_lab_id);
+        v_genetics_version := get_lab_genetics_version(p_lab_id => p_lab_id);
+
+        open v_cursor for
+            select
+                m.mutation_id,
+                m.mutation_name,
+                m.mutation_type,
+                rmt.display_name as mutation_type_display_name,
+                m.description,
+                m.cost as price,
+                m.rating_effect
+              from mutations m
+              left join ref_mutation_types rmt
+                on rmt.mutation_type = m.mutation_type
+             where mutation_rules_match_genetics_version(
+                       p_mutation_id      => m.mutation_id,
+                       p_genetics_version => v_genetics_version
+                   ) = 1
+             order by m.cost, m.mutation_id;
+
+        return v_cursor;
+    end show_lab_mutation_shop;
+
     function get_mutation_target_genes_cursor(
         p_mutation_id     in number
     ) return sys_refcursor is
@@ -2512,10 +2542,10 @@ end hash_password_sha256;
 
         v_genetics_version := get_lab_genetics_version(p_lab_id => p_lab_id);
 
-        if not mutation_rules_match_genetics_version(
+        if mutation_rules_match_genetics_version(
             p_mutation_id      => p_mutation_id,
             p_genetics_version => v_genetics_version
-        ) then
+        ) <> 1 then
             open v_cursor for
                 select cast(null as number) as creature_id
                   from dual
@@ -2573,6 +2603,7 @@ end hash_password_sha256;
         v_lab_wallet      number(12, 2);
         v_mutation_cost   number(12, 2);
         v_mutation_name   mutations.mutation_name%type;
+        v_genetics_version labs.genetics_version%type;
         v_exists_count    number;
     begin
         assert_lab_access(p_lab_id => p_lab_id);
@@ -2586,6 +2617,14 @@ end hash_password_sha256;
             when no_data_found then
                 raise_application_error(-20041, 'Mutation not found.');
         end;
+
+        v_genetics_version := get_lab_genetics_version(p_lab_id => p_lab_id);
+        if mutation_rules_match_genetics_version(
+            p_mutation_id      => p_mutation_id,
+            p_genetics_version => v_genetics_version
+        ) <> 1 then
+            raise_application_error(-20088, 'Эта мутация недоступна для генетической модели данной лаборатории.');
+        end if;
 
         select l.wallet
           into v_lab_wallet
@@ -2675,10 +2714,10 @@ end hash_password_sha256;
                 raise_application_error(-20056, 'Mutation not found.');
         end;
 
-        if not mutation_rules_match_genetics_version(
+        if mutation_rules_match_genetics_version(
             p_mutation_id      => p_mutation_id,
             p_genetics_version => v_genetics_version
-        ) then
+        ) <> 1 then
             raise_application_error(-20088, 'Эта мутация недоступна для генетической модели данной лаборатории.');
         end if;
 
@@ -4252,6 +4291,7 @@ end hash_password_sha256;
         v_gene_cursor      sys_refcursor;
         v_gene_id          number;
         v_archetype_id     number;
+        v_archetype_display_name ref_creature_archetypes.display_name%type;
         v_archetype_count  number;
         v_existing_count   number;
         v_gene_cursor_open boolean := false;
@@ -4281,10 +4321,11 @@ end hash_password_sha256;
            and species_type = p_species_type
            and archetype_id is not null;
 
-        select archetype_id
-          into v_archetype_id
+        select archetype_id, display_name
+          into v_archetype_id, v_archetype_display_name
           from (
                 select archetype_id,
+                       display_name,
                        row_number() over (order by archetype_code) as archetype_position
                   from ref_creature_archetypes
                  where species_type = p_species_type
@@ -4292,15 +4333,7 @@ end hash_password_sha256;
                )
          where archetype_position = mod(v_existing_count, v_archetype_count) + 1;
 
-        v_creature_name :=
-            case p_species_type
-                when 1 then 'cartilaginous_fish'
-                when 2 then 'bony_fish'
-                when 3 then 'crustacean'
-                when 4 then 'mollusk'
-                when 5 then 'turtle'
-                when 6 then 'mammal'
-            end
+        v_creature_name := trim(v_archetype_display_name)
             || ' #' || to_char(nvl(p_variant, 1));
 
         p_creature_id := creatures_seq.nextval;

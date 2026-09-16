@@ -77,7 +77,7 @@ class VersionAwareCreatureViewTests(unittest.TestCase):
 
         self.assertEqual(view["display_model"], "morphology")
         self.assertEqual(tuple(view["morphology"]), MORPHOLOGY_GENE_CODES)
-        self.assertEqual(len(view["morphology_traits"]), 18)
+        self.assertEqual(len(view["morphology_traits"]), 19)
         self.assertEqual(view["morphology"]["body_color"]["value"], "Синий")
         self.assertEqual(view["morphology"]["body_color"]["technical_value"], "blue")
         self.assertEqual(view["morphology"]["body_size"]["label"], "Размер тела")
@@ -86,6 +86,7 @@ class VersionAwareCreatureViewTests(unittest.TestCase):
         self.assertNotIn("has_wings", view["morphology"])
         self.assertEqual(view["phenotype_items"][-1]["key"], "nutrition_type")
         self.assertEqual(view["phenotype_items"][-1]["detail_value"], "смешанное питание: хищное и травоядное")
+        self.assertEqual(view["morphology_traits"][-1]["label"], "Питание")
         self.assertNotIn("legacy_green", view["phenotype_text"])
         self.assertEqual(view["archetype"], {"archetype_id": 42, "code": "whale", "display_name": "Кит"})
 

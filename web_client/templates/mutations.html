@@ -82,7 +82,7 @@
     </div>
     <p class="empty filter-empty" id="mutation-filter-empty" hidden>По выбранным фильтрам мутаций не найдено.</p>
   {% else %}
-    <p class="empty">Каталог мутаций пуст.</p>
+    <p class="empty">{% if genetics_version == 3 %}Для этой генетической модели направленные мутации пока недоступны. Используйте химический мутаген или облучение.{% else %}Каталог мутаций пуст.{% endif %}</p>
   {% endif %}
 </section>
 <section class="section-block">
@@ -103,7 +103,7 @@
       <label><input type="checkbox" id="apply-filter-owned"> Показывать только купленные мутации</label>
       <label><input type="checkbox" id="apply-filter-compatible"> Показывать только совместимых существ</label>
     </div>
-    <form class="form" method="post" id="mutation-apply-form">
+    {% if mutations or genetics_version != 3 %}<form class="form" method="post" id="mutation-apply-form">
       <label><span>Существо</span><select name="creature_id" id="mutation-creature-select" required>{% for creature in creatures %}<option value="{{ creature.creature_id }}" data-creature-name="#{{ creature.creature_id }} — {{ creature.display_name }}" {% if selected_creature_id|string == creature.creature_id|string %}selected{% endif %}>#{{ creature.creature_id }} — {{ creature.display_name }}</option>{% endfor %}</select></label>
       <label><span>Мутация</span><select name="mutation_id" id="mutation-select" required>{% for mutation in mutations %}{% set target_summary = mutation.target_genes[0].gene_label if mutation.target_genes else mutation.target_label %}<option value="{{ mutation.mutation_id }}" data-name="{{ mutation.display_name }}" data-target="{{ target_summary }}" data-rating="{{ mutation.rating_effect_label }}" data-quantity="{{ mutation.quantity }}" data-quantity-label="{{ mutation.quantity_label }}" data-compatible="{{ 1 if mutation.compatible_count > 0 else 0 }}" data-compatible-ids="{{ mutation.compatible_ids|join(',') }}">{{ mutation.display_name }} · куплено: {{ mutation.quantity_label }}</option>{% endfor %}</select></label>
       <p class="empty filter-empty" id="apply-filter-empty" hidden>По выбранным фильтрам нет доступной пары мутации и существа.</p>
@@ -120,7 +120,7 @@
         <p class="muted">После применения мутации признак существа изменится согласно правилам лаборатории.</p>
       </div>
       <button name="action" value="apply_mutation" type="submit">Применить мутацию</button>
-    </form>
+    </form>{% else %}<p class="empty">Направленные мутации для этой лаборатории сейчас недоступны.</p>{% endif %}
   </article>
   <article class="panel risk-panel">
     <p class="eyebrow">Рискованные воздействия</p>

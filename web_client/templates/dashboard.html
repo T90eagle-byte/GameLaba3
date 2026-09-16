@@ -24,8 +24,8 @@
     <ol class="cycle-list">
       <li><a href="{{ url_for('tasks') }}">Задания</a><span>Выберите генетическую цель.</span></li>
       <li><a href="{{ url_for('creatures') }}">Существа</a><span>Изучите фенотип и генотип.</span></li>
-      <li><a href="{{ url_for('crossbreed') }}">Предпросмотр потомства</a><span>Сравните три варианта.</span></li>
-      <li><a href="{{ url_for('mutations') }}">Мутации и мутагены</a><span>Изменяйте признаки с риском.</span></li>
+      <li><a href="{{ url_for('experiments', mode='crossbreed') }}">Предпросмотр потомства</a><span>Сравните три варианта.</span></li>
+      <li><a href="{{ url_for('experiments', mode='mutation') }}">Мутации и мутагены</a><span>Изменяйте признаки с риском.</span></li>
       <li><a href="{{ url_for('experiments') }}">Эволюционная линия</a><span>Покажите путь лаборатории.</span></li>
       <li><a href="{{ url_for('rating_events') }}">История</a><span>Проследите изменения монет и рейтинга.</span></li>
     </ol>
@@ -36,8 +36,8 @@
     <div class="action-grid">
       <a class="button" href="{{ url_for('creatures') }}">Коллекция существ</a>
       <a class="button" href="{{ url_for('tasks') }}">Задания</a>
-      <a class="button" href="{{ url_for('crossbreed') }}">Скрещивание</a>
-      <a class="button" href="{{ url_for('mutations') }}">Мутации</a>
+      <a class="button" href="{{ url_for('experiments', mode='crossbreed') }}">Скрещивание</a>
+      <a class="button" href="{{ url_for('experiments', mode='mutation') }}">Мутации</a>
       <a class="button" href="{{ url_for('experiments') }}">Эволюционная линия</a>
       <a class="button secondary" href="{{ url_for('rating_events') }}">История рейтинга и монет</a>
     </div>

@@ -462,7 +462,7 @@ class LabRouteTests(unittest.TestCase):
         with self.client.session_transaction() as flask_session:
             feedback = flask_session["action_feedback"]
         self.assertEqual(feedback["morphology_changes"], [{"label": "Цвет тела", "before": "Синий", "after": "Красный"}])
-        self.assertEqual(feedback["completed_tasks"][0]["name"], "Специальное задание")
+        self.assertEqual(feedback["completed_tasks"][0]["name"], "Бурое китообразное")
         self.assertEqual(feedback["wallet_delta_label"], "+900")
         self.assertEqual(feedback["rating_delta_label"], "+30")
 
@@ -788,6 +788,7 @@ class LabRouteTests(unittest.TestCase):
         self.assertIn("Специальное задание".encode(), response.data)
         self.assertIn("Задание #5".encode(), response.data)
         self.assertIn("Монеты +300".encode(), response.data)
+        self.assertNotIn("Монеты +300.0".encode(), response.data)
         self.assertNotIn(b"task_armored_crustacean", response.data)
         self.assertNotIn(b"task_future_unknown", response.data)
         self.assertNotIn("Заказ #".encode(), response.data)
@@ -822,6 +823,89 @@ class LabRouteTests(unittest.TestCase):
         self.assertIn("Генетическое условие", markup)
         self.assertIn("внешние крылья могут не проявиться", markup.lower())
         self.assertIn("хотя бы в одной из двух копий гена", markup)
+
+    @patch.object(app_module.creature_service, "get_creatures", return_value=[v3_creature()])
+    @patch.object(app_module.task_service, "get_tasks", return_value=[{
+        "task_id": 181,
+        "task_name": "task_v3_brown_cetacean",
+        "task_display_name": "task_v3_brown_cetacean",
+        "description": "Получите бурое китообразное существо.",
+        "reward_money": 900,
+        "reward_rating": 30,
+        "difficulty_code": "MEDIUM",
+        "task_status": "ACTIVE",
+    }])
+    def test_v3_tasks_use_phenotype_language_and_russian_title(
+        self,
+        _get_tasks: Mock,
+        _get_creatures: Mock,
+    ) -> None:
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/tasks")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Бурое китообразное", markup)
+        self.assertIn("Проявляющийся признак", markup)
+        self.assertIn("если у существа проявляется требуемый признак", markup)
+        self.assertNotIn("task_v3_brown_cetacean", markup)
+        self.assertNotIn("хотя бы в одной из двух копий", markup)
+
+    @patch.object(app_module.creature_service, "get_lab_morphology", return_value=v3_morphology_rows())
+    @patch.object(app_module.rating_service, "get_rating_events", return_value=[])
+    @patch.object(app_module.mutation_service, "get_mutation_shop", return_value=[])
+    @patch.object(app_module.creature_service, "get_creatures", return_value=[v3_creature()])
+    @patch.object(app_module.lab_service, "get_lab_stats", return_value={"wallet": 1000, "rating": 0})
+    def test_v3_mutation_catalog_hides_legacy_directed_actions_but_keeps_mutagens(
+        self,
+        _get_stats: Mock,
+        _get_creatures: Mock,
+        _get_shop: Mock,
+        _get_events: Mock,
+        _get_lab_morphology: Mock,
+    ) -> None:
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/mutations")
+        markup = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Для этой генетической модели направленные мутации пока недоступны", markup)
+        self.assertIn("Применить облучение", markup)
+        self.assertIn("Применить химический мутаген", markup)
+        self.assertNotIn('id="mutation-select"', markup)
+        self.assertNotIn('value="apply_mutation"', markup)
+
+    @patch.object(
+        app_module.mutation_service,
+        "buy_mutation",
+        side_effect=ServiceError("Эта мутация недоступна для генетической модели данной лаборатории."),
+    )
+    def test_incompatible_v3_mutation_purchase_shows_rejection_not_success(
+        self,
+        buy_mutation: Mock,
+    ) -> None:
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.post(
+            "/mutations",
+            data={"action": "buy_mutation", "mutation_id": "9"},
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        buy_mutation.assert_called_once_with("current-token", 7, 9)
+        with self.client.session_transaction() as flask_session:
+            flashes = flask_session.get("_flashes", [])
+        self.assertIn(
+            ("error", "Эта мутация недоступна для генетической модели данной лаборатории."),
+            flashes,
+        )
+        self.assertNotIn(("success", "Мутация куплена. Монеты обновлены."), flashes)
 
 
 if __name__ == "__main__":

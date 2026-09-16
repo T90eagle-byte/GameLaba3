@@ -88,9 +88,9 @@ Use one entry point while the web application is stopped:
 - existing BioSborka schema: run `database/installers/university_existing_schema_update.sql` with `F5`.
 
 The fresh path applies the canonical DDL first. Both paths then use the shared
-`apply_current_schema_update.sql` order: migrations `01..13`, production seeds
+`apply_current_schema_update.sql` order: migrations `01..14`, production seeds
 `01..05`, current package spec/body, full v3 validation, and finally schema
-version marker `13`. Validation must pass before the marker advances. The update
+version marker `14`. Validation must pass before the marker advances. The update
 path does not drop or truncate objects and preserves users, sessions,
 laboratories, creatures, genotypes, task assignments, experiments, mutation
 stocks, and rating history. Existing laboratories remain genetics v1; only new

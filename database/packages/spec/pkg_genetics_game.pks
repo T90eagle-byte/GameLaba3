@@ -193,6 +193,15 @@ create or replace package pkg_genetics_game as
     function show_mutation_shop
     return sys_refcursor;
 
+    function mutation_rules_match_genetics_version(
+        p_mutation_id      in number,
+        p_genetics_version in number
+    ) return number;
+
+    function show_lab_mutation_shop(
+        p_lab_id          in number
+    ) return sys_refcursor;
+
     function get_mutation_target_genes_cursor(
         p_mutation_id     in number
     ) return sys_refcursor;

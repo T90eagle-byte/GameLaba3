@@ -26,7 +26,7 @@ end;
 /
 
 declare
-    v_current_version constant number := 13;
+    v_current_version constant number := 14;
 begin
     merge into app_install_state target
     using (

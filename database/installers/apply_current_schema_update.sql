@@ -20,6 +20,7 @@ set verify off;
 @@../migrations/11_add_task_genetics_version.sql
 @@../migrations/12_add_combined_experiment_support.sql
 @@../migrations/13_add_controlled_hybridization.sql
+@@../migrations/14_update_species_display_names.sql
 
 -- Reapply the canonical reference seeds after all structures exist. Migrations
 -- also invoke their prerequisite seeds, but this final pass makes the target

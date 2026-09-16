@@ -122,6 +122,7 @@ REQUIRED_ROUTINES = frozenset(
         "PREVIEW_OFFSPRING_OPTIONS",
         "CROSSBREED",
         "SHOW_MUTATION_SHOP",
+        "SHOW_LAB_MUTATION_SHOP",
         "GET_MUTATION_TARGET_GENES_CURSOR",
         "GET_COMPATIBLE_CREATURES_FOR_MUTATION_CURSOR",
         "GET_LAB_MUTATION_QUANTITY",
@@ -154,6 +155,7 @@ REQUIRED_SIGNATURES: dict[str, tuple[frozenset[str], ...]] = {
     ),
     "CROSSBREED": (frozenset({"P_LAB_ID", "P_PARENT1_ID", "P_PARENT2_ID", "P_OFFSPRING_NAME", "P_OFFSPRING_ID"}),),
     "BUY_MUTATION": (frozenset({"P_LAB_ID", "P_MUTATION_ID"}),),
+    "SHOW_LAB_MUTATION_SHOP": (frozenset({"P_LAB_ID"}),),
     "APPLY_MUTATION": (frozenset({"P_CREATURE_ID", "P_MUTATION_ID"}),),
     "APPLY_MUTAGEN": (frozenset({"P_CREATURE_ID", "P_MUTAGEN_TYPE", "P_NEW_CREATURE_ID"}),),
     "MAKE_EXPERIMENT": (

@@ -10,15 +10,15 @@ SPECIES_LABELS = {
     "2": "Костная рыба",
     "3": "Ракообразное",
     "4": "Моллюск",
-    "5": "Черепаха",
-    "6": "Млекопитающее",
+    "5": "Морские рептилии",
+    "6": "Морские млекопитающие",
     "7": "Гибрид",
     "cartilaginous_fish": "Хрящевая рыба",
     "bony_fish": "Костная рыба",
     "crustacean": "Ракообразное",
     "mollusk": "Моллюск",
-    "turtle": "Черепаха",
-    "mammal": "Млекопитающее",
+    "turtle": "Морские рептилии",
+    "mammal": "Морские млекопитающие",
     "canis_lupus": "Волко-собака",
     "felis_catus": "Кошачий вид",
     "avis_aurora": "Аврора-птица",
@@ -128,6 +128,21 @@ TASK_LABELS = {
     "task_spiral_mollusk": "Моллюск со спиральным профилем",
     "task_plated_turtle": "Черепаха с пластинчатым панцирем",
     "task_soft_fur_mammal": "Млекопитающее с мягкой шерстью",
+}
+
+V3_TASK_LABELS = {
+    "task_v3_disc_saw": "Скат с пилообразным рылом",
+    "task_v3_eel_yellow": "Жёлтое угреобразное существо",
+    "task_v3_shrimp_claws": "Креветкообразное существо с клешнями",
+    "task_v3_cephalopod_shell": "Головоногое с раковиной",
+    "task_v3_snake_shell": "Морская змея с панцирем",
+    "task_v3_cetacean_broad": "Китообразное с широким телом",
+    "task_v3_brown_cetacean": "Бурое китообразное",
+    "task_v3_giant_pinniped": "Гигантское ластоногое",
+    "task_v3_disc_fish_tail": "Дискообразное существо с рыбным хвостом",
+    "task_v3_cetacean_rear_flippers": "Китообразное с задними ластами",
+    "task_v3_white_broad_cephalopod": "Белое широкотелое головоногое",
+    "task_v3_long_tailed_pointed": "Длиннохвостое существо с заострённой мордой",
 }
 
 TASK_DESCRIPTIONS = {
@@ -838,16 +853,20 @@ def build_creature_view(
                 if {"herbivore", "carnivore"}.issubset(nutrition_parts)
                 else trait_detail_label(nutrition_value)
             )
-            phenotype_results.append({
+            nutrition_trait = {
                 "key": "nutrition_type",
                 "label": gene_label("nutrition_type"),
                 "value": trait_label(nutrition_value),
                 "detail_value": nutrition_detail,
                 "raw": _text(nutrition_value),
                 "class": "tone-neutral",
-            })
+            }
+            phenotype_results.append(nutrition_trait)
+            display_traits = [*traits, nutrition_trait]
+        else:
+            display_traits = traits
         view["display_model"] = "morphology"
-        view["morphology_traits"] = traits
+        view["morphology_traits"] = display_traits
         view["morphology"] = {trait["key"]: trait for trait in traits}
         view["morphology_visual_state"] = normalize_morphology_visual_state(traits)
         view["phenotype_items"] = phenotype_results
@@ -1028,20 +1047,24 @@ def preview_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def task_view(row: dict[str, Any]) -> dict[str, Any]:
     status = _text(row.get("task_status")).upper()
     code = _clean_code(row.get("task_name") or row.get("task_code") or row.get("title"))
+    genetics_version = creature_genetics_version(row)
     difficulty = row.get("difficulty_display_name") or row.get("difficulty_code") or row.get("difficulty")
     supplied_name = _strip_mojibake(_text(row.get("task_display_name")))
     supplied_code = _clean_code(supplied_name)
     is_internal_name = supplied_code.startswith("task_")
-    name = TASK_LABELS.get(code)
+    name = V3_TASK_LABELS.get(code) or (TASK_LABELS.get(code) if genetics_version == 1 else None)
     if not name and supplied_name and not is_internal_name:
         name = supplied_name
     if not name:
         name = "Специальное задание"
-    unknown_task_code = code if code.startswith("task_") and code not in TASK_LABELS else None
+    known_task_codes = set(TASK_LABELS) | set(V3_TASK_LABELS)
+    unknown_task_code = code if code.startswith("task_") and code not in known_task_codes else None
     description = _text(row.get("description") or row.get("task_description") or row.get("goal_description"))
-    if not description or code in TASK_DESCRIPTIONS:
+    if not description or (genetics_version == 1 and code in TASK_DESCRIPTIONS):
         description = TASK_DESCRIPTIONS.get(code, f"Цель задания: получить организм «{name.lower()}».")
-    return {**row, "display_name": name, "unknown_task_code": unknown_task_code, "description_text": description, "requirement_label": "Генетическое условие" if code in TASK_DESCRIPTIONS else "Условие задания", "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status), "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral", "difficulty_label": humanize_code(difficulty)}
+    money_reward = row.get("money_reward") or row.get("reward_money") or 0
+    rating_reward = row.get("rating_reward") or row.get("reward_rating") or 0
+    return {**row, "display_name": name, "unknown_task_code": unknown_task_code, "description_text": description, "requirement_label": "Проявляющийся признак" if genetics_version == 3 else "Генетическое условие" if code in TASK_DESCRIPTIONS else "Условие задания", "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status), "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral", "difficulty_label": humanize_code(difficulty), "money_reward_label": number_label(money_reward), "rating_reward_label": number_label(rating_reward), "genetics_version": genetics_version}
 
 
 def task_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

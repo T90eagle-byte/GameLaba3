@@ -31,9 +31,12 @@ declare
     v_legacy_gene_id           number;
     v_legacy_target_allele_id  number;
     v_legacy_other_allele_id   number;
+    v_nutrition_mutation_id    number;
     v_task_id                  number;
     v_before_genotype_count    number;
     v_before_experiment_count  number;
+    v_before_wallet            number;
+    v_before_mutation_quantity number;
     v_before_allele1_id         number;
     v_before_allele2_id         number;
     v_morphology_rows          number := 0;
@@ -46,6 +49,16 @@ declare
     v_cursor_allele1_display   varchar2(4000);
     v_cursor_allele2_display   varchar2(4000);
     v_cursor_expressed_display varchar2(4000);
+    v_shop_mutation_id         number;
+    v_shop_mutation_name       varchar2(100);
+    v_shop_mutation_type       varchar2(100);
+    v_shop_mutation_type_name  varchar2(4000);
+    v_shop_description         varchar2(4000);
+    v_shop_price               number;
+    v_shop_rating_effect       number;
+    v_shop_legacy_count        number := 0;
+    v_shop_nutrition_count     number := 0;
+    v_shop_fixture_count       number := 0;
     v_baseline_labs            number;
     v_baseline_creatures       number;
     v_baseline_genotypes       number;
@@ -134,6 +147,12 @@ begin
      where a.gene_id = v_legacy_gene_id
        and a.allele_id <> v_legacy_target_allele_id;
 
+    select min(mr.mutation_id)
+      into v_nutrition_mutation_id
+      from mutation_rules mr
+      join genes g on g.gene_id = mr.gene_id
+     where g.gene_name = 'nutrition_type';
+
     select g.gene_id into v_body_color_gene_id from genes g where g.gene_name = 'body_color' and g.species_type = 0;
     select g.gene_id into v_body_shape_gene_id from genes g where g.gene_name = 'body_shape' and g.species_type = 0;
     select a.allele_id into v_brown_allele_id from alleles a where a.gene_id = v_body_color_gene_id and a.description = 'brown';
@@ -167,6 +186,18 @@ begin
     pkg_genetics_game.apply_mutation(v_creature_v1_id, v_legacy_mutation_id);
     select count(*) into v_value from genotypes where creature_id = v_creature_v1_id and gene_id = v_legacy_gene_id and (allele1_id = v_legacy_target_allele_id or allele2_id = v_legacy_target_allele_id);
     assert_true(v_value = 1, 'V1 ordinary mutation keeps legacy rule path');
+    v_cursor := pkg_genetics_game.show_lab_mutation_shop(v_lab_v1_id);
+    loop
+        fetch v_cursor into v_shop_mutation_id, v_shop_mutation_name, v_shop_mutation_type,
+              v_shop_mutation_type_name, v_shop_description, v_shop_price, v_shop_rating_effect;
+        exit when v_cursor%notfound;
+        if v_shop_mutation_id = v_legacy_mutation_id then
+            v_shop_legacy_count := v_shop_legacy_count + 1;
+        end if;
+    end loop;
+    close v_cursor;
+    assert_true(v_shop_legacy_count = 1, 'V1 catalog retains legacy directed mutation');
+    v_shop_legacy_count := 0;
     pkg_genetics_game.apply_mutagen(v_creature_v1_id, 'CHEMICAL', v_mutagen_child_id);
     select count(*) into v_value from genotypes child join genotypes source on source.creature_id = v_creature_v1_id and source.gene_id = child.gene_id join genes g on g.gene_id = child.gene_id where child.creature_id = v_mutagen_child_id and g.gameplay_enabled = 'Y' and (child.allele1_id <> source.allele1_id or child.allele2_id <> source.allele2_id);
     assert_true(v_value > 0, 'V1 chemical mutagen keeps legacy candidate path', 'changed=' || v_value);
@@ -213,18 +244,90 @@ begin
     assert_true(v_cursor%notfound, 'V3 does not offer legacy-rule mutation as compatible');
     close v_cursor;
 
-    assert_true(pkg_genetics_game.buy_mutation(v_lab_v3_id, v_legacy_mutation_id) = 1, 'V3 buys legacy-rule mutation for rejection check');
+    assert_true(
+        pkg_genetics_game.mutation_rules_match_genetics_version(v_legacy_mutation_id, 1) = 1,
+        'V1 eligibility keeps legacy directed mutation'
+    );
+    assert_true(
+        pkg_genetics_game.mutation_rules_match_genetics_version(v_legacy_mutation_id, 3) = 0,
+        'V3 eligibility excludes legacy directed mutation'
+    );
+    assert_true(
+        pkg_genetics_game.mutation_rules_match_genetics_version(v_fixture_mutation_id, 3) = 1,
+        'V3 eligibility accepts morphology-compatible mutation'
+    );
+    assert_true(
+        pkg_genetics_game.mutation_rules_match_genetics_version(v_nutrition_mutation_id, 3) = 0,
+        'V3 eligibility excludes nutrition rule'
+    );
+
+    v_cursor := pkg_genetics_game.show_lab_mutation_shop(v_lab_v3_id);
+    loop
+        fetch v_cursor into v_shop_mutation_id, v_shop_mutation_name, v_shop_mutation_type,
+              v_shop_mutation_type_name, v_shop_description, v_shop_price, v_shop_rating_effect;
+        exit when v_cursor%notfound;
+        if v_shop_mutation_id = v_legacy_mutation_id then
+            v_shop_legacy_count := v_shop_legacy_count + 1;
+        end if;
+        if v_shop_mutation_id = v_nutrition_mutation_id then
+            v_shop_nutrition_count := v_shop_nutrition_count + 1;
+        end if;
+        if v_shop_mutation_id = v_fixture_mutation_id then
+            v_shop_fixture_count := v_shop_fixture_count + 1;
+        end if;
+    end loop;
+    close v_cursor;
+    assert_true(v_shop_legacy_count = 0, 'V3 catalog excludes legacy-rule mutation');
+    assert_true(v_shop_nutrition_count = 0, 'V3 catalog excludes nutrition rule');
+    assert_true(v_shop_fixture_count = 1, 'V3 catalog includes morphology-compatible mutation');
+
     select count(*) into v_before_genotype_count from genotypes where creature_id = v_creature_v3_id;
     select count(*) into v_before_experiment_count from experiments where lab_id = v_lab_v3_id;
+    select wallet into v_before_wallet from labs where lab_id = v_lab_v3_id;
+    select nvl(max(quantity), 0)
+      into v_before_mutation_quantity
+      from lab_mutations
+     where lab_id = v_lab_v3_id
+       and mutation_id = v_legacy_mutation_id;
     select allele1_id, allele2_id into v_before_allele1_id, v_before_allele2_id from genotypes where creature_id = v_creature_v3_id and gene_id = v_body_color_gene_id;
     begin
-        pkg_genetics_game.apply_mutation(v_creature_v3_id, v_legacy_mutation_id);
-        fail_test('V3 legacy mutation rule is rejected', 'call unexpectedly succeeded');
+        v_value := pkg_genetics_game.buy_mutation(v_lab_v3_id, v_legacy_mutation_id);
+        fail_test('V3 purchase of legacy-rule mutation is rejected', 'call unexpectedly returned ' || v_value);
     exception
         when others then
             v_error_code := sqlcode;
-            assert_true(v_error_code = -20088, 'V3 legacy mutation rule is rejected', 'actual=' || v_error_code);
+            assert_true(v_error_code = -20088, 'V3 purchase of legacy-rule mutation is rejected', 'actual=' || v_error_code);
     end;
+    select count(*) into v_value from labs where lab_id = v_lab_v3_id and wallet = v_before_wallet;
+    assert_true(v_value = 1, 'Rejected V3 purchase leaves wallet unchanged');
+    select nvl(sum(quantity), 0)
+      into v_value
+      from lab_mutations
+     where lab_id = v_lab_v3_id
+       and mutation_id = v_legacy_mutation_id;
+    assert_true(v_value = v_before_mutation_quantity, 'Rejected V3 purchase leaves inventory unchanged');
+
+    select nvl(max(quantity), 0)
+      into v_before_mutation_quantity
+      from lab_mutations
+     where lab_id = v_lab_v3_id
+       and mutation_id = v_nutrition_mutation_id;
+    begin
+        v_value := pkg_genetics_game.buy_mutation(v_lab_v3_id, v_nutrition_mutation_id);
+        fail_test('V3 purchase of nutrition mutation is rejected', 'call unexpectedly returned ' || v_value);
+    exception
+        when others then
+            v_error_code := sqlcode;
+            assert_true(v_error_code = -20088, 'V3 purchase of nutrition mutation is rejected', 'actual=' || v_error_code);
+    end;
+    select count(*) into v_value from labs where lab_id = v_lab_v3_id and wallet = v_before_wallet;
+    assert_true(v_value = 1, 'Rejected nutrition purchase leaves wallet unchanged');
+    select nvl(sum(quantity), 0)
+      into v_value
+      from lab_mutations
+     where lab_id = v_lab_v3_id
+       and mutation_id = v_nutrition_mutation_id;
+    assert_true(v_value = v_before_mutation_quantity, 'Rejected nutrition purchase leaves inventory unchanged');
     select count(*) into v_value from genotypes where creature_id = v_creature_v3_id;
     assert_true(v_value = v_before_genotype_count, 'Rejected V3 mutation leaves genotype count unchanged');
     select count(*) into v_value from experiments where lab_id = v_lab_v3_id;

@@ -6,6 +6,7 @@ from web_client.services.display_service import (
     EVENT_LABELS,
     TASK_DESCRIPTIONS,
     TASK_LABELS,
+    V3_TASK_LABELS,
     build_creature_view,
     creature_visual,
     experiment_view,
@@ -231,6 +232,11 @@ class PlayerLocalizationTests(unittest.TestCase):
         self.assertEqual(translate_free_text("species_type=7"), "species type=Гибрид")
         self.assertEqual(trait_label("2"), "2")
 
+    def test_marine_species_categories_are_localized(self) -> None:
+        self.assertEqual(species_label({"species_type": 5}), "Морские рептилии")
+        self.assertEqual(species_label({"species_type": 6}), "Морские млекопитающие")
+        self.assertEqual(species_label({"species_type": 7}), "Гибрид")
+
     def test_v3_creature_uses_backend_nutrition_result_for_genotype(self) -> None:
         creature = build_creature_view(
             {
@@ -300,6 +306,22 @@ class TaskDisplayTests(unittest.TestCase):
                 task = task_view({"task_name": code, "task_display_name": code})
                 self.assertEqual(task["display_name"], expected)
                 self.assertFalse(task["display_name"].lower().startswith("task_"))
+
+    def test_all_v3_tasks_have_player_facing_names_and_phenotype_semantics(self) -> None:
+        self.assertEqual(len(V3_TASK_LABELS), 12)
+        for code, expected in V3_TASK_LABELS.items():
+            with self.subTest(code=code):
+                task = task_view({
+                    "task_name": code,
+                    "task_display_name": code,
+                    "description": "Требуется проявившийся признак.",
+                    "genetics_version": 3,
+                    "task_status": "ACTIVE",
+                })
+                self.assertEqual(task["display_name"], expected)
+                self.assertFalse(task["display_name"].lower().startswith("task_"))
+                self.assertEqual(task["requirement_label"], "Проявляющийся признак")
+                self.assertEqual(task["status_label"], "Активен")
 
     def test_all_known_tasks_explain_genetic_carrier_condition(self) -> None:
         self.assertEqual(set(TASK_DESCRIPTIONS), set(TASK_LABELS))

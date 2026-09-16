@@ -685,7 +685,18 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("dashboard"))
 
-        task_views = display_service.task_views(tasks_rows)
+        lab_genetics_version = next(
+            (
+                display_service.creature_genetics_version(creature)
+                for creature in creatures_rows
+                if creature.get("genetics_version") is not None
+            ),
+            1,
+        )
+        task_views = display_service.task_views([
+            {**task, "genetics_version": lab_genetics_version}
+            for task in tasks_rows
+        ])
         active_tasks = [
             task for task in task_views
             if str(task.get("task_status", "")).upper() == "ACTIVE"
@@ -705,6 +716,7 @@ def create_app() -> Flask:
             completed_tasks=completed_tasks,
             other_tasks=other_tasks,
             creatures=display_service.creature_views(creatures_rows),
+            genetics_version=lab_genetics_version,
             lab_id=lab_id,
         )
 
@@ -860,6 +872,14 @@ def create_app() -> Flask:
             return redirect(url_for("dashboard"))
 
         creature_views, _ = display_creatures_for_lab(token, lab_id, creatures_rows)
+        lab_genetics_version = next(
+            (
+                display_service.creature_genetics_version(creature)
+                for creature in creatures_rows
+                if creature.get("genetics_version") is not None
+            ),
+            1,
+        )
         selected_creature_id = 0
         if request.method == "GET" and request.args.get("creature_id"):
             try:
@@ -919,6 +939,7 @@ def create_app() -> Flask:
             mutation_purchase_count=display_service.count_mutation_purchases(rating_rows),
             selected_creature=selected_creature,
             selected_creature_id=selected_creature_id,
+            genetics_version=lab_genetics_version,
             lab_id=lab_id,
         )
     @app.route("/experiments", methods=["GET", "POST"])
@@ -1073,6 +1094,14 @@ def create_app() -> Flask:
             selected_creature_id=str(creature_id or ""),
             selected_mutagen=selected_mutagen,
             offspring_name=offspring_name,
+            genetics_version=next(
+                (
+                    display_service.creature_genetics_version(creature)
+                    for creature in creature_rows
+                    if creature.get("genetics_version") is not None
+                ),
+                1,
+            ),
             lab_id=lab_id,
         )
 

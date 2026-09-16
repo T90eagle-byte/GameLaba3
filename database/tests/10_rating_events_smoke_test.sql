@@ -24,6 +24,9 @@ declare
 
     v_mutation_id                number;
     v_mutation_cost              number;
+    v_fixture_mutation_id        number;
+    v_body_color_gene_id         number;
+    v_target_allele_id           number;
     v_buy_result                 number;
     v_creature_id                number;
     v_new_creature_id            number;
@@ -122,6 +125,16 @@ declare
         end;
 
         begin
+            if v_fixture_mutation_id is not null then
+                delete from mutation_rules where mutation_id = v_fixture_mutation_id;
+                delete from mutations where mutation_id = v_fixture_mutation_id;
+            end if;
+        exception
+            when others then
+                dbms_output.put_line('[WARN] cleanup mutation fixture: ' || sqlcode || ' / ' || sqlerrm);
+        end;
+
+        begin
             if v_token2 is not null then
                 pkg_genetics_game.logout_user(v_token2);
             end if;
@@ -211,15 +224,62 @@ begin
       from labs l
      where l.lab_id = v_lab1_id;
 
-    select m.mutation_id, m.cost
-      into v_mutation_id, v_mutation_cost
-      from (
-            select m.mutation_id, m.cost
-              from mutations m
-             where m.cost > 0
-             order by m.cost, m.mutation_id
-      ) m
-     where rownum = 1;
+    -- A v3 lab accepts only canonical morphology-directed rules.  The rating
+    -- event assertions need a purchasable rule, so use an isolated fixture.
+    select g.gene_id
+      into v_body_color_gene_id
+      from genes g
+     where g.gene_name = 'body_color'
+       and g.species_type = 0;
+
+    select min(a.allele_id)
+      into v_target_allele_id
+      from alleles a
+     where a.gene_id = v_body_color_gene_id;
+
+    select mutations_seq.nextval
+      into v_fixture_mutation_id
+      from dual;
+
+    insert into mutations (
+        mutation_id,
+        mutation_name,
+        mutation_type,
+        description,
+        cost,
+        rating_effect,
+        created_at
+    ) values (
+        v_fixture_mutation_id,
+        'rating_events_body_color_' || lower(substr(rawtohex(sys_guid()), 1, 12)),
+        null,
+        'Temporary rating-events mutation fixture.',
+        25,
+        0,
+        systimestamp
+    );
+
+    insert into mutation_rules (
+        mutation_rule_id,
+        mutation_id,
+        gene_id,
+        target_allele_id,
+        target_slot,
+        created_at
+    ) values (
+        mutation_rules_seq.nextval,
+        v_fixture_mutation_id,
+        v_body_color_gene_id,
+        v_target_allele_id,
+        '1',
+        systimestamp
+    );
+
+    v_mutation_id := v_fixture_mutation_id;
+    select m.cost
+      into v_mutation_cost
+      from mutations m
+     where m.mutation_id = v_mutation_id;
 
     v_buy_result := pkg_genetics_game.buy_mutation(v_lab1_id, v_mutation_id);
     assert_true(v_buy_result = 1, 'buy_mutation succeeds for event test');

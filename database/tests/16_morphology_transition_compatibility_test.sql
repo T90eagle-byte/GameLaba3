@@ -316,21 +316,16 @@ begin
      );
     if v_mutation_id is not null then
         v_before_morph_signature := morphology_signature(v_dual1_id);
-        v_buy_result := pkg_genetics_game.buy_mutation(v_lab_id, v_mutation_id);
-        if v_buy_result = 1 then
-            begin
-                pkg_genetics_game.apply_mutation(v_dual1_id, v_mutation_id);
-                v_mutation_rejection_code := 0;
-            exception
-                when others then
-                    v_mutation_rejection_code := sqlcode;
-            end;
-            v_after_morph_signature := morphology_signature(v_dual1_id);
-            assert_true(v_mutation_rejection_code = -20088, 'MUTATION COMPATIBILITY: legacy rule is rejected for v3', 'sqlcode=' || v_mutation_rejection_code);
-            assert_true(v_before_morph_signature = v_after_morph_signature, 'MUTATION COMPATIBILITY: rejected legacy rule leaves morphology rows unchanged');
-        else
-            fail_test('MUTATION COMPATIBILITY: test mutation purchase', 'buy_mutation returned 0');
-        end if;
+        begin
+            v_buy_result := pkg_genetics_game.buy_mutation(v_lab_id, v_mutation_id);
+            v_mutation_rejection_code := 0;
+        exception
+            when others then
+                v_mutation_rejection_code := sqlcode;
+        end;
+        v_after_morph_signature := morphology_signature(v_dual1_id);
+        assert_true(v_mutation_rejection_code = -20088, 'MUTATION COMPATIBILITY: legacy rule is rejected before purchase for v3', 'sqlcode=' || v_mutation_rejection_code);
+        assert_true(v_before_morph_signature = v_after_morph_signature, 'MUTATION COMPATIBILITY: rejected legacy rule leaves morphology rows unchanged');
     else
         fail_test('MUTATION COMPATIBILITY: compatible rule lookup');
     end if;

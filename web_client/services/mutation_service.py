@@ -12,9 +12,9 @@ def get_mutation_shop(session_token: str, lab_id: int) -> list[dict[str, Any]]:
         with connection.cursor() as cursor:
             cursor.callproc("pkg_genetics_game.load_lab", [session_token, lab_id])
             ref_cursor = cursor.callfunc(
-                "pkg_genetics_game.show_mutation_shop",
+                "pkg_genetics_game.show_lab_mutation_shop",
                 oracledb.DB_TYPE_CURSOR,
-                [],
+                [lab_id],
             )
             try:
                 return rows_from_refcursor(ref_cursor)

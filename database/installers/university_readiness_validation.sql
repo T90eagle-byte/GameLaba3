@@ -10,6 +10,7 @@ declare
     v_package_errors           number;
     v_required_routines        number;
     v_hybrid_signature         number;
+    v_lab_mutation_shop_signature number;
     v_missing_rules            number;
     v_missing_markers          number;
     v_bad_legacy_descriptions  number;
@@ -23,6 +24,7 @@ declare
     v_v3_tasks                 number;
     v_expected_v3_tasks        number;
     v_hybrid_species           number;
+    v_marine_species_names     number;
     v_hybrid_experiment        number;
     v_hybrid_rating_event      number;
     v_hybrid_economics         number;
@@ -65,7 +67,8 @@ begin
      where object_name = 'PKG_GENETICS_GAME'
        and procedure_name in (
            'START_NEW_LAB', 'GET_MORPHOLOGY_CURSOR', 'GET_LAB_MORPHOLOGY_CURSOR',
-           'MAKE_EXPERIMENT', 'HYBRIDIZE', 'GET_TASKS_CURSOR'
+           'MAKE_EXPERIMENT', 'HYBRIDIZE', 'GET_TASKS_CURSOR',
+           'SHOW_LAB_MUTATION_SHOP'
        );
 
     select count(*) into v_hybrid_signature
@@ -82,6 +85,19 @@ begin
                  'P_LAB_ID', 'P_PARENT1_ID', 'P_PARENT2_ID',
                  'P_MUTAGEN_TYPE', 'P_OFFSPRING_NAME', 'P_OFFSPRING_ID'
              ) then argument_name end) = 6
+      );
+
+    select count(*) into v_lab_mutation_shop_signature
+      from (
+          select subprogram_id
+            from user_arguments
+           where package_name = 'PKG_GENETICS_GAME'
+             and object_name = 'SHOW_LAB_MUTATION_SHOP'
+             and data_level = 0
+             and argument_name is not null
+           group by subprogram_id
+          having count(*) = 1
+             and count(distinct case when argument_name = 'P_LAB_ID' then argument_name end) = 1
       );
 
     select count(*) into v_missing_rules
@@ -148,6 +164,10 @@ begin
 
     select count(*) into v_hybrid_species
       from ref_species_types where species_type = 7;
+    select count(*) into v_marine_species_names
+      from ref_species_types
+     where (species_type = 5 and display_name = 'Морские рептилии')
+        or (species_type = 6 and display_name = 'Морские млекопитающие');
     select count(*) into v_hybrid_experiment
       from ref_experiment_types where experiment_type = 'HYBRIDIZATION';
     select count(*) into v_hybrid_rating_event
@@ -165,8 +185,9 @@ begin
        or v_required_columns <> 7
        or v_valid_objects <> 2
        or v_package_errors <> 0
-       or v_required_routines <> 6
+       or v_required_routines <> 7
        or v_hybrid_signature <> 1
+       or v_lab_mutation_shop_signature <> 1
        or v_missing_rules <> 0
        or v_missing_markers <> 0
        or v_bad_legacy_descriptions <> 0
@@ -180,6 +201,7 @@ begin
        or v_v3_tasks <> 12
        or v_expected_v3_tasks <> 12
        or v_hybrid_species <> 1
+       or v_marine_species_names <> 2
        or v_hybrid_experiment <> 1
        or v_hybrid_rating_event <> 1
        or v_hybrid_economics <> 1 then
@@ -194,6 +216,7 @@ begin
     dbms_output.put_line('Archetypes/templates: 18/324');
     dbms_output.put_line('Model membership v1/v3: 12/19');
     dbms_output.put_line('V3 tasks: 12');
+    dbms_output.put_line('Version-aware mutation catalog API: OK');
     dbms_output.put_line('Controlled hybridization references: OK');
     dbms_output.put_line('Current v3 schema readiness: OK');
 end;

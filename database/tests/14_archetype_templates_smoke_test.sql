@@ -156,10 +156,15 @@ begin
     select count(*)
       into v_value
       from genotypes gt
+      join creatures c
+        on c.creature_id = gt.creature_id
+      join labs l
+        on l.lab_id = c.lab_id
       join genes g
         on g.gene_id = gt.gene_id
-     where g.gameplay_enabled = 'N';
-    assert_true(v_value = 0, 'Existing runtime genotypes remain unchanged', 'reference_gene_rows=' || v_value);
+     where nvl(l.genetics_version, 1) = 1
+       and g.gameplay_enabled = 'N';
+    assert_true(v_value = 0, 'Legacy v1 runtime genotypes remain unchanged', 'reference_gene_rows=' || v_value);
 
     select count(*)
       into v_value

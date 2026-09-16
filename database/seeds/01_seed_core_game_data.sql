@@ -374,13 +374,13 @@ begin
     when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);
 
     merge into ref_species_types tgt
-    using (select 5 as species_type, 'Черепахи' as display_name from dual) src
+    using (select 5 as species_type, 'Морские рептилии' as display_name from dual) src
     on (tgt.species_type = src.species_type)
     when matched then update set tgt.display_name = src.display_name
     when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);
 
     merge into ref_species_types tgt
-    using (select 6 as species_type, 'Млекопитающие' as display_name from dual) src
+    using (select 6 as species_type, 'Морские млекопитающие' as display_name from dual) src
     on (tgt.species_type = src.species_type)
     when matched then update set tgt.display_name = src.display_name
     when not matched then insert (species_type, display_name) values (src.species_type, src.display_name);

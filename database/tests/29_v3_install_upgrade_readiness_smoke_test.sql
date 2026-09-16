@@ -23,8 +23,8 @@ begin
     select count(*) into v_actual
       from app_install_state
      where install_key = 'schema'
-       and install_version = 13;
-    assert_count('schema install version 13', v_actual, 1);
+       and install_version = 14;
+    assert_count('schema install version 14', v_actual, 1);
 
     select count(*) into v_actual from ref_creature_archetypes;
     assert_count('archetypes', v_actual, 18);
@@ -71,6 +71,12 @@ begin
     assert_count('hybrid species', v_actual, 1);
 
     select count(*) into v_actual
+      from ref_species_types
+     where (species_type = 5 and display_name = 'Морские рептилии')
+        or (species_type = 6 and display_name = 'Морские млекопитающие');
+    assert_count('marine species display names', v_actual, 2);
+
+    select count(*) into v_actual
       from ref_experiment_types where experiment_type = 'HYBRIDIZATION';
     assert_count('hybridization experiment type', v_actual, 1);
 
@@ -90,6 +96,20 @@ begin
        and object_type in ('PACKAGE', 'PACKAGE BODY')
        and status = 'VALID';
     assert_count('valid package objects', v_actual, 2);
+
+    select count(*) into v_actual
+      from (
+          select subprogram_id
+            from user_arguments
+           where package_name = 'PKG_GENETICS_GAME'
+             and object_name = 'SHOW_LAB_MUTATION_SHOP'
+             and data_level = 0
+             and argument_name is not null
+           group by subprogram_id
+          having count(*) = 1
+             and count(distinct case when argument_name = 'P_LAB_ID' then argument_name end) = 1
+      );
+    assert_count('version-aware mutation shop signature', v_actual, 1);
 
     select count(*) into v_actual
       from user_errors
