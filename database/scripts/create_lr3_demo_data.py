@@ -48,6 +48,8 @@ DEMO_LABS = (
     DemoLab("lr3demobeta", "Бета: заказы клиентов", "task"),
     DemoLab("lr3demobeta", "Бета: направленная мутация", "mutation"),
     DemoLab("lr3demobeta", "Бета: химический опыт", "chemical"),
+    DemoLab("lr3demoalpha", "Альфа: витрина v3", "v3_showcase"),
+    DemoLab("lr3demobeta", "Бета: витрина v3", "v3_showcase"),
 )
 
 
@@ -232,6 +234,77 @@ def ensure_mutagen(cursor: oracledb.Cursor, token: str, lab_id: int, mutagen_typ
     )
 
 
+def normal_parent_pair(cursor: oracledb.Cursor, lab_id: int) -> tuple[int, int]:
+    cursor.execute(
+        """
+        select species_type, creature_id
+          from creatures
+         where lab_id = :lab_id
+           and species_type between 1 and 6
+         order by species_type, creature_id
+        """,
+        lab_id=lab_id,
+    )
+    by_species: dict[int, list[int]] = {}
+    for species_type, creature_id in cursor.fetchall():
+        by_species.setdefault(int(species_type), []).append(int(creature_id))
+    pair = next((rows[:2] for rows in by_species.values() if len(rows) >= 2), None)
+    if pair is None:
+        raise DemoSetupError(f"В лаборатории #{lab_id} не найдена пара обычных родителей.")
+    return pair[0], pair[1]
+
+
+def ensure_combined_experiment(cursor: oracledb.Cursor, token: str, lab_id: int) -> None:
+    if has_experiment(cursor, lab_id, "CROSSBREED_MUTAGEN"):
+        return
+    activate_demo_lab(cursor, token, lab_id)
+    parent1_id, parent2_id = normal_parent_pair(cursor, lab_id)
+    offspring_id = cursor.var(oracledb.NUMBER)
+    cursor.callproc(
+        "pkg_genetics_game.make_experiment",
+        [lab_id, parent1_id, parent2_id, "RADIATION", "Демо: скрещивание и облучение", offspring_id],
+    )
+
+
+def ensure_hybridization(cursor: oracledb.Cursor, token: str, lab_id: int) -> None:
+    if has_experiment(cursor, lab_id, "HYBRIDIZATION"):
+        return
+    activate_demo_lab(cursor, token, lab_id)
+    cursor.execute(
+        """
+        select min(creature_id) keep (dense_rank first order by species_type) as first_parent,
+               min(creature_id) keep (dense_rank first order by species_type desc) as second_parent
+          from creatures
+         where lab_id = :lab_id
+           and species_type between 1 and 6
+        """,
+        lab_id=lab_id,
+    )
+    parent1_id, parent2_id = cursor.fetchone()
+    if parent1_id is None or parent2_id is None or int(parent1_id) == int(parent2_id):
+        raise DemoSetupError(f"В лаборатории #{lab_id} не найдена пара разных видов для гибридизации.")
+    offspring_id = cursor.var(oracledb.NUMBER)
+    cursor.callproc(
+        "pkg_genetics_game.hybridize",
+        [lab_id, int(parent1_id), int(parent2_id), "RADIATION", "Демо-гибрид", offspring_id],
+    )
+
+
+def ensure_v3_showcase(cursor: oracledb.Cursor, token: str, lab_id: int) -> None:
+    genetics_version = scalar(
+        cursor,
+        "select genetics_version from labs where lab_id = :lab_id",
+        lab_id=lab_id,
+    )
+    if int(genetics_version or 0) != 3:
+        raise DemoSetupError(f"Витрина v3 #{lab_id} имеет неверную генетическую версию.")
+
+    ensure_crossbreed(cursor, token, lab_id)
+    ensure_mutagen(cursor, token, lab_id, "RADIATION")
+    ensure_combined_experiment(cursor, token, lab_id)
+    ensure_hybridization(cursor, token, lab_id)
+
+
 def lab_needs_activity(cursor: oracledb.Cursor, lab_id: int, activity: str) -> bool:
     if activity == "start":
         return False
@@ -243,6 +316,18 @@ def lab_needs_activity(cursor: oracledb.Cursor, lab_id: int, activity: str) -> b
                 "select count(*) from lab_tasks where lab_id = :lab_id and task_status = 'COMPLETED'",
                 lab_id=lab_id,
             )
+        )
+    if activity == "v3_showcase":
+        v3_lab = scalar(
+            cursor,
+            "select count(*) from labs where lab_id = :lab_id and genetics_version = 3",
+            lab_id=lab_id,
+        )
+        if not v3_lab:
+            return True
+        return any(
+            not has_experiment(cursor, lab_id, experiment_type)
+            for experiment_type in ("CROSS", "MUTAGEN", "CROSSBREED_MUTAGEN", "HYBRIDIZATION")
         )
     return not has_experiment(cursor, lab_id, experiment_type)
 
@@ -309,6 +394,8 @@ def main() -> int:
                     ensure_mutagen(cursor, token, lab_id, "RADIATION")
                 elif spec.activity == "chemical":
                     ensure_mutagen(cursor, token, lab_id, "CHEMICAL")
+                elif spec.activity == "v3_showcase":
+                    ensure_v3_showcase(cursor, token, lab_id)
 
             for token in tokens.values():
                 cursor.callproc("pkg_genetics_game.logout_user", [token])
