@@ -1,105 +1,36 @@
-# Current Tasks
+# Текущее состояние проекта
 
-## Current Stage
-Web-этап 1–2 начат: создан минимальный Flask/Jinja skeleton поверх `pkg_genetics_game`.
+## READY
 
-Готово в текущем web skeleton:
-- `web_client/` структура;
-- config и Oracle connection layer;
-- auth/register/login/logout;
-- labs page;
-- dashboard page;
-- `/health`;
-- простой CSS без внешних CDN и frontend build.
+- versioned Oracle schema с marker `14` и migrations `01..14`;
+- v1 compatibility для исторических лабораторий;
+- v3 canonical genetics: 19 genes, 18 archetypes и materialized morphology;
+- phenotype-aware v3 Задания;
+- SVG renderer и package-backed read model;
+- version-aware directed mutations и мутагены;
+- unified `/experiments`: скрещивание, мутация, мутаген, «Скрещивание +
+  мутаген», «Гибридизация»;
+- controlled hybridization с canonical 19-gene hybrid;
+- безопасный install/update для существующей схемы;
+- v3 demo dataset и connected acceptance smoke-test `30`;
+- web, readiness и deployment helpers.
 
-## Backend Checkpoint
-- Backend не менялся на web-этапе.
-- `backend-rating-events` и `backend-offspring-preview` влиты в `main`.
-- `preview_offspring_options` возвращает 3 preview-варианта потомства по умолчанию.
-- Полный Oracle runner `01..11` ранее прошел с `Failed: 0`.
-- `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`.
-- `user_errors`: clean.
+## PENDING RELEASE GATE
 
-## Web Architecture Rule
-- Web-клиент является только client/display-layer.
-- Flask не считает генетику, рейтинг, кошелек или задания.
-- Игровые операции идут через `pkg_genetics_game`.
-- Единственный прямой SQL в web skeleton — технический health-check `select 1 from dual`.
+1. Выполнить один полный RC regression на целевом актуальном состоянии.
+2. Выполнить runtime validation на университетской Oracle 12.2.
+3. Развернуть Waitress на вузовском стенде и проверить `/health/live`,
+   `/health`, readiness и v3 demo-витрину.
 
-## Актуальные документы
-- План web-клиента: `docs/web_client_plan.md`.
-- Главный документ по соответствию backend требованиям: `docs/backend_final_requirements_review.md`.
-- Аудит уровней оценки: `docs/grade_requirements_audit.md`.
-- Материалы защиты: `docs/defense_requirements_cheatsheet.md`, `docs/defense_demo_script.md`.
+## DEFERRED, НЕ BLOCKER ДЛЯ ЗАЩИТЫ
 
-## Следующие web-этапы
-1. Creatures list и creature detail.
-2. Tasks page как “Заказы клиента”.
-3. Crossbreed page с `preview_offspring_options`.
-4. Mutations, experiments, rating events.
-5. Polish и стендовый README.
+- production content направленных morphology-мутаций для v3;
+- mutation/tasks для `nutrition_type`;
+- размножение гибридов;
+- дополнительные виды мутагенов;
+- hybrid-specific Задания;
+- более сложная графика renderer;
+- удаление legacy compatibility routes.
 
-## Не делать сейчас
-- Не менять DDL/seed/package/tests/runner без отдельной причины.
-- Не добавлять требования на 5: экосистему, смертность, совет по этике, закрытие лаборатории.
-- Не переносить генетику, экономику, рейтинг или задания в Python/web/frontend.
-- Не удалять PySide6 GUI: он остается desktop-версией.
-
-## Web-этап 3: существа и заказы клиента
-
-Реализован следующий слой Flask/Jinja поверх `pkg_genetics_game`:
-- `/creatures` показывает существ текущей лаборатории через `get_creatures_cursor`;
-- `/creatures/<id>` показывает карточку существа и генотип через `get_genotype_cursor`;
-- `/tasks` показывает задания как “Заказы клиента”;
-- проверка и выполнение заказа идут только через `check_task` и `complete_task`;
-- dashboard получил быстрые действия и блок защиты.
-
-Следующий web-этап: скрещивание, `preview_offspring_options`, затем реальное `crossbreed`.
-
-## Web-этап 4: скрещивание и preview потомства
-
-Реализован web-интерфейс `/crossbreed`:
-- выбор двух родителей из текущей лаборатории;
-- preview ровно 3 вариантов потомства через `preview_offspring_options`;
-- отображение phenotype/genotype preview как примеров возможного потомства без вероятности полного генотипа;
-- реальное создание потомка через `crossbreed` отдельной кнопкой;
-- preview не меняет состояние лаборатории.
-
-Следующий web-этап: мутации, мутагены RADIATION/CHEMICAL, история экспериментов и `rating_events`.
-
-## Web-этап 5: мутации и мутагены
-
-Реализован web-интерфейс `/mutations`:
-- магазин мутаций через `show_mutation_shop`;
-- покупка через `buy_mutation`;
-- применение directed mutation через `apply_mutation`;
-- мутагены `RADIATION` и `CHEMICAL` через `apply_mutagen`;
-- риск показывается через обновлённые wallet/rating из backend stats.
-
-Backend не менялся. Flask остаётся display-layer и не рассчитывает эффекты мутаций.
-
-Следующий web-этап: история экспериментов и `rating_events`, затем polish.
-
-## Web-этап 6: история экспериментов и рейтинга
-
-Реализованы страницы:
-- `/experiments` — эволюционная линия лаборатории через историю скрещиваний, мутаций и мутагенов;
-- `/rating-events` — последствия действий через журнал `rating_events`.
-
-Web только вызывает package API и показывает backend-события. Следующий этап: polish, `/about-requirements`, финальный smoke checklist.
-
-## Current status after web polish
-
-- Web history stage has been merged into `main`.
-- Web polish/defense stage is complete on `web-client-polish-defense`.
-- Added `/about-requirements`.
-- Dashboard is now the main defense hub: lab state, gameplay cycle, quick demo links and backend proof.
-- Added `web_client/smoke_test.py` for a Flask test-client smoke run.
-- Backend files were not changed: DDL, seed, package spec/body and backend tests `01..11` remain stable.
-
-### Next actions
-
-1. Run backend suite `01..11`.
-2. Run `web_client/smoke_test.py` and manual browser smoke.
-3. Check startup on the defense stand.
-4. Apply only small UX fixes if the stand exposes a real issue.
+Не переносить gameplay logic из Oracle в web-клиент и не обновлять
+существующую базу переустановкой.

@@ -58,3 +58,8 @@ $env:BIOSBORKA_ENV_FILE = "$PWD\deployment\windows\.env"
 ```
 
 Waitress is used for Windows; Gunicorn is not part of this deployment path.
+
+New SQL/PLSQL changes are statically checked for Oracle 12.2 compatibility.
+Runtime validation on Oracle 12.2 must be performed on the university stand;
+do not treat local Docker or a newer local Oracle as proof of that runtime
+environment.

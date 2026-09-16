@@ -1,107 +1,87 @@
-# AI Context: GameLR3 / «БиоСборка»
+# Технический snapshot: «БиоСборка» v3
 
-## Workspace
-- Актуальный workspace: `C:\GameLR3`.
+## Рабочее состояние
+
+- Репозиторий: `C:\GameLR3`.
 - Основная ветка: `main`.
-- Текущая web-ветка: `web-client-skeleton`.
-- Коммиты писать на русском языке.
-- Не коммитить `.env`, `.venv`, `__pycache__`, временные файлы и backup-файлы.
+- Текущий schema/install marker: **14**.
+- Backend truth: Oracle package `pkg_genetics_game`.
+- Клиенты: PySide6 и Flask/Jinja — только display/API clients.
 
-## Архитектура
-- Backend реализован на Oracle PL/SQL.
-- Центральный backend API: `pkg_genetics_game`.
-- Python/PySide6 и Flask/Jinja web остаются client/display-layer.
-- Бизнес-логика остается в Oracle PL/SQL package.
+Новые SQL/PLSQL изменения статически проверены на совместимость с Oracle 12.2.
+Runtime validation на Oracle 12.2 должна быть выполнена на университетском
+стенде.
 
-## Backend Checkpoint
-- Backend-фаза завершена и зафиксирована.
-- `STANDARD_HASH` используется вместо `DBMS_CRYPTO`.
-- `ref_*` справочники и FK реализованы.
-- `rating_events` реализован.
-- `preview_offspring_options` возвращает 3 preview-варианта по умолчанию.
-- Runner `01..11` ранее прошел с `Failed: 0`.
-- `PKG_GENETICS_GAME`: `PACKAGE VALID`, `PACKAGE BODY VALID`.
-- `user_errors`: clean.
+## Модели лабораторий
 
-## Web Checkpoint
-Создан первый минимальный web skeleton:
-- Flask/Jinja;
-- обычный CSS без CDN/frameworks;
-- config из `python_client/.env`;
-- Oracle connection layer с `ORACLE_SERVICE` / `ORACLE_SID`;
-- `auth_service` и `lab_service` как thin wrappers над package;
-- routes `/health`, `/register`, `/login`, `/logout`, `/labs`, `/dashboard`.
+- Исторические лаборатории остаются `genetics_version=1` и не конвертируются.
+- Новые лаборатории создаются как `genetics_version=3`.
+- v3 содержит 19 canonical genes: `nutrition_type` и 18 universal morphology
+  genes из `ref_genetics_model_genes`.
+- `ref_creature_archetypes` содержит 18 стартовых архетипов;
+  `ref_archetype_alleles` задаёт их генотипы.
+- Стартовые v3-существа имеют `archetype_id`; потомки и мутагенные клоны могут
+  его не иметь, поскольку renderer читает materialized morphology.
 
-Web не считает генетику, задания, рейтинг или кошелек. Единственный прямой SQL — health-check `select 1 from dual`.
+## Скрещивание, мутации и эксперименты
 
-## Следующие web-этапы
-1. Creatures list и creature detail.
-2. Tasks page как “Заказы клиента”.
-3. Crossbreed page с preview 3 вариантов.
-4. Mutations, experiments, rating events.
-5. Polish под слабый учебный стенд.
+- Обычное `crossbreed` — два существа одного обычного вида.
+- Preview stateless и не создаёт игровых данных.
+- Unified experiment modes: `CROSS`, `MUTATION`, `MUTAGEN`,
+  `CROSSBREED_MUTAGEN`, `HYBRIDIZATION`.
+- v3 directed mutation возможна только для совместимого production rule;
+  текущий production v3-каталог направленного morphology content намеренно
+  пуст.
+- `RADIATION` и `CHEMICAL` работают через package.
+- Гибрид имеет `species_type=7`, `archetype_id=NULL` и **ровно 19 canonical
+  genes**. Он не может размножаться, но может мутировать.
+- Гибридизация применяет рейтинг `-50` с ограничением до нуля.
 
-## Важные ограничения
-- Не реализовывать требования на 5 сейчас.
-- Не добавлять экосистему, смертность, совет по этике или закрытие лаборатории.
-- Не переносить бизнес-логику в Python/web/frontend.
-- Не менять DDL/package/seed/tests/PySide6 GUI без отдельной задачи.
+## Задания
 
-## Context checkpoint: web-client-creatures-orders
+- v1: marker alleles, присутствие в allele1 или allele2.
+- v3: package проверяет выраженный phenotype.
+- Task rewards и Монеты/рейтинг не рассчитываются в Flask.
 
-Ветка `web-client-creatures-orders` добавляет второй практический слой web-клиента без изменения backend:
-- сервисы `creature_service` и `task_service` являются тонкими wrappers над package API;
-- routes `/creatures`, `/creatures/<id>`, `/tasks` работают поверх текущей лаборатории из Flask session;
-- “Заказы клиента” проверяются и завершаются только в Oracle PL/SQL package;
-- Flask не считает генетику, рейтинг, кошелёк и не проверяет task markers.
+## Установка и обновление
 
-Следующий web-этап должен быть `crossbreed + preview_offspring_options`; mutation/history/rating pages идут после него.
+- Fresh assigned schema: `database/installers/university_existing_schema_install.sql`.
+- Existing BioSborka schema: `database/installers/university_existing_schema_update.sql`.
+- Оба entry points приводят recognised schema к marker 14, применяют
+  migrations `01..14`, seeds `01..05`, package и validation. Update сохраняет
+  пользователей и игровой прогресс.
+- Docker `db-init` использует тот же versioned contract; не заменять его
+  destructive fallback.
+- Runtime CLI: `database/scripts/check_runtime_readiness.py`.
 
-## Context checkpoint: web-client-crossbreed-preview
+## Тесты и demo
 
-Ветка `web-client-crossbreed-preview` добавляет route `/crossbreed` и service `crossbreed_service`:
-- `preview_offspring_options` вызывается напрямую из package и возвращает 3 preview-варианта;
-- preview показывается в браузере как stateless примеры возможного потомства `PREVIEW_SAMPLE`, без фиктивной вероятности полного генотипа;
-- `crossbreed` создаёт реального потомка через package и возвращает `offspring_id`;
-- Flask не проверяет совместимость родителей как источник истины и не считает генетику.
+- `database/scripts/run_tests.py` numeric-discoveries backend tests `01..30`;
+  полный runner компилирует package и печатает status/user_errors.
+- Test 30 — connected v3 end-to-end acceptance с exact temporary fixture
+  cleanup.
+- `database/scripts/create_lr3_demo_data.py` создаёт два demo users, десять
+  historical v1 labs и две v3 showcase labs.
+- `database/scripts/check_lr3_demo_data.py` проверяет formal demo minimum и
+  v3 showcase data.
+- Web tests находятся в `web_client/tests`; Oracle web smoke —
+  `web_client/smoke_test.py`.
 
-Следующий web-трек: mutations/experiments/rating events.
+## Непереговорные инварианты
 
-## Context checkpoint: web-client-mutations
+1. Historical labs остаются v1.
+2. New labs создаются v3.
+3. v3 renderer, tasks и mutations используют canonical morphology.
+4. Hybrid genotype содержит ровно 19 canonical genes.
+5. Hybrid не может размножаться.
+6. В web нет прямого gameplay SQL.
+7. Oracle package — единственный source of gameplay truth.
+8. Existing DB обновляется миграциями, а не reinstall.
+9. Обычный конфликт lab session не закрывает другие сессии; recovery передаёт
+   только выбранную собственную лабораторию.
 
-Ветка `web-client-mutations` добавляет route `/mutations` и service `mutation_service`:
-- магазин мутаций вызывает `show_mutation_shop`;
-- покупка вызывает `buy_mutation`;
-- directed mutation вызывает `apply_mutation`;
-- RADIATION/CHEMICAL вызывают `apply_mutagen` и могут открыть карточку созданного существа.
+## Целевой стенд
 
-Flask не считает стоимость, штраф, применимость или генетический эффект. Следующий web-трек: experiments/rating events.
-
-## Context checkpoint: web-client-history
-
-Ветка `web-client-history` добавляет:
-- `history_service.get_experiment_history` поверх `pkg_genetics_game.get_experiment_history`;
-- `rating_service.get_rating_events` поверх `pkg_genetics_game.get_rating_events_cursor`;
-- routes `/experiments` и `/rating-events`;
-- templates для эволюционной линии и истории рейтинга.
-
-Flask не строит последствия и не считает deltas; он показывает cursor rows из backend.
-
-## Checkpoint 2026-07-01: web polish for defense
-
-- `web-client-history` was merged into `main` as `c4642f5`.
-- `web-client-polish-defense` adds the final defense UI layer without backend changes.
-- Web now covers the complete grade 3/4 demo route: labs, dashboard, creatures, genotype/phenotype, client orders, crossbreed, 3-option preview, real offspring, mutations, mutagens, experiments history and rating events.
-- Требования для защиты подтверждаются маршрутом игры и backend-тестами; отдельная страница требований не используется.
-- Backend remains the source of truth: Flask only calls `pkg_genetics_game` and renders returned data. Direct SQL remains limited to health-check `select 1 from dual`.
-- Next step: final clean run, browser smoke on the defense machine, and only small UX fixes if needed.
-
-## Checkpoint 2026-07-10: persistent lab release
-
-- `labs.session_id` is nullable and represents only an active session lock.
-- `exit_lab` and `logout_user` persistently release held laboratories.
-- `load_lab`, `switch_lab`, and `start_new_lab` release only the previous lab of their current session; separate sessions of one user can keep different labs open.
-- A normal `-20072` conflict never closes sessions. The web client offers an explicit confirmed `recover_lab_access` action that atomically transfers only the selected own lab.
-- After transfer, the previous session stays active but loses access to that lab; other labs and other users are unaffected.
-- `labs.lab_name` is required after migration `02_add_lab_names.sql`; the legacy `start_new_lab` signature remains supported alongside the named overload and `rename_lab`.
-- Existing local schemas use `database/migrations/01_release_lab_session_bindings.sql` with the application stopped.
+Windows Server 2012 R2 x64, Python 3.12, Waitress, external Oracle 12.2 и
+assigned existing schema. Используется `python-oracledb` Thin mode без Instant
+Client. Реальная runtime validation ещё требуется на университетском стенде.
