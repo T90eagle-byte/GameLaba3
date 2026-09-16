@@ -62,7 +62,7 @@ begin
     execute immediate q'[
         alter table experiments add constraint ck_experiments_cross_requires_parent2 check (
             (
-                experiment_type in ('CROSS', 'CROSSBREED_MUTAGEN')
+                experiment_type in ('CROSS', 'CROSSBREED_MUTAGEN', 'HYBRIDIZATION')
                 and parent2_id is not null
             )
             or (
