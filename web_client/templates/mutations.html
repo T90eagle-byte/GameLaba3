@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_compact_creature_card.html" import compact_creature_card %}
 {% from "_portrait.html" import creature_portrait %}
 {% block title %}Мутации — БиоСборка{% endblock %}
 {% block content %}
@@ -130,12 +131,14 @@
     <p class="eyebrow">{% if genetics_version == 3 %}Доступные воздействия{% else %}Рискованные воздействия{% endif %}</p>
     <h2>{% if genetics_version == 3 %}Изменение существа{% else %}Мутагены{% endif %}</h2>
     <p>{% if genetics_version == 3 %}Для этой генетической модели доступны только облучение и химический мутаген.{% else %}Облучение и химикаты могут изменить состояние лаборатории. После применения проверьте обзор, существ, эволюционную линию и историю рейтинга.{% endif %}</p>
+    <div class="mutagen-explanations"><p><strong>Облучение.</strong> Случайно изменяет доступный ген и может затронуть один или два аллеля.</p><p><strong>Химический мутаген.</strong> Изменяет первый доступный ген и его первый аллель.</p></div>
     <form class="form" method="post">
       <label><span>Существо</span><select name="creature_id" id="mutagen-creature-select" required>{% for creature in creatures %}<option value="{{ creature.creature_id }}" data-result-name="{{ creature.display_name }} — мутант" {% if selected_creature_id|string == creature.creature_id|string %}selected{% endif %}>#{{ creature.creature_id }} — {{ creature.display_name }} · {{ creature.species_label }}</option>{% endfor %}</select></label>
       <label><span>Имя результата</span><input id="mutagen-result-name" name="result_name" value="{{ mutagen_default_name }}" maxlength="255" required></label>
       <div class="button-row"><button name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='RADIATION'">Применить облучение</button><button class="secondary" name="action" value="apply_mutagen" type="submit" onclick="this.form.mutagen_type.value='CHEMICAL'">Применить химический мутаген</button></div>
       <input type="hidden" name="mutagen_type" value="RADIATION">
     </form>
+    <div class="mutagen-current-state" aria-live="polite"><h3>Текущее состояние</h3>{% for creature in creature_cards %}<div data-mutagen-creature-card="{{ creature.creature_id }}" {% if selected_creature_id|string != creature.creature_id|string %}hidden{% endif %}>{{ compact_creature_card(creature, 'mutagen-' ~ creature.creature_id, 'Текущее состояние') }}</div>{% endfor %}</div>
   </article>
 </section>
 <script>
@@ -253,6 +256,12 @@
   if (applyCompatible) applyCompatible.addEventListener('change', applyFormFilters);
   if (mutationSelect) mutationSelect.addEventListener('change', applyFormFilters);
   if (creatureSelect) creatureSelect.addEventListener('change', updateImpact);
+  function updateMutagenCurrentState() {
+    if (!mutagenCreatureSelect) return;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-mutagen-creature-card]'), function (card) {
+      card.hidden = card.getAttribute('data-mutagen-creature-card') !== mutagenCreatureSelect.value;
+    });
+  }
   if (mutagenCreatureSelect && mutagenResultName) mutagenCreatureSelect.addEventListener('change', function () {
     var option = mutagenCreatureSelect.options[mutagenCreatureSelect.selectedIndex];
     var nextDefault = option ? option.getAttribute('data-result-name') || '' : '';
@@ -260,9 +269,11 @@
       mutagenResultName.value = nextDefault;
     }
     mutagenDefaultName = nextDefault;
+    updateMutagenCurrentState();
   });
   applyCatalogFilters();
   applyFormFilters();
+  updateMutagenCurrentState();
 }());
 </script>
 {% endblock %}

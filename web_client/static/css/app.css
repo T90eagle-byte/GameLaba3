@@ -998,6 +998,13 @@ button,
 .compact-traits { gap: .32rem; }
 .compact-traits .trait-pill { min-width: 0; max-width: 11rem; overflow-wrap: anywhere; }
 .parent-card-empty { display: flex; align-items: center; min-height: 154px; margin: 0; padding: .9rem; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); background: rgba(255,255,255,.35); }
+.task-creature-card-stack { grid-column: 1 / -1; }
+.task-creature-card-stack > div[hidden], .mutagen-current-state > div[hidden] { display: none; }
+.compact-creature-card { margin-top: .7rem; }
+.mutagen-explanations { display: grid; gap: .45rem; margin: .75rem 0; padding: .75rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,253,247,.72); }
+.mutagen-explanations p { margin: 0; color: var(--muted); }
+.mutagen-current-state { display: grid; gap: .55rem; margin-top: 1rem; }
+.mutagen-current-state h3 { margin: 0; }
 @media (max-width: 620px) { .parent-preview-card { grid-template-columns: 104px minmax(0, 1fr); } .parent-preview-card .creature-portrait { min-height: 96px; height: 96px; } }
 
 .feature-long-claws .creature-svg .claw-pair { transform-box: fill-box; transform-origin: center; transform: scale(1.06); }

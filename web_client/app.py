@@ -710,6 +710,9 @@ def create_app() -> Flask:
         try:
             tasks_rows = task_service.get_tasks(token, lab_id)
             creatures_rows = creature_service.get_creatures(token, lab_id)
+            creature_views, morphology_by_creature = display_creatures_for_lab(
+                token, lab_id, creatures_rows
+            )
         except ServiceError as exc:
             flash(str(exc), "error")
             return redirect(url_for("dashboard"))
@@ -744,7 +747,10 @@ def create_app() -> Flask:
             active_tasks=active_tasks,
             completed_tasks=completed_tasks,
             other_tasks=other_tasks,
-            creatures=display_service.creature_views(creatures_rows),
+            creatures=creature_views,
+            creature_cards=display_service.parent_creature_views(
+                creatures_rows, morphology_by_creature
+            ),
             genetics_version=lab_genetics_version,
             lab_id=lab_id,
         )
@@ -907,7 +913,12 @@ def create_app() -> Flask:
             flash(str(exc), "error")
             return redirect(url_for("dashboard"))
 
-        creature_views, _ = display_creatures_for_lab(token, lab_id, creatures_rows)
+        creature_views, morphology_by_creature = display_creatures_for_lab(
+            token, lab_id, creatures_rows
+        )
+        creature_cards = display_service.parent_creature_views(
+            creatures_rows, morphology_by_creature
+        )
         lab_genetics_version = next(
             (
                 display_service.creature_genetics_version(creature)
@@ -970,6 +981,7 @@ def create_app() -> Flask:
             "mutations.html",
             stats=display_service.stats_view(stats),
             creatures=creature_views,
+            creature_cards=creature_cards,
             mutations=mutations,
             purchased_mutations=purchased_mutations,
             mutation_purchase_count=display_service.count_mutation_purchases(rating_rows),
@@ -1004,6 +1016,13 @@ def create_app() -> Flask:
 
         if request.method == "GET" and request.args.get("parent_id"):
             selected_parent1 = request.args.get("parent_id", "")
+
+        if request.method == "GET" and mode == "mutation":
+            creature_id = request.args.get("creature_id", "")
+            return redirect(
+                url_for("mutations", creature_id=creature_id)
+                if creature_id else url_for("mutations")
+            )
 
         if request.method == "POST":
             action = request.form.get("action", "")

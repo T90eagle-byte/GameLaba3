@@ -862,6 +862,7 @@ class LabRouteTests(unittest.TestCase):
         self.assertIn("внешние крылья могут не проявиться", markup.lower())
         self.assertIn("хотя бы в одной из двух копий гена", markup)
 
+    @patch.object(app_module.creature_service, "get_lab_morphology", return_value=v3_morphology_rows())
     @patch.object(app_module.creature_service, "get_creatures", return_value=[v3_creature()])
     @patch.object(app_module.task_service, "get_tasks", return_value=[{
         "task_id": 181,
@@ -877,6 +878,7 @@ class LabRouteTests(unittest.TestCase):
         self,
         _get_tasks: Mock,
         _get_creatures: Mock,
+        _get_lab_morphology: Mock,
     ) -> None:
         with self.client.session_transaction() as flask_session:
             flask_session["current_lab_id"] = 7
@@ -887,6 +889,8 @@ class LabRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Бурое китообразное", markup)
         self.assertIn("Проявляющийся признак", markup)
+        self.assertIn('data-task-creature-select="181"', markup)
+        self.assertIn('data-task-creature-card="181"', markup)
         self.assertIn("если у существа проявляется требуемый признак", markup)
         self.assertNotIn("task_v3_brown_cetacean", markup)
         self.assertNotIn("хотя бы в одной из двух копий", markup)
@@ -907,7 +911,7 @@ class LabRouteTests(unittest.TestCase):
         with self.client.session_transaction() as flask_session:
             flask_session["current_lab_id"] = 7
 
-        response = self.client.get("/mutations")
+        response = self.client.get("/mutations?creature_id=17")
         markup = response.get_data(as_text=True)
 
         self.assertEqual(response.status_code, 200)
@@ -916,11 +920,20 @@ class LabRouteTests(unittest.TestCase):
         self.assertIn("Применить химический мутаген", markup)
         self.assertIn('id="mutagen-result-name"', markup)
         self.assertIn('value="Дельфин — мутант"', markup)
+        self.assertIn("Текущее состояние", markup)
+        self.assertIn('data-mutagen-creature-card="17"', markup)
+        self.assertIn("Форма тела", markup)
+        self.assertIn("китообразная форма", markup)
+        self.assertIn("синий", markup)
+        self.assertIn("Случайно изменяет доступный ген", markup)
+        self.assertIn("Изменяет первый доступный ген", markup)
         self.assertNotIn("Каталог мутаций", markup)
         self.assertNotIn("Купленные мутации", markup)
         self.assertNotIn("Магазин мутаций", markup)
         self.assertNotIn('id="mutation-select"', markup)
         self.assertNotIn('value="apply_mutation"', markup)
+        self.assertNotIn(">RADIATION<", markup)
+        self.assertNotIn(">CHEMICAL<", markup)
 
     @patch.object(
         app_module.mutation_service,

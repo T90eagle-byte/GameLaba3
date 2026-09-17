@@ -103,20 +103,14 @@ class UnifiedExperimentsRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotIn(b'value="999" selected', response.data)
 
-    @patch.object(app_module.mutation_service, "get_lab_mutation_quantity", return_value=2)
-    @patch.object(app_module.mutation_service, "get_mutation_shop")
     @patch.object(app_module.creature_service, "get_creatures")
-    def test_mutation_mode_preselects_creature(self, get_creatures, get_shop, _quantity) -> None:
+    def test_mutation_mode_redirects_to_mutations_with_creature(self, get_creatures) -> None:
         get_creatures.return_value = [creature(10)]
-        get_shop.return_value = [{"mutation_id": 3, "mutation_name": "red_mutation", "cost": 100, "rating_effect": 2}]
 
         response = self.client.get("/experiments?mode=mutation&creature_id=10")
-        markup = response.get_data(as_text=True)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('name="creature_id"', markup)
-        self.assertIn('value="10" selected', markup)
-        self.assertIn("Применить мутацию", markup)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.headers["Location"].endswith("/mutations?creature_id=10"))
 
     @patch.object(app_module.lab_service, "get_lab_stats", side_effect=[{"wallet": 1000, "rating": 10}, {"wallet": 950, "rating": 5}])
     @patch.object(app_module.task_service, "get_tasks", side_effect=[[], []])

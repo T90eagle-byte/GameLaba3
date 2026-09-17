@@ -1,0 +1,16 @@
+{% from "_portrait.html" import creature_portrait %}
+{% macro compact_creature_card(creature, uid, eyebrow='Выбранное существо', card_attribute=None, card_value=None, hidden=False) -%}
+<article class="parent-preview-card compact-creature-card" data-creature-id="{{ creature.creature_id }}"{% if card_attribute %} {{ card_attribute }}="{{ card_value }}"{% endif %}{% if hidden %} hidden{% endif %}>
+  {{ creature_portrait(creature, 'mini', uid) }}
+  <div>
+    <p class="eyebrow">{{ eyebrow }}</p>
+    <h3>{{ creature.display_name }}</h3>
+    <p class="muted">#{{ creature.creature_id }} · {{ creature.species_label }}</p>
+    <div class="trait-row compact-traits">
+      {% for item in creature.parent_traits %}
+      <span class="trait-pill {{ item.class }}"><small>{{ item.label }}</small>{{ item.value }}</span>
+      {% endfor %}
+    </div>
+  </div>
+</article>
+{%- endmacro %}

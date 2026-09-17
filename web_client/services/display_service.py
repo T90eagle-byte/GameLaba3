@@ -923,10 +923,24 @@ def parent_creature_view(
     """Compact, display-only card data for the parent comparison on crossbreed."""
     view = creature_view(row, morphology_rows)
     if view["display_model"] == "morphology":
-        view["parent_traits"] = [
+        traits = [
             view["morphology"].get(key)
-            for key in ("body_color", "body_size", "body_cover", "tail_type", "dorsal_type")
+            for key in (
+                "body_shape", "body_color", "body_size", "body_cover",
+                "tail_type", "dorsal_type", "nutrition_type",
+            )
             if view["morphology"].get(key)
+        ]
+        view["parent_traits"] = [
+            {
+                **trait,
+                "label": gene_label(trait["key"]),
+                "value": morphology_trait_label(
+                    trait["key"],
+                    trait.get("technical_value") or trait.get("raw") or trait["value"],
+                ),
+            }
+            for trait in traits
         ]
         return view
     core_keys = ("color", "has_wings", "nutrition_type", "size")
