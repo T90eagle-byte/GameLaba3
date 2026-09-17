@@ -242,8 +242,8 @@ def main() -> int:
         assert scalar(admin, "select session_id from labs where lab_id = :id", {"id": observer_lab}) == observer.session_id
         assert scalar(admin, "select status from sessions where session_id = :id", {"id": foreign.session_id}) == "ACTIVE"
 
-        # Hold a creature row so the old holder reaches the gameplay update while
-        # retaining the lab lock acquired by assert_lab_access.
+        # Удерживаем строку существа, чтобы прежняя сессия дошла до игрового
+        # обновления, сохранив lock лаборатории, полученный assert_lab_access.
         protected_creature = first_creature(admin, race_lab)
         foreign_creature = first_creature(admin, foreign_lab)
         current_holder = loser
@@ -286,7 +286,7 @@ def main() -> int:
         time.sleep(0.2)
         assert not takeover_done.is_set(), "takeover bypassed an in-flight protected operation"
 
-        # Unrelated owner/lab remains writable while the target lab is serialized.
+        # Независимая лаборатория другого владельца остаётся доступной для записи.
         foreign.rename_creature(foreign_creature, "Independent operation")
 
         blocker.rollback()

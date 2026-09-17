@@ -135,7 +135,7 @@ def main() -> int:
             if snapshot(cursor, lab_id) != before:
                 raise AssertionError("preview changed persistent laboratory state")
 
-            # The real algorithm is intentionally unchanged; verify the same linkage invariant.
+            # Реальный алгоритм намеренно не меняется; проверяем тот же linkage-инвариант.
             parent1, parent2 = pairs[0]
             connection.autocommit = False
             for index in range(REAL_CROSSBREEDS):

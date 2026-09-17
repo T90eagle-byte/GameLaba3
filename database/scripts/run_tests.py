@@ -96,7 +96,11 @@ def load_oracle_settings(env_path: Path) -> OracleSettings:
 
     if not service_name and not sid:
         raise SystemExit(
-            f"Neither ORACLE_SERVICE nor ORACLE_SID is set in {env_path}. Add one of them before running tests."
+            f"В {env_path} не задан ни ORACLE_SERVICE, ни ORACLE_SID. Добавьте один из параметров перед запуском."
+        )
+    if service_name and sid:
+        raise SystemExit(
+            f"В {env_path} должен быть задан только один параметр: ORACLE_SERVICE или ORACLE_SID. Очистите второй."
         )
 
     return OracleSettings(

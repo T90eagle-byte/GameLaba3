@@ -29,7 +29,7 @@ def preview_row(option_no: int) -> dict[str, object]:
         "option_no": option_no,
         "species_type": "cartilaginous_fish",
         "species_label": "Хрящевая рыба",
-        # Deliberately simulate an old API payload: the UI must not expose this fake value.
+        # Намеренно имитируем старый API payload: UI не должен показывать фиктивное значение.
         "probability": 1 / 3,
         "phenotype_summary": "color=blue_color; has_wings=no_wings; nutrition_type=herbivore; size=medium_size",
         "genotype_summary": "color=blue_color; size=medium_size",

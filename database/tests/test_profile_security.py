@@ -50,7 +50,7 @@ def main() -> int:
             cursor.execute("select username from users where user_id = :id", id=user_ids[0])
             assert cursor.fetchone()[0] == "Owner by token"
 
-            # Legacy signature remains safe when an authenticated package context exists.
+            # Legacy-сигнатура остаётся безопасной при аутентифицированном package-контексте.
             cursor.callproc("pkg_genetics_game.update_user_profile", [user_ids[0], "Owner legacy", None])
             cursor.execute("select username from users where user_id = :id", id=user_ids[0])
             assert cursor.fetchone()[0] == "Owner legacy"

@@ -343,8 +343,8 @@ def translate_free_text(value: Any) -> str:
     if not text:
         return ""
     replacements: dict[str, str] = {}
-    # Numeric species identifiers need a field boundary. Replacing bare digits
-    # would corrupt ordinary values such as 123.45 or 60 in free-form history.
+    # Для числовых идентификаторов вида нужна граница поля: замена голых цифр
+    # исказит обычные значения вроде 123.45 или 60 в свободном тексте истории.
     replacements.update({code: label for code, label in SPECIES_LABELS.items() if not code.isdigit()})
     replacements.update(TRAIT_LABELS)
     replacements.update(EVENT_LABELS)

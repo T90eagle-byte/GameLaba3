@@ -118,7 +118,7 @@ def ensure_lab(cursor: oracledb.Cursor, token: str, user_id: int, spec: DemoLab)
 
 
 def activate_demo_lab(cursor: oracledb.Cursor, token: str, lab_id: int) -> None:
-    # Recovery is intentionally scoped to one known lab of the same demo user.
+    # Восстановление намеренно ограничено одной известной лабораторией того же demo-пользователя.
     cursor.callproc("pkg_genetics_game.recover_lab_access", [token, lab_id])
 
 

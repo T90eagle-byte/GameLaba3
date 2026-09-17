@@ -275,7 +275,7 @@ class HistoryTab(QWidget):
         return "Итоговое изменение рейтинга может включать награды за задания."
 
     def _detect_mutagen_subtype(self, row: dict[str, Any]) -> str | None:
-        # Mutagen subtype can be absent as a separate field.
+        # Подтип мутагена может отсутствовать как отдельное поле.
         for key in ("mutagen_type", "mutation_name", "offspring_name"):
             value = self._display(row.get(key)).lower()
             if "radiation" in value:
