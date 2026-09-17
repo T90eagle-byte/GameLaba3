@@ -8,16 +8,20 @@ from web_client.services.display_service import (
     TASK_LABELS,
     V3_TASK_LABELS,
     build_creature_view,
+    creature_name,
     creature_visual,
     experiment_view,
+    genotype_change_details,
     genotype_change_slots,
     genotype_view,
+    morphology_traits,
     phenotype_items,
     rating_event_view,
     species_label,
     task_view,
     trait_label,
     translate_free_text,
+    preview_view,
 )
 
 
@@ -225,6 +229,24 @@ class GenotypeChangeTests(unittest.TestCase):
         after = [self.row(1, "color", 10, 20), self.row(2, "size", 30, 50)]
         self.assertEqual(genotype_change_slots(before, after), {"size": ["allele2"]})
 
+    def test_change_details_keep_gene_slot_and_semantic_values(self) -> None:
+        before = [{
+            "gene_id": 1, "gene_name": "body_color",
+            "allele1_id": 10, "allele1_display_name": "green",
+            "allele2_id": 20, "allele2_display_name": "blue",
+        }]
+        after = [{
+            "gene_id": 1, "gene_name": "body_color",
+            "allele1_id": 30, "allele1_display_name": "red",
+            "allele2_id": 20, "allele2_display_name": "blue",
+        }]
+        self.assertEqual(genotype_change_details(before, after), [{
+            "gene_label": "Окрас тела",
+            "slot_label": "Аллель 1",
+            "before": "зелёный",
+            "after": "красный",
+        }])
+
 
 class PlayerLocalizationTests(unittest.TestCase):
     def test_hybrid_species_is_localized_without_exposing_numeric_code(self) -> None:
@@ -276,6 +298,88 @@ class PlayerLocalizationTests(unittest.TestCase):
     def test_experiment_uses_offspring_id_as_result_creature_id(self) -> None:
         experiment = experiment_view({"experiment_type": "CROSS", "offspring_id": 73})
         self.assertEqual(experiment["result_creature_id"], 73)
+
+    def test_experiment_history_copy_is_specific_for_every_player_action(self) -> None:
+        expected = {
+            "CROSS": "Получен новый потомок",
+            "MUTATION": "направленная мутация",
+            "MUTAGEN": "Химический мутаген",
+            "CROSSBREED_MUTAGEN": "Химический мутаген",
+            "HYBRIDIZATION": "Рейтинг не может стать ниже нуля",
+        }
+        for kind, fragment in expected.items():
+            with self.subTest(kind=kind):
+                view = experiment_view({"experiment_type": kind, "mutagen_type": "CHEMICAL"})
+                self.assertIn(fragment, view["description_text"])
+                self.assertNotIn("Шаг лабораторной линии", view["description_text"])
+
+    def test_mutagen_suffix_is_hidden_from_player_name(self) -> None:
+        self.assertEqual(
+            creature_name({"creature_name": "Улитка #2_mutagen_5bab80a0", "species_type": 4}),
+            "Улитка #2 — мутант",
+        )
+
+    def test_morphology_absence_is_normalized_without_changing_raw_alleles(self) -> None:
+        traits = morphology_traits([
+            {"gene_code": "front_appendage_count", "expressed_allele_code": "zero"},
+            {"gene_code": "front_appendage_type", "expressed_allele_code": "none"},
+            {"gene_code": "dorsal_type", "expressed_allele_code": "none"},
+        ])
+        by_code = {trait["key"]: trait for trait in traits}
+        self.assertEqual(by_code["front_appendage_count"]["value"], "отсутствуют")
+        self.assertEqual(by_code["front_appendage_type"]["value"], "отсутствуют")
+        self.assertEqual(by_code["dorsal_type"]["value"], "отсутствует")
+        self.assertEqual(by_code["front_appendage_count"]["technical_value"], "zero")
+
+    def test_hybrid_genotype_uses_grammatical_absence_labels(self) -> None:
+        genotype = genotype_view([
+            {
+                "gene_name": "front_appendage_count",
+                "allele1_display_name": "zero",
+                "allele2_display_name": "two",
+                "dominance_type": "FULL",
+            },
+            {
+                "gene_name": "dorsal_type",
+                "allele1_display_name": "none",
+                "allele2_display_name": "shell",
+                "dominance_type": "FULL",
+            },
+        ])
+        self.assertEqual(genotype[0]["allele1_label"], "отсутствуют")
+        self.assertEqual(genotype[0]["allele2_label"], "две")
+        self.assertEqual(genotype[1]["allele1_label"], "отсутствует")
+        self.assertEqual(genotype[1]["allele2_label"], "раковина")
+
+    def test_v3_preview_uses_only_canonical_morphology_and_russian_values(self) -> None:
+        preview = preview_view({
+            "option_no": 1,
+            "species_type": 4,
+            "phenotype_summary": (
+                "body_shape=snail_like; body_proportion=compact; body_size=small; "
+                "body_cover=hard_shell; body_color=blue; mouth_type=beak; snout_type=blunt; "
+                "eye_type=large; front_appendage_count=zero; front_appendage_type=none; "
+                "front_appendage_size=none; rear_appendage_count=zero; rear_appendage_type=none; "
+                "rear_appendage_size=none; tail_type=none; tail_size=none; dorsal_type=shell; "
+                "dorsal_size=medium; nutrition_type=herbivore; has_wings=wings; color=Green"
+            ),
+        }, genetics_version=3)
+        self.assertEqual(preview["display_model"], "morphology")
+        self.assertEqual(len(preview["morphology"]), 18)
+        self.assertNotIn("has_wings", preview["morphology"])
+        self.assertNotIn("Крылья", preview["phenotype_text"])
+        self.assertNotIn("Blue", preview["phenotype_text"])
+        self.assertNotIn("Green", preview["phenotype_text"])
+        self.assertIn("улиткообразная форма", preview["phenotype_text"])
+
+    def test_v1_preview_keeps_legacy_phenotype(self) -> None:
+        preview = preview_view({
+            "option_no": 1,
+            "species_type": 1,
+            "phenotype_summary": "color=blue_color; has_wings=no_wings; nutrition_type=herbivore; size=medium_size",
+        })
+        self.assertEqual(preview["display_model"], "legacy")
+        self.assertIn("без крыльев", preview["phenotype_text"])
 
     def test_all_current_seed_allele_codes_have_player_facing_labels(self) -> None:
         seed_codes = (

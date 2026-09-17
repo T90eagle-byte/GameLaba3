@@ -56,6 +56,44 @@ class UnifiedExperimentsRouteTests(unittest.TestCase):
         self.assertIn('value="10" data-species-type="1" selected', markup)
         self.assertIn('data-creature-id="10"', markup)
 
+    @patch.object(app_module.creature_service, "get_creature_detail")
+    @patch.object(app_module.crossbreed_service, "preview_offspring_options")
+    @patch.object(app_module.creature_service, "get_lab_morphology", return_value=[])
+    @patch.object(app_module.creature_service, "get_creatures")
+    def test_v3_preview_uses_morphology_display_without_legacy_wings(
+        self, get_creatures, _get_lab_morphology, preview, get_detail
+    ) -> None:
+        v3_parent = {**creature(10), "genetics_version": 3}
+        get_creatures.return_value = [v3_parent, {**creature(11), "genetics_version": 3}]
+        get_detail.return_value = v3_parent
+        preview.return_value = [{
+            "option_no": 1,
+            "species_type": 1,
+            "phenotype_summary": (
+                "body_shape=shark_like; body_proportion=fusiform; body_size=large; "
+                "body_cover=rough_skin; body_color=blue; mouth_type=jawed; snout_type=pointed; "
+                "eye_type=lateral; front_appendage_count=two; front_appendage_type=fin; "
+                "front_appendage_size=medium; rear_appendage_count=two; rear_appendage_type=fin; "
+                "rear_appendage_size=medium; tail_type=fish; tail_size=large; dorsal_type=dorsal_fin; "
+                "dorsal_size=large; nutrition_type=carnivore; has_wings=wings; color=Green"
+            ),
+        }]
+
+        response = self.client.post(
+            "/experiments",
+            data={"mode": "crossbreed", "action": "preview", "parent1_id": "10", "parent2_id": "11"},
+        )
+
+        markup = response.get_data(as_text=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("morphology-svg", markup)
+        self.assertIn("акулообразная форма", markup)
+        self.assertIn("Питание", markup)
+        self.assertIn("хищное", markup)
+        self.assertNotIn("Крылья", markup)
+        self.assertNotIn("Green", markup)
+        preview.assert_called_once_with("experiment-token", 7, 10, 11, options_count=3)
+
     @patch.object(app_module.creature_service, "get_creatures")
     def test_invalid_parent_is_not_preselected(self, get_creatures) -> None:
         get_creatures.return_value = [creature(10), creature(11)]

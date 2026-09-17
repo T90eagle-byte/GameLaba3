@@ -114,6 +114,13 @@ class LabRouteTests(unittest.TestCase):
             flask_session["session_token"] = "current-token"
             flask_session["login"] = "tester"
 
+    def test_registration_explains_login_format_without_changing_validation(self) -> None:
+        response = self.client.get("/register")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Строчные латинские буквы, цифры и «_»".encode(), response.data)
+        self.assertIn("первый символ — буква".encode(), response.data)
+
     @patch.object(app_module.creature_service, "get_lab_morphology", return_value=v3_morphology_rows())
     @patch.object(app_module.creature_service, "get_creatures", return_value=[v3_creature()])
     def test_creature_list_uses_one_batch_morphology_read_for_v3_cards(
@@ -371,7 +378,9 @@ class LabRouteTests(unittest.TestCase):
         self.assertIn(b"mutation-selected-17", response.data)
         self.assertIn('id="mutation-creature-select"', markup)
         self.assertIn('value="17" data-creature-name="#17', markup)
-        self.assertIn('value="17" selected', markup)
+        self.assertIn('data-creature-name="#17 — Рыба-исследователь" selected', markup)
+        self.assertIn("Каталог мутаций", markup)
+        self.assertIn("Купленные мутации", markup)
 
     @patch.object(app_module.rating_service, "get_rating_events", return_value=[])
     @patch.object(app_module.mutation_service, "get_mutation_shop", return_value=[])
@@ -641,9 +650,29 @@ class LabRouteTests(unittest.TestCase):
         self.assertIn("Морфология".encode(), response.data)
         self.assertIn("Синий".encode(), response.data)
         self.assertIn(b'href="/experiments?mode=crossbreed&amp;parent_id=18"', response.data)
-        self.assertIn(b'href="/experiments?mode=mutation&amp;creature_id=18"', response.data)
+        self.assertIn(b'href="/mutations?creature_id=18"', response.data)
         self.assertNotIn(b"legacy_green", response.data)
         self.assertNotIn(b"legacy_small", response.data)
+
+    @patch.object(app_module.creature_service, "get_morphology", return_value=v3_morphology_rows())
+    @patch.object(app_module.creature_service, "get_genotype", return_value=[])
+    @patch.object(app_module.creature_service, "get_creature_detail")
+    def test_hybrid_detail_hides_unavailable_crossbreed_action(
+        self,
+        get_detail: Mock,
+        _get_genotype: Mock,
+        _get_morphology: Mock,
+    ) -> None:
+        get_detail.return_value = {**v3_creature(), "species_type": 7, "creature_name": "Гибрид"}
+        with self.client.session_transaction() as flask_session:
+            flask_session["current_lab_id"] = 7
+
+        response = self.client.get("/creatures/17")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b">\xd0\xa1\xd0\xba\xd1\x80\xd0\xb5\xd1\x81\xd1\x82\xd0\xb8\xd1\x82\xd1\x8c<", response.data)
+        self.assertNotIn(b'href="/experiments?mode=crossbreed"', response.data)
+        self.assertIn("Гибриды не участвуют в дальнейшем скрещивании".encode(), response.data)
 
     @patch.object(app_module.creature_service, "get_genotype")
     @patch.object(app_module.creature_service, "get_creature_detail")
@@ -710,6 +739,7 @@ class LabRouteTests(unittest.TestCase):
         with self.client.session_transaction() as flask_session:
             self.assertEqual(flask_session["genotype_highlight"], {"creature_id": 17, "changed_slots": {"color": ["allele1"]}})
 
+    @patch.object(app_module.creature_service, "rename_creature")
     @patch.object(app_module.lab_service, "get_lab_stats", return_value={"wallet": 950, "rating": -5})
     @patch.object(app_module.task_service, "get_tasks", return_value=[])
     @patch.object(app_module.creature_service, "get_creature_detail", return_value={"creature_id": 17, "genetics_version": 1})
@@ -722,6 +752,7 @@ class LabRouteTests(unittest.TestCase):
         _get_creature_detail: Mock,
         _get_tasks: Mock,
         _get_stats: Mock,
+        rename_creature: Mock,
     ) -> None:
         get_genotype.side_effect = [
             [{"gene_id": 2, "gene_name": "size", "allele1_id": 10, "allele2_id": 20}],
@@ -730,10 +761,16 @@ class LabRouteTests(unittest.TestCase):
         with self.client.session_transaction() as flask_session:
             flask_session["current_lab_id"] = 7
 
-        response = self.client.post("/mutations", data={"action": "apply_mutagen", "creature_id": "17", "mutagen_type": "RADIATION"})
+        response = self.client.post("/mutations", data={
+            "action": "apply_mutagen",
+            "creature_id": "17",
+            "mutagen_type": "RADIATION",
+            "result_name": "Северный мутант",
+        })
 
         self.assertEqual(response.status_code, 302)
         apply_mutagen.assert_called_once_with("current-token", 7, 17, "RADIATION")
+        rename_creature.assert_called_once_with("current-token", 7, 33, "Северный мутант")
         with self.client.session_transaction() as flask_session:
             self.assertEqual(flask_session["genotype_highlight"], {"creature_id": 33, "changed_slots": {"size": ["allele2"]}})
 
@@ -873,9 +910,14 @@ class LabRouteTests(unittest.TestCase):
         markup = response.get_data(as_text=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Для этой генетической модели направленные мутации пока недоступны", markup)
+        self.assertIn("Для этой генетической модели доступны только облучение и химический мутаген", markup)
         self.assertIn("Применить облучение", markup)
         self.assertIn("Применить химический мутаген", markup)
+        self.assertIn('id="mutagen-result-name"', markup)
+        self.assertIn('value="Дельфин — мутант"', markup)
+        self.assertNotIn("Каталог мутаций", markup)
+        self.assertNotIn("Купленные мутации", markup)
+        self.assertNotIn("Магазин мутаций", markup)
         self.assertNotIn('id="mutation-select"', markup)
         self.assertNotIn('value="apply_mutation"', markup)
 

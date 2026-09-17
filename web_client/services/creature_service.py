@@ -106,3 +106,18 @@ def get_creature_detail(
         if int(creature.get("creature_id", 0)) == creature_id:
             return creature
     return None
+
+
+def rename_creature(
+    session_token: str,
+    lab_id: int,
+    creature_id: int,
+    new_name: str,
+) -> None:
+    """Rename an accessible creature through the existing package security check."""
+    def action(connection: oracledb.Connection) -> None:
+        with connection.cursor() as cursor:
+            cursor.callproc("pkg_genetics_game.load_lab", [session_token, lab_id])
+            cursor.callproc("pkg_genetics_game.rename_creature", [creature_id, new_name])
+
+    run_db(action)

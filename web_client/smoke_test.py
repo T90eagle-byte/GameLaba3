@@ -225,7 +225,11 @@ def main() -> None:
         hybrid_html = response.get_data(as_text=True)
         require("Гибридизация завершена" in hybrid_html, "hybridization feedback is missing")
         require("Гибрид" in hybrid_html and "Облучение" in hybrid_html, "hybrid display labels are missing")
-        require("Штраф за гибридизацию" in hybrid_html, "actual hybridization penalty is missing")
+        require(
+            "Списано за гибридизацию" in hybrid_html
+            or "Рейтинг уже был на нуле" in hybrid_html,
+            "actual hybridization penalty is missing",
+        )
 
         after_hybrid = creature_service.get_creatures(token, lab_id)
         created_ids = {int(row["creature_id"]) for row in after_hybrid} - before_ids

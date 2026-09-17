@@ -38,6 +38,24 @@ GENE_LABELS = {
     "beak_nose_shape": "Профиль",
     "speed_level": "Скорость",
     "fur_density": "Покров",
+    "body_shape": "Форма тела",
+    "body_proportion": "Пропорции тела",
+    "body_size": "Размер тела",
+    "body_cover": "Покров тела",
+    "body_color": "Окрас тела",
+    "mouth_type": "Тип рта",
+    "snout_type": "Форма морды",
+    "eye_type": "Тип глаз",
+    "front_appendage_count": "Передние конечности",
+    "front_appendage_type": "Тип передних конечностей",
+    "front_appendage_size": "Размер передних конечностей",
+    "rear_appendage_count": "Задние конечности",
+    "rear_appendage_type": "Тип задних конечностей",
+    "rear_appendage_size": "Размер задних конечностей",
+    "tail_type": "Тип хвоста",
+    "tail_size": "Размер хвоста",
+    "dorsal_type": "Спинной покров",
+    "dorsal_size": "Размер спинного покрова",
     "trait": "Признак",
 }
 
@@ -92,6 +110,65 @@ TRAIT_LABELS = {
     "short_fur": "короткая шерсть",
     "soft_fur": "мягкая шерсть",
     "dense_fur": "густая шерсть",
+    "streamlined": "обтекаемая форма",
+    "shark_like": "акулообразная форма",
+    "disc": "дискообразная форма",
+    "eel_like": "угреобразная форма",
+    "cetacean": "китообразная форма",
+    "pinniped": "ластоногая форма",
+    "crustacean": "ракообразная форма",
+    "shrimp_like": "креветкообразная форма",
+    "cephalopod": "головоногая форма",
+    "snail_like": "улиткообразная форма",
+    "elongated": "вытянутые пропорции",
+    "broad": "широкие пропорции",
+    "flattened": "уплощённые пропорции",
+    "fusiform": "веретенообразные пропорции",
+    "gray": "серый",
+    "blue": "синий",
+    "green": "зелёный",
+    "brown": "бурый",
+    "red": "красный",
+    "orange": "оранжевый",
+    "yellow": "жёлтый",
+    "black": "чёрный",
+    "white": "белый",
+    "smooth_skin": "гладкая кожа",
+    "scales": "чешуя",
+    "rough_skin": "шероховатая кожа",
+    "chitin": "хитиновый покров",
+    "hard_shell": "твёрдая раковина",
+    "leathery_skin": "кожистый покров",
+    "soft_body": "мягкое тело",
+    "standard": "обычный",
+    "beak": "клюв",
+    "suction": "присоска",
+    "jawed": "челюстной рот",
+    "pointed": "заострённая",
+    "blunt": "тупая",
+    "saw": "пилообразная",
+    "hammer": "молоткообразная",
+    "large": "крупный",
+    "lateral": "боковые глаза",
+    "stalked": "глаза на стебельках",
+    "zero": "нет",
+    "two": "две",
+    "four": "четыре",
+    "six": "шесть",
+    "eight": "восемь",
+    "none": "нет",
+    "fin": "плавники",
+    "flipper": "ласты",
+    "walking_leg": "ходильные ноги",
+    "claw": "клешни",
+    "tentacle": "щупальца",
+    "fish": "рыбный хвост",
+    "crustacean": "ракообразная форма",
+    "paddle": "лопатообразный хвост",
+    "dorsal_fin": "спинной плавник",
+    "shell": "раковина",
+    "carapace": "панцирь",
+    "ridge": "гребень",
 }
 
 DOMINANCE_LABELS = {
@@ -539,14 +616,39 @@ def _creature_number(row: dict[str, Any]) -> str:
 
 def creature_name(row: dict[str, Any]) -> str:
     name = _text(row.get("creature_name"))
+    mutagen_name = re.match(r"^(.+?)_mutagen_[0-9a-f]+$", name, flags=re.IGNORECASE)
+    if mutagen_name:
+        base_name = mutagen_name.group(1).rstrip(" _-")
+        return f"{base_name} — мутант" if base_name else "Мутант"
     lower = name.lower()
     if name and not any(lower.startswith(prefix) for prefix in TECH_SPECIES_PREFIXES):
         return name
     return f"{species_label(row)} #{_creature_number(row)}"
 
 
+def default_mutagen_result_name(row: dict[str, Any]) -> str:
+    """Use a player-facing source name; the package keeps the internal identifier."""
+    name = _text(row.get("display_name")) or creature_name(row)
+    return f"{name} — мутант"
+
+
 def trait_label(value: Any) -> str:
     return humanize_code(value)
+
+
+def morphology_trait_label(gene_code: Any, value: Any) -> str:
+    """Make absence grammatical without altering Oracle's technical allele values."""
+    gene = _clean_code(gene_code)
+    code = _clean_code(value)
+    if gene in {"front_appendage_count", "rear_appendage_count"} and code == "zero":
+        return "отсутствуют"
+    if gene in {"front_appendage_type", "rear_appendage_type"} and code == "none":
+        return "отсутствуют"
+    if gene in {"front_appendage_size", "rear_appendage_size", "tail_size", "dorsal_size"} and code == "none":
+        return "не применимо"
+    if gene in {"tail_type", "dorsal_type"} and code == "none":
+        return "отсутствует"
+    return trait_label(value)
 
 
 def gene_label(value: Any) -> str:
@@ -783,6 +885,8 @@ def morphology_traits(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
             continue
         technical_value = _text(row.get("expressed_allele_code"))
         display_value = _text(row.get("expressed_display_name")) or technical_value
+        if _clean_code(technical_value) in {"zero", "none"}:
+            display_value = morphology_trait_label(gene_code, technical_value)
         label = _text(row.get("gene_display_name")) or gene_label(gene_code)
         traits.append({
             "key": gene_code,
@@ -835,6 +939,7 @@ def build_creature_view(
     view = dict(row)
     view["display_name"] = creature_name(row)
     view["species_label"] = species_label(row)
+    view["can_crossbreed"] = _clean_code(row.get("species_type")) not in {"7", "hybrid"}
     genetics_version = creature_genetics_version(row)
     view["genetics_version"] = genetics_version
     view["archetype"] = _archetype_view(row)
@@ -988,6 +1093,32 @@ def genotype_change_slots(
     return changes
 
 
+def genotype_change_details(
+    before_rows: list[dict[str, Any]],
+    after_rows: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    """Describe package-observed allele changes without inferring inheritance."""
+    before = {_genotype_gene_key(row): row for row in before_rows}
+    details: list[dict[str, str]] = []
+    for after_row in after_rows:
+        previous = before.get(_genotype_gene_key(after_row))
+        if previous is None:
+            continue
+        gene = after_row.get("gene_display_name") or after_row.get("gene_name") or after_row.get("gene_type")
+        for slot in (1, 2):
+            if _allele_identity(previous, slot) == _allele_identity(after_row, slot):
+                continue
+            before_value = previous.get(f"allele{slot}_display_name") or previous.get(f"allele{slot}_description")
+            after_value = after_row.get(f"allele{slot}_display_name") or after_row.get(f"allele{slot}_description")
+            details.append({
+                "gene_label": gene_label(gene),
+                "slot_label": f"Аллель {slot}",
+                "before": trait_label(before_value) if before_value else "не указан",
+                "after": trait_label(after_value) if after_value else "не указан",
+            })
+    return details
+
+
 def genotype_view(
     rows: list[dict[str, Any]],
     phenotype: list[dict[str, str]] | None = None,
@@ -1005,8 +1136,8 @@ def genotype_view(
         gene_code = _clean_code(gene)
         allele1_name = row.get("allele1_display_name") or row.get("allele1_description")
         allele2_name = row.get("allele2_display_name") or row.get("allele2_description")
-        allele1_semantic = trait_label(allele1_name) if allele1_name else "не указана"
-        allele2_semantic = trait_label(allele2_name) if allele2_name else "не указана"
+        allele1_semantic = morphology_trait_label(gene_code, allele1_name) if allele1_name else "не указана"
+        allele2_semantic = morphology_trait_label(gene_code, allele2_name) if allele2_name else "не указана"
         result_item = phenotype_by_gene.get(gene_code)
         result_label = result_item.get("detail_value") if result_item else "не указан"
         inheritance = dominance_label(dominance)
@@ -1030,8 +1161,33 @@ def genotype_view(
     return formatted
 
 
-def preview_view(row: dict[str, Any]) -> dict[str, Any]:
-    view = creature_view(row)
+def preview_morphology_rows(row: dict[str, Any]) -> list[dict[str, str]]:
+    """Adapt package preview fields to the existing v3 morphology read model."""
+    result: list[dict[str, str]] = []
+    for item in parse_phenotype(row.get("phenotype_summary")):
+        gene_code = _clean_code(item.get("key"))
+        if gene_code not in MORPHOLOGY_GENE_CODES:
+            continue
+        raw_value = _text(item.get("raw"))
+        result.append({
+            "gene_code": gene_code,
+            "gene_display_name": gene_label(gene_code),
+            "expressed_allele_code": raw_value,
+            "expressed_display_name": trait_label(raw_value),
+        })
+    return result
+
+
+def preview_view(row: dict[str, Any], genetics_version: int = 1) -> dict[str, Any]:
+    preview_row = dict(row)
+    morphology_rows: list[dict[str, str]] = []
+    if genetics_version == 3:
+        preview_row["genetics_version"] = 3
+        morphology_rows = preview_morphology_rows(row)
+        nutrition = _item_by_key(parse_phenotype(row.get("phenotype_summary")), "nutrition_type")
+        if nutrition:
+            preview_row["phenotype_nutrition_type"] = nutrition.get("raw")
+    view = creature_view(preview_row, morphology_rows)
     view.pop("probability", None)
     view["option_no"] = row.get("option_no")
     view["genotype_summary"] = _text(row.get("genotype_summary"))
@@ -1040,8 +1196,8 @@ def preview_view(row: dict[str, Any]) -> dict[str, Any]:
     return view
 
 
-def preview_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [preview_view(row) for row in rows]
+def preview_views(rows: list[dict[str, Any]], genetics_version: int = 1) -> list[dict[str, Any]]:
+    return [preview_view(row, genetics_version) for row in rows]
 
 
 def task_view(row: dict[str, Any]) -> dict[str, Any]:
@@ -1139,10 +1295,15 @@ def experiment_view(row: dict[str, Any]) -> dict[str, Any]:
     mutagen_type = _text(row.get("mutagen_type")).upper()
     mutagen_label = MUTAGEN_LABELS.get(mutagen_type, "")
     description = translate_free_text(row.get("description") or row.get("result_description"))
-    if not description and kind == "CROSSBREED_MUTAGEN" and mutagen_label:
-        description = f"Скрещивание + мутаген: {mutagen_label}."
     if not description:
-        description = "Шаг лабораторной линии."
+        descriptions = {
+            "CROSS": "Получен новый потомок в результате скрещивания.",
+            "MUTATION": "К существу применена направленная мутация.",
+            "MUTAGEN": f"Копия существа изменена воздействием: {mutagen_label or 'мутаген'}.",
+            "CROSSBREED_MUTAGEN": f"Получен потомок после скрещивания и воздействия: {mutagen_label or 'мутаген'}.",
+            "HYBRIDIZATION": "Проведена контролируемая гибридизация с облучением. Рейтинг не может стать ниже нуля.",
+        }
+        description = descriptions.get(kind, "Событие лабораторной линии.")
     result_creature_id = row.get("result_creature_id")
     if result_creature_id is None:
         result_creature_id = row.get("offspring_id")

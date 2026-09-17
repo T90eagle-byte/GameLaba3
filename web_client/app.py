@@ -114,6 +114,8 @@ def create_app() -> Flask:
         before_tasks: list[dict[str, Any]],
         after_tasks: list[dict[str, Any]],
         morphology_changes: list[dict[str, str]] | None = None,
+        genotype_changes: list[dict[str, str]] | None = None,
+        phenotype_changed: bool | None = None,
         mutagen_label: str | None = None,
         rating_penalty: float | None = None,
     ) -> dict[str, Any]:
@@ -135,11 +137,18 @@ def create_app() -> Flask:
             "morphology_changes": morphology_changes or [],
             "morphology_observed": morphology_changes is not None,
             "has_hidden_morphology_change": morphology_changes == [],
+            "genotype_changes": genotype_changes or [],
+            "phenotype_changed": phenotype_changed,
             "mutagen_label": mutagen_label,
             "rating_penalty_label": (
                 display_service.signed_number_label(rating_penalty)
                 if rating_penalty is not None else None
             ),
+            "rating_penalty_amount_label": (
+                display_service.number_label(abs(rating_penalty))
+                if rating_penalty is not None else None
+            ),
+            "rating_penalty_clamped": rating_penalty == 0 if rating_penalty is not None else False,
         }
 
     def morphology_changes(
@@ -221,6 +230,7 @@ def create_app() -> Flask:
         lab_id: int,
         creature_id: int,
         mutagen_type: str,
+        result_name: str = "",
     ) -> int:
         source = creature_service.get_creature_detail(token, lab_id, creature_id)
         if not source:
@@ -232,8 +242,25 @@ def create_app() -> Flask:
         before_stats = lab_service.get_lab_stats(token, lab_id)
         result_id = mutation_service.apply_mutagen(token, lab_id, creature_id, mutagen_type)
         if result_id:
+            creature_service.rename_creature(
+                token,
+                lab_id,
+                result_id,
+                result_name.strip() or display_service.default_mutagen_result_name(source),
+            )
+            result = creature_service.get_creature_detail(token, lab_id, result_id)
             after_genotype = creature_service.get_genotype(token, result_id, lab_id)
             after_morphology = creature_service.get_morphology(token, result_id, lab_id) if is_v3 else None
+            genotype_changes = display_service.genotype_change_details(before_genotype, after_genotype)
+            observed_morphology_changes = (
+                morphology_changes(before_morphology, after_morphology)
+                if is_v3 else None
+            )
+            phenotype_changed = (
+                bool(observed_morphology_changes)
+                if is_v3
+                else str(source.get("phenotype_summary") or "") != str((result or {}).get("phenotype_summary") or "")
+            )
             session["genotype_highlight"] = {
                 "creature_id": result_id,
                 "changed_slots": display_service.genotype_change_slots(before_genotype, after_genotype),
@@ -245,7 +272,9 @@ def create_app() -> Flask:
                 lab_service.get_lab_stats(token, lab_id),
                 before_tasks,
                 task_service.get_tasks(token, lab_id),
-                morphology_changes(before_morphology, after_morphology) if is_v3 else None,
+                observed_morphology_changes,
+                genotype_changes,
+                phenotype_changed,
                 display_service.MUTAGEN_LABELS.get(mutagen_type),
             )
         return result_id
@@ -271,8 +300,8 @@ def create_app() -> Flask:
                 lab_service.get_lab_stats(token, lab_id),
                 before_tasks,
                 task_service.get_tasks(token, lab_id),
-                None,
-                display_service.MUTAGEN_LABELS.get(mutagen_type),
+                morphology_changes=None,
+                mutagen_label=display_service.MUTAGEN_LABELS.get(mutagen_type),
             )
         return offspring_id
 
@@ -310,9 +339,9 @@ def create_app() -> Flask:
                 lab_service.get_lab_stats(token, lab_id),
                 before_tasks,
                 task_service.get_tasks(token, lab_id),
-                None,
-                display_service.MUTAGEN_LABELS["RADIATION"],
-                penalty,
+                morphology_changes=None,
+                mutagen_label=display_service.MUTAGEN_LABELS["RADIATION"],
+                rating_penalty=penalty,
             )
         return offspring_id
 
@@ -768,7 +797,11 @@ def create_app() -> Flask:
                         parent2_id,
                         options_count=3,
                     )
-                    preview_options = display_service.preview_views(preview_rows)
+                    parent = selected_creature_row(creatures_rows, parent1_id) or {}
+                    preview_options = display_service.preview_views(
+                        preview_rows,
+                        display_service.creature_genetics_version(parent),
+                    )
                     if len(preview_options) == 3:
                         flash("Показаны 3 различных примера потомства. Лаборатория не изменилась.", "success")
                     else:
@@ -843,9 +876,12 @@ def create_app() -> Flask:
                 if action == "apply_mutagen":
                     creature_id = int(request.form.get("creature_id", "0"))
                     mutagen_type = request.form.get("mutagen_type", "").strip().upper()
+                    result_name = request.form.get("result_name", "")
                     if creature_id <= 0 or mutagen_type not in {"RADIATION", "CHEMICAL"}:
                         raise ValueError
-                    new_creature_id = perform_mutagen(token, lab_id, creature_id, mutagen_type)
+                    new_creature_id = perform_mutagen(
+                        token, lab_id, creature_id, mutagen_type, result_name
+                    )
                     if new_creature_id:
                         flash(
                             "Облучение применено." if mutagen_type == "RADIATION" else "Химический мутаген применён.",
@@ -939,6 +975,9 @@ def create_app() -> Flask:
             mutation_purchase_count=display_service.count_mutation_purchases(rating_rows),
             selected_creature=selected_creature,
             selected_creature_id=selected_creature_id,
+            mutagen_default_name=display_service.default_mutagen_result_name(
+                selected_creature or (creature_views[0] if creature_views else {})
+            ),
             genetics_version=lab_genetics_version,
             lab_id=lab_id,
         )
@@ -972,10 +1011,12 @@ def create_app() -> Flask:
                 if action == "preview":
                     parent1_id = int(selected_parent1 or "0")
                     parent2_id = int(selected_parent2 or "0")
+                    parent = creature_service.get_creature_detail(token, lab_id, parent1_id)
                     preview_options = display_service.preview_views(
                         crossbreed_service.preview_offspring_options(
                             token, lab_id, parent1_id, parent2_id, options_count=3
-                        )
+                        ),
+                        display_service.creature_genetics_version(parent or {}),
                     )
                     flash(f"Показано различных примеров: {len(preview_options)}.", "success")
                 elif action == "crossbreed":
