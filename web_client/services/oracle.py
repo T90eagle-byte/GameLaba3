@@ -33,6 +33,8 @@ def get_connection() -> oracledb.Connection:
         raise ServiceError("Пароль Oracle не задан. Проверьте файл .env.")
     if not settings.service_name and not settings.sid:
         raise ServiceError("В .env должен быть задан ORACLE_SERVICE или ORACLE_SID.")
+    if settings.service_name and settings.sid:
+        raise ServiceError("В .env должен быть задан только один параметр: ORACLE_SERVICE или ORACLE_SID.")
 
     connection = oracledb.connect(
         user=settings.user,

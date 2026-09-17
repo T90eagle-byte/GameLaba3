@@ -37,6 +37,12 @@ path не создаёт и не удаляет Oracle user, не использ
 5. readiness validation;
 6. запись marker `15` только после успешной validation.
 
+Для Windows runtime-поставки без SQL Developer используйте
+`deployment\\windows\\install_fresh.ps1`, `update_game.ps1` и
+`validate_game.ps1`. Они вызывают `database\\scripts\\manage_schema.py`,
+который перед fresh-installation отказывается работать с непустой или уже
+распознанной игровой схемой, а update выполняет только штатный versioned path.
+
 Для диагностики существует общий файл
 `database/installers/apply_current_schema_update.sql`; не заменяйте им
 защищённые install/update entry points при развёртывании.

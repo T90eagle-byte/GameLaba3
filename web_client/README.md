@@ -55,6 +55,13 @@ Oracle-вызовов независимо от числа существ. Де�
 
 ## Запуск
 
+Для Windows-поставки используйте единый launcher
+`deployment\\windows\\start_game.ps1`: он запускает Waitress и читает
+параметры Oracle из `deployment\\windows\\.env`. Полная инструкция есть в
+`deployment\\windows\\README.md`.
+
+Для локальной разработки можно запустить Flask напрямую:
+
 ```powershell
 .\.venv\Scripts\python.exe web_client\app.py
 ```
