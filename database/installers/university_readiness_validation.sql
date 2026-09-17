@@ -13,6 +13,7 @@ declare
     v_lab_mutation_shop_signature number;
     v_missing_rules            number;
     v_missing_markers          number;
+    v_missing_catalog_display_names number;
     v_bad_legacy_descriptions  number;
     v_archetypes               number;
     v_expected_archetypes      number;
@@ -45,7 +46,8 @@ begin
     select count(*) into v_required_columns
       from user_tab_columns
      where (table_name = 'LABS' and column_name in ('LAB_NAME', 'GENETICS_VERSION'))
-        or (table_name = 'TASKS' and column_name = 'GENETICS_VERSION')
+        or (table_name = 'TASKS' and column_name in ('GENETICS_VERSION', 'DISPLAY_NAME'))
+        or (table_name = 'MUTATIONS' and column_name = 'DISPLAY_NAME')
         or (table_name = 'EXPERIMENTS' and column_name = 'MUTAGEN_TYPE')
         or (table_name = 'CREATURES' and column_name = 'ARCHETYPE_ID')
         or (table_name = 'GENES' and column_name = 'GAMEPLAY_ENABLED')
@@ -107,6 +109,15 @@ begin
     select count(*) into v_missing_markers
       from tasks t
      where not exists (select 1 from task_markers tm where tm.task_id = t.task_id);
+
+    select count(*) into v_missing_catalog_display_names
+      from (
+          select display_name from tasks
+          union all
+          select display_name from mutations
+      )
+     where display_name is null
+        or trim(display_name) is null;
 
     select count(*) into v_bad_legacy_descriptions
       from tasks
@@ -182,7 +193,7 @@ begin
        and active_flag = 'Y';
 
     if v_required_tables <> 28
-       or v_required_columns <> 7
+       or v_required_columns <> 9
        or v_valid_objects <> 2
        or v_package_errors <> 0
        or v_required_routines <> 7
@@ -190,6 +201,7 @@ begin
        or v_lab_mutation_shop_signature <> 1
        or v_missing_rules <> 0
        or v_missing_markers <> 0
+       or v_missing_catalog_display_names <> 0
        or v_bad_legacy_descriptions <> 0
        or v_archetypes <> 18
        or v_expected_archetypes <> 18
@@ -216,6 +228,7 @@ begin
     dbms_output.put_line('Archetypes/templates: 18/324');
     dbms_output.put_line('Model membership v1/v3: 12/19');
     dbms_output.put_line('V3 tasks: 12');
+    dbms_output.put_line('Пользовательские названия каталогов: OK');
     dbms_output.put_line('Version-aware mutation catalog API: OK');
     dbms_output.put_line('Controlled hybridization references: OK');
     dbms_output.put_line('Current v3 schema readiness: OK');

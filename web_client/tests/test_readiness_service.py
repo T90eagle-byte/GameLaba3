@@ -38,11 +38,12 @@ def ready_snapshot(**changes: object) -> readiness_service.SchemaSnapshot:
         "experiment_types": frozenset({"CROSS", "MUTATION", "MUTAGEN", "CROSSBREED_MUTAGEN", "HYBRIDIZATION"}),
         "rating_event_types": frozenset({"TASK_REWARD", "MUTAGEN_PENALTY", "HYBRIDIZATION_PENALTY"}),
         "hybrid_economics_ready": True,
+        "catalog_display_names_ready": True,
         "install_version": readiness_service.CURRENT_SCHEMA_VERSION,
         "schema_columns": frozenset(
             {
                 "LABS.SESSION_ID", "LABS.LAB_NAME", "LABS.GENETICS_VERSION",
-                "TASKS.GENETICS_VERSION", "EXPERIMENTS.MUTAGEN_TYPE",
+                "TASKS.GENETICS_VERSION", "TASKS.DISPLAY_NAME", "MUTATIONS.DISPLAY_NAME", "EXPERIMENTS.MUTAGEN_TYPE",
                 "CREATURES.ARCHETYPE_ID", "GENES.GAMEPLAY_ENABLED", "ALLELES.DISPLAY_NAME",
             }
         ),
@@ -308,8 +309,8 @@ class DeploymentSafetyTests(unittest.TestCase):
 
     def test_schema_version_has_one_installer_source(self) -> None:
         version_file = WEB_ROOT.parent / "database" / "installers" / "mark_current_schema_version.sql"
-        self.assertEqual(readiness_service.CURRENT_SCHEMA_VERSION, 14)
-        self.assertIn("v_current_version constant number := 14", version_file.read_text(encoding="utf-8"))
+        self.assertEqual(readiness_service.CURRENT_SCHEMA_VERSION, 15)
+        self.assertIn("v_current_version constant number := 15", version_file.read_text(encoding="utf-8"))
 
     def test_university_installers_are_non_destructive(self) -> None:
         installers = WEB_ROOT.parent / "database" / "installers"

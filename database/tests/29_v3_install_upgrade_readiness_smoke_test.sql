@@ -23,8 +23,8 @@ begin
     select count(*) into v_actual
       from app_install_state
      where install_key = 'schema'
-       and install_version = 14;
-    assert_count('schema install version 14', v_actual, 1);
+       and install_version = 15;
+    assert_count('schema install version 15', v_actual, 1);
 
     select count(*) into v_actual from ref_creature_archetypes;
     assert_count('archetypes', v_actual, 18);

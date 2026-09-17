@@ -283,6 +283,7 @@ comment on table ref_archetype_alleles is 'Optional future genotype templates pe
 create table mutations (
     mutation_id         number not null,
     mutation_name       varchar2(50 char) not null,
+    display_name        varchar2(120 char) null,
     mutation_type       number null,
     description         varchar2(255 char) null,
     cost                number(12, 2) default 0 not null,
@@ -319,6 +320,7 @@ comment on column mutation_rules.target_slot is 'Genotype slot: 1, 2, or ANY.';
 create table tasks (
     task_id             number not null,
     task_name           varchar2(100 char) not null,
+    display_name        varchar2(160 char) null,
     description         varchar2(255 char) null,
     rating_reward       number(12, 2) default 0 not null,
     money_reward        number(12, 2) default 0 not null,

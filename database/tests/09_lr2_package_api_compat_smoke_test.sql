@@ -34,6 +34,7 @@ DECLARE
     v_shop_cursor              sys_refcursor;
     v_shop_mutation_id         number;
     v_shop_mutation_name       varchar2(4000);
+    v_shop_mutation_display_name varchar2(4000);
     v_shop_mutation_type       number;
     v_shop_mutation_type_label varchar2(4000);
     v_shop_description         varchar2(4000);
@@ -313,7 +314,8 @@ BEGIN
                 v_shop_mutation_type_label,
                 v_shop_description,
                 v_shop_price,
-                v_shop_rating_effect;
+                v_shop_rating_effect,
+                v_shop_mutation_display_name;
             exit when v_shop_cursor%notfound;
             v_shop_count := v_shop_count + 1;
         end loop;

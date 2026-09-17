@@ -1,6 +1,6 @@
 -- Ordered, non-destructive update of an existing BioSborka schema.
--- Keep this list in migration order. Every referenced migration/seed is
--- idempotent and preserves historical gameplay rows.
+-- Сохраняйте порядок зависимостей: аддитивные миграции, требуемые seed-данными,
+-- выполняются до этих seed-данных. Каждый шаг идемпотентен и сохраняет историю игры.
 
 set define off;
 set serveroutput on size unlimited;
@@ -8,6 +8,8 @@ set verify off;
 
 @@../migrations/01_release_lab_session_bindings.sql
 @@../migrations/02_add_lab_names.sql
+-- Эта миграция выполняется до core seed, чтобы добавить его display-колонки.
+@@../migrations/15_add_catalog_display_names.sql
 @@../seeds/01_seed_core_game_data.sql
 @@../migrations/03_align_task_requirement_descriptions.sql
 @@../migrations/04_add_creature_archetypes.sql

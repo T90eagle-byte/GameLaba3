@@ -53,6 +53,7 @@ declare
     v_shop_mutation_name       varchar2(100);
     v_shop_mutation_type       varchar2(100);
     v_shop_mutation_type_name  varchar2(4000);
+    v_shop_mutation_display_name varchar2(4000);
     v_shop_description         varchar2(4000);
     v_shop_price               number;
     v_shop_rating_effect       number;
@@ -189,7 +190,8 @@ begin
     v_cursor := pkg_genetics_game.show_lab_mutation_shop(v_lab_v1_id);
     loop
         fetch v_cursor into v_shop_mutation_id, v_shop_mutation_name, v_shop_mutation_type,
-              v_shop_mutation_type_name, v_shop_description, v_shop_price, v_shop_rating_effect;
+              v_shop_mutation_type_name, v_shop_description, v_shop_price, v_shop_rating_effect,
+              v_shop_mutation_display_name;
         exit when v_cursor%notfound;
         if v_shop_mutation_id = v_legacy_mutation_id then
             v_shop_legacy_count := v_shop_legacy_count + 1;
@@ -264,7 +266,8 @@ begin
     v_cursor := pkg_genetics_game.show_lab_mutation_shop(v_lab_v3_id);
     loop
         fetch v_cursor into v_shop_mutation_id, v_shop_mutation_name, v_shop_mutation_type,
-              v_shop_mutation_type_name, v_shop_description, v_shop_price, v_shop_rating_effect;
+              v_shop_mutation_type_name, v_shop_description, v_shop_price, v_shop_rating_effect,
+              v_shop_mutation_display_name;
         exit when v_cursor%notfound;
         if v_shop_mutation_id = v_legacy_mutation_id then
             v_shop_legacy_count := v_shop_legacy_count + 1;

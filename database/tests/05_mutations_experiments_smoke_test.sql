@@ -14,6 +14,7 @@ declare
     v_shop_cursor                     sys_refcursor;
     v_shop_mutation_id                number;
     v_shop_mutation_name              varchar2(4000);
+    v_shop_mutation_display_name      varchar2(4000);
     v_shop_mutation_type              number;
     v_shop_mutation_type_label        varchar2(4000);
     v_shop_description                varchar2(4000);
@@ -81,6 +82,7 @@ declare
     v_h_offspring_name                varchar2(4000);
     v_h_mutation_id                   number;
     v_h_mutation_name                 varchar2(4000);
+    v_h_mutation_display_name         varchar2(4000);
     v_h_created_at                    timestamp;
     v_h_mutagen_type                  varchar2(30);
     v_history_row_count               number := 0;
@@ -264,7 +266,8 @@ begin
                 v_shop_mutation_type_label,
                 v_shop_description,
                 v_shop_price,
-                v_shop_rating_effect;
+                v_shop_rating_effect,
+                v_shop_mutation_display_name;
             exit when v_shop_cursor%notfound;
 
             v_shop_row_count := v_shop_row_count + 1;
@@ -671,7 +674,8 @@ if v_lab_id is not null then
                     v_h_mutation_id,
                     v_h_mutation_name,
                     v_h_created_at,
-                    v_h_mutagen_type;
+                    v_h_mutagen_type,
+                    v_h_mutation_display_name;
                 exit when v_history_cursor%notfound;
 
                 v_history_row_count := v_history_row_count + 1;
@@ -845,4 +849,3 @@ exception
         raise_application_error(-20500, 'Unhandled exception in 05_mutations_experiments_smoke_test. Root error: ' || v_root_sqlcode || ' / ' || v_root_sqlerrm);
 end;
 /
-

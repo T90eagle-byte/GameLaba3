@@ -179,8 +179,8 @@ class CrossbreedPreviewRouteTests(unittest.TestCase):
         app_module.task_service,
         "get_tasks",
         side_effect=[
-            [{"task_id": 5, "task_name": "task_armored_crustacean", "task_status": "ACTIVE", "reward_money": 300, "reward_rating": 35}],
-            [{"task_id": 5, "task_name": "task_armored_crustacean", "task_status": "COMPLETED", "reward_money": 300, "reward_rating": 35}],
+            [{"task_id": 5, "task_name": "task_armored_crustacean", "task_display_name": "Бронированный ракообразный", "task_status": "ACTIVE", "reward_money": 300, "reward_rating": 35}],
+            [{"task_id": 5, "task_name": "task_armored_crustacean", "task_display_name": "Бронированный ракообразный", "task_status": "COMPLETED", "reward_money": 300, "reward_rating": 35}],
         ],
     )
     @patch.object(app_module.crossbreed_service, "crossbreed", return_value=42)

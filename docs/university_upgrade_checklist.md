@@ -15,7 +15,7 @@ Runtime validation на Oracle 12.2 должна быть выполнена н�
 5. Обновите application files.
 6. В SQL Developer подключитесь как назначенный schema user и запустите с `F5`
    `database/installers/university_existing_schema_update.sql`.
-7. Убедитесь, что `app_install_state.install_version = 14`.
+7. Убедитесь, что `app_install_state.install_version = 15`.
 8. Убедитесь, что `PKG_GENETICS_GAME` имеет `PACKAGE VALID` и `PACKAGE BODY
    VALID`.
 9. Убедитесь, что `USER_ERRORS=0` для package.

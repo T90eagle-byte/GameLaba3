@@ -4,9 +4,6 @@ import unittest
 
 from web_client.services.display_service import (
     EVENT_LABELS,
-    TASK_DESCRIPTIONS,
-    TASK_LABELS,
-    V3_TASK_LABELS,
     build_creature_view,
     creature_name,
     creature_visual,
@@ -15,6 +12,7 @@ from web_client.services.display_service import (
     genotype_change_slots,
     genotype_view,
     morphology_traits,
+    mutation_view,
     phenotype_items,
     rating_event_view,
     species_label,
@@ -259,6 +257,12 @@ class PlayerLocalizationTests(unittest.TestCase):
         self.assertEqual(species_label({"species_type": 6}), "Морские млекопитающие")
         self.assertEqual(species_label({"species_type": 7}), "Гибрид")
 
+    def test_species_prefers_the_package_display_name(self) -> None:
+        self.assertEqual(
+            species_label({"species_type": 5, "species_display_name": "Морские рептилии лаборатории"}),
+            "Морские рептилии лаборатории",
+        )
+
     def test_v3_creature_uses_backend_nutrition_result_for_genotype(self) -> None:
         creature = build_creature_view(
             {
@@ -298,6 +302,12 @@ class PlayerLocalizationTests(unittest.TestCase):
     def test_experiment_uses_offspring_id_as_result_creature_id(self) -> None:
         experiment = experiment_view({"experiment_type": "CROSS", "offspring_id": 73})
         self.assertEqual(experiment["result_creature_id"], 73)
+
+    def test_history_prefers_reference_display_names_from_the_package(self) -> None:
+        experiment = experiment_view({"experiment_type": "CROSS", "experiment_type_display_name": "Скрещивание из справочника"})
+        event = rating_event_view({"event_type": "TASK_REWARD", "event_type_display_name": "Награда из справочника"})
+        self.assertEqual(experiment["type_label"], "Скрещивание из справочника")
+        self.assertEqual(event["type_label"], "Награда из справочника")
 
     def test_experiment_history_copy_is_specific_for_every_player_action(self) -> None:
         expected = {
@@ -399,44 +409,38 @@ class PlayerLocalizationTests(unittest.TestCase):
 
 class TaskDisplayTests(unittest.TestCase):
     def test_armored_crustacean_has_player_facing_name(self) -> None:
-        task = task_view({"task_name": "task_armored_crustacean", "task_display_name": "task_armored_crustacean"})
+        task = task_view({"task_name": "task_armored_crustacean", "task_display_name": "Бронированный ракообразный"})
         self.assertEqual(task["display_name"], "Бронированный ракообразный")
         self.assertIsNone(task["unknown_task_code"])
 
-    def test_all_known_tasks_have_nontechnical_names(self) -> None:
-        self.assertEqual(len(TASK_LABELS), 21)
-        for code, expected in TASK_LABELS.items():
-            with self.subTest(code=code):
-                task = task_view({"task_name": code, "task_display_name": code})
-                self.assertEqual(task["display_name"], expected)
-                self.assertFalse(task["display_name"].lower().startswith("task_"))
+    def test_task_uses_database_display_name_and_description(self) -> None:
+        task = task_view({
+            "task_name": "task_winged_specimen",
+            "task_display_name": "Носитель аллеля крыльев",
+            "description": "Требуется носительство аллеля «крылья». Внешние крылья могут не проявиться.",
+        })
+        self.assertEqual(task["display_name"], "Носитель аллеля крыльев")
+        self.assertIn("носительство", task["description_text"].lower())
+        self.assertEqual(task["requirement_label"], "Генетическое условие")
 
-    def test_all_v3_tasks_have_player_facing_names_and_phenotype_semantics(self) -> None:
-        self.assertEqual(len(V3_TASK_LABELS), 12)
-        for code, expected in V3_TASK_LABELS.items():
-            with self.subTest(code=code):
-                task = task_view({
-                    "task_name": code,
-                    "task_display_name": code,
-                    "description": "Требуется проявившийся признак.",
-                    "genetics_version": 3,
-                    "task_status": "ACTIVE",
-                })
-                self.assertEqual(task["display_name"], expected)
-                self.assertFalse(task["display_name"].lower().startswith("task_"))
-                self.assertEqual(task["requirement_label"], "Проявляющийся признак")
-                self.assertEqual(task["status_label"], "Активен")
-
-    def test_all_known_tasks_explain_genetic_carrier_condition(self) -> None:
-        self.assertEqual(set(TASK_DESCRIPTIONS), set(TASK_LABELS))
-        for code in TASK_LABELS:
-            with self.subTest(code=code):
-                task = task_view({"task_name": code, "description": "устаревшая фенотипическая формулировка"})
-                self.assertIn("носительство", task["description_text"].lower())
-                self.assertEqual(task["requirement_label"], "Генетическое условие")
+    def test_v3_task_uses_database_display_name(self) -> None:
+        task = task_view({
+            "task_name": "task_v3_brown_cetacean",
+            "task_display_name": "Бурое китообразное",
+            "description": "Требуется китообразная форма тела и коричневый окрас.",
+            "genetics_version": 3,
+            "task_status": "ACTIVE",
+        })
+        self.assertEqual(task["display_name"], "Бурое китообразное")
+        self.assertEqual(task["requirement_label"], "Проявляющийся признак")
+        self.assertEqual(task["status_label"], "Активен")
 
     def test_wings_order_explains_recessive_carrier_case(self) -> None:
-        task = task_view({"task_name": "task_winged_specimen"})
+        task = task_view({
+            "task_name": "task_winged_specimen",
+            "task_display_name": "Носитель аллеля крыльев",
+            "description": "Требуется носительство аллеля «крылья». Внешние крылья могут не проявиться.",
+        })
         self.assertEqual(task["display_name"], "Носитель аллеля крыльев")
         self.assertIn("могут не проявиться", task["description_text"])
 
@@ -449,6 +453,17 @@ class TaskDisplayTests(unittest.TestCase):
 
     def test_task_reward_uses_assignment_terminology(self) -> None:
         self.assertEqual(EVENT_LABELS["TASK_REWARD"], "Награда за задание")
+
+
+class MutationDisplayTests(unittest.TestCase):
+    def test_mutation_uses_database_display_name(self) -> None:
+        mutation = mutation_view({
+            "mutation_id": 1,
+            "mutation_name": "radiation_mutation",
+            "mutation_display_name": "Радиационная мутация",
+            "description": "Радиационное воздействие с высоким уровнем случайности.",
+        })
+        self.assertEqual(mutation["display_name"], "Радиационная мутация")
 
 
 if __name__ == "__main__":

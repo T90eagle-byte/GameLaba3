@@ -406,6 +406,7 @@ class LabRouteTests(unittest.TestCase):
     @patch.object(app_module.task_service, "get_tasks", return_value=[{
         "task_id": 5,
         "task_name": "task_armored_crustacean",
+        "task_display_name": "Бронированный ракообразный",
         "task_status": "ACTIVE",
         "reward_money": 300,
         "reward_rating": 35,
@@ -430,8 +431,8 @@ class LabRouteTests(unittest.TestCase):
 
     @patch.object(app_module.lab_service, "get_lab_stats", side_effect=[{"wallet": 1000, "rating": 0}, {"wallet": 1900, "rating": 30}])
     @patch.object(app_module.task_service, "get_tasks", side_effect=[
-        [{"task_id": 181, "task_name": "task_v3_brown_cetacean", "task_status": "ACTIVE", "reward_money": 900, "reward_rating": 30}],
-        [{"task_id": 181, "task_name": "task_v3_brown_cetacean", "task_status": "COMPLETED", "reward_money": 900, "reward_rating": 30}],
+        [{"task_id": 181, "task_name": "task_v3_brown_cetacean", "task_display_name": "Бурое китообразное", "task_status": "ACTIVE", "reward_money": 900, "reward_rating": 30}],
+        [{"task_id": 181, "task_name": "task_v3_brown_cetacean", "task_display_name": "Бурое китообразное", "task_status": "COMPLETED", "reward_money": 900, "reward_rating": 30}],
     ])
     @patch.object(app_module.creature_service, "get_morphology")
     @patch.object(app_module.creature_service, "get_creature_detail", return_value=v3_creature())
@@ -797,7 +798,7 @@ class LabRouteTests(unittest.TestCase):
             {
                 "task_id": 5,
                 "task_name": "task_armored_crustacean",
-                "task_display_name": "task_armored_crustacean",
+                "task_display_name": "Бронированный ракообразный",
                 "description": "Отберите прочное ракообразное.",
                 "reward_money": 300,
                 "reward_rating": 35,
@@ -842,8 +843,8 @@ class LabRouteTests(unittest.TestCase):
             {
                 "task_id": 2,
                 "task_name": "task_winged_specimen",
-                "task_display_name": "task_winged_specimen",
-                "description": "Найдите существо с крыльями.",
+                "task_display_name": "Носитель аллеля крыльев",
+                "description": "Требуется носительство аллеля «крылья». Внешние крылья могут не проявиться.",
                 "reward_money": 120,
                 "reward_rating": 12,
                 "difficulty_code": "EASY",
@@ -865,8 +866,8 @@ class LabRouteTests(unittest.TestCase):
     @patch.object(app_module.task_service, "get_tasks", return_value=[{
         "task_id": 181,
         "task_name": "task_v3_brown_cetacean",
-        "task_display_name": "task_v3_brown_cetacean",
-        "description": "Получите бурое китообразное существо.",
+        "task_display_name": "Бурое китообразное",
+        "description": "Требуется китообразная форма тела и коричневый окрас.",
         "reward_money": 900,
         "reward_rating": 30,
         "difficulty_code": "MEDIUM",

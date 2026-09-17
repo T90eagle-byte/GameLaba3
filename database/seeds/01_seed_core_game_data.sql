@@ -177,6 +177,7 @@ declare
 
     procedure upsert_mutation(
         p_mutation_name  in varchar2,
+        p_display_name   in varchar2,
         p_mutation_type  in number,
         p_description    in varchar2,
         p_cost           in number,
@@ -190,6 +191,7 @@ declare
         on (tgt.mutation_name = src.mutation_name)
         when matched then
             update set
+                tgt.display_name = p_display_name,
                 tgt.mutation_type = p_mutation_type,
                 tgt.description = p_description,
                 tgt.cost = p_cost,
@@ -198,6 +200,7 @@ declare
             insert (
                 mutation_id,
                 mutation_name,
+                display_name,
                 mutation_type,
                 description,
                 cost,
@@ -207,6 +210,7 @@ declare
             values (
                 mutations_seq.nextval,
                 p_mutation_name,
+                p_display_name,
                 p_mutation_type,
                 p_description,
                 p_cost,
@@ -266,6 +270,7 @@ declare
 
     procedure upsert_task(
         p_task_name       in varchar2,
+        p_display_name    in varchar2,
         p_description     in varchar2,
         p_rating_reward   in number,
         p_money_reward    in number,
@@ -279,6 +284,7 @@ declare
         on (tgt.task_name = src.task_name)
         when matched then
             update set
+                tgt.display_name = p_display_name,
                 tgt.description = p_description,
                 tgt.rating_reward = p_rating_reward,
                 tgt.money_reward = p_money_reward,
@@ -287,6 +293,7 @@ declare
             insert (
                 task_id,
                 task_name,
+                display_name,
                 description,
                 rating_reward,
                 money_reward,
@@ -296,6 +303,7 @@ declare
             values (
                 tasks_seq.nextval,
                 p_task_name,
+                p_display_name,
                 p_description,
                 p_rating_reward,
                 p_money_reward,
@@ -707,26 +715,26 @@ begin
     -- -------------------------------------------------------------------------
     -- 3) Mutations
     -- -------------------------------------------------------------------------
-    upsert_mutation('radiation_mutation', 1, 'Радиационное воздействие с высоким уровнем случайности.', 150, -5);
-    upsert_mutation('chemical_mutation', 2, 'Химическое воздействие с более контролируемым результатом.', 130, -3);
-    upsert_mutation('enhanced_color_mutation', 3, 'Усиливает проявление зелёной окраски.', 200, 2);
-    upsert_mutation('size_shift_mutation', 4, 'Смещает размер в сторону крупного фенотипа.', 180, 1);
-    upsert_mutation('nutrition_shift_mutation', 5, 'Смещает тип питания в сторону хищного.', 160, 1);
-    upsert_mutation('wing_activation_mutation', 6, 'Активирует признак крыльев при наличии соответствующего гена.', 170, 1);
-    upsert_mutation('aquatic_form_mutation', 7, 'Корректирует форму плавника у хрящевых рыб.', 190, 2);
-    upsert_mutation('morphology_refine_mutation', 8, 'Тонкая корректировка клешней у ракообразных.', 210, 2);
-    upsert_mutation('aquatic_form_bony_mutation', 7, 'Корректирует форму плавника у костных рыб.', 195, 2);
-    upsert_mutation('aquatic_form_turtle_shell_mutation', 8, 'Усиливает панцирь у черепах.', 205, 2);
-    upsert_mutation('morphology_refine_mollusk_mutation', 8, 'Тонкая корректировка формы клюва/носа у моллюсков.', 215, 2);
-    upsert_mutation('morphology_refine_mammal_mutation', 8, 'Тонкая корректировка плотности шерсти у млекопитающих.', 220, 2);
-    upsert_mutation('red_color_mutation', 3, 'Смещает окраску в сторону красного фенотипа.', 185, 1);
-    upsert_mutation('medium_size_mutation', 4, 'Стабилизирует средний размер тела.', 165, 1);
-    upsert_mutation('cartilaginous_crescent_fin_mutation', 7, 'Формирует серповидный плавник у хрящевых рыб.', 205, 2);
-    upsert_mutation('bony_ribbon_fin_mutation', 7, 'Формирует ленточный плавник у костных рыб.', 205, 2);
-    upsert_mutation('hooked_claws_mutation', 8, 'Формирует крючковатые клешни у ракообразных.', 215, 2);
-    upsert_mutation('spiral_profile_mutation', 8, 'Усиливает спиральный профиль у моллюсков.', 215, 2);
-    upsert_mutation('plated_shell_mutation', 8, 'Формирует пластинчатый панцирь у черепах.', 215, 2);
-    upsert_mutation('soft_fur_mutation', 8, 'Формирует мягкую шерсть у млекопитающих.', 215, 2);
+    upsert_mutation('radiation_mutation', 'Радиационная мутация', 1, 'Радиационное воздействие с высоким уровнем случайности.', 150, -5);
+    upsert_mutation('chemical_mutation', 'Химическая мутация', 2, 'Химическое воздействие с более контролируемым результатом.', 130, -3);
+    upsert_mutation('enhanced_color_mutation', 'Усиленная мутация окраски', 3, 'Усиливает проявление зелёной окраски.', 200, 2);
+    upsert_mutation('size_shift_mutation', 'Мутация размера', 4, 'Смещает размер в сторону крупного фенотипа.', 180, 1);
+    upsert_mutation('nutrition_shift_mutation', 'Мутация типа питания', 5, 'Смещает тип питания в сторону хищного.', 160, 1);
+    upsert_mutation('wing_activation_mutation', 'Мутация активации крыльев', 6, 'Активирует признак крыльев при наличии соответствующего гена.', 170, 1);
+    upsert_mutation('aquatic_form_mutation', 'Мутация формы плавника хрящевых рыб', 7, 'Корректирует форму плавника у хрящевых рыб.', 190, 2);
+    upsert_mutation('morphology_refine_mutation', 'Мутация клешней', 8, 'Тонкая корректировка клешней у ракообразных.', 210, 2);
+    upsert_mutation('aquatic_form_bony_mutation', 'Мутация формы плавника костных рыб', 7, 'Корректирует форму плавника у костных рыб.', 195, 2);
+    upsert_mutation('aquatic_form_turtle_shell_mutation', 'Мутация панциря', 8, 'Усиливает панцирь у черепах.', 205, 2);
+    upsert_mutation('morphology_refine_mollusk_mutation', 'Мутация профиля моллюска', 8, 'Тонкая корректировка формы клюва/носа у моллюсков.', 215, 2);
+    upsert_mutation('morphology_refine_mammal_mutation', 'Мутация шерсти', 8, 'Тонкая корректировка плотности шерсти у млекопитающих.', 220, 2);
+    upsert_mutation('red_color_mutation', 'Мутация красной окраски', 3, 'Смещает окраску в сторону красного фенотипа.', 185, 1);
+    upsert_mutation('medium_size_mutation', 'Мутация среднего размера', 4, 'Стабилизирует средний размер тела.', 165, 1);
+    upsert_mutation('cartilaginous_crescent_fin_mutation', 'Мутация серповидного плавника', 7, 'Формирует серповидный плавник у хрящевых рыб.', 205, 2);
+    upsert_mutation('bony_ribbon_fin_mutation', 'Мутация ленточного плавника', 7, 'Формирует ленточный плавник у костных рыб.', 205, 2);
+    upsert_mutation('hooked_claws_mutation', 'Мутация крючковатых клешней', 8, 'Формирует крючковатые клешни у ракообразных.', 215, 2);
+    upsert_mutation('spiral_profile_mutation', 'Мутация спирального профиля', 8, 'Усиливает спиральный профиль у моллюсков.', 215, 2);
+    upsert_mutation('plated_shell_mutation', 'Мутация пластинчатого панциря', 8, 'Формирует пластинчатый панцирь у черепах.', 215, 2);
+    upsert_mutation('soft_fur_mutation', 'Мутация мягкой шерсти', 8, 'Формирует мягкую шерсть у млекопитающих.', 215, 2);
 
     -- -------------------------------------------------------------------------
     -- 4) Mutation rules
@@ -787,6 +795,7 @@ begin
     -- -------------------------------------------------------------------------
     upsert_task(
         'task_green_specimen',
+        'Зелёное существо',
         'Требуется носительство генетического варианта «зелёный окрас».',
         10,
         100,
@@ -795,6 +804,7 @@ begin
 
     upsert_task(
         'task_winged_specimen',
+        'Носитель аллеля крыльев',
         'Требуется носительство генетического варианта «крылья». Внешние крылья могут не проявиться.',
         12,
         120,
@@ -803,6 +813,7 @@ begin
 
     upsert_task(
         'task_fast_turtle',
+        'Быстрая черепаха',
         'Требуется носительство обоих генетических вариантов: «быстрая скорость» и «гладкий панцирь».',
         15,
         150,
@@ -811,6 +822,7 @@ begin
 
     upsert_task(
         'task_predator_fish_line',
+        'Линия хищных рыб',
         'Требуется носительство обоих генетических вариантов: «хищное питание» и «раздвоенный плавник».',
         30,
         260,
@@ -819,6 +831,7 @@ begin
 
     upsert_task(
         'task_armored_crustacean',
+        'Бронированный ракообразный',
         'Требуется носительство генетических вариантов: «толстый панцирь», «длинные клешни» и «крупный размер».',
         35,
         300,
@@ -827,6 +840,7 @@ begin
 
     upsert_task(
         'task_dense_fur_mammal',
+        'Млекопитающее с густой шерстью',
         'Требуется носительство генетических вариантов: «густая шерсть» и «зелёный окрас».',
         40,
         340,
@@ -835,6 +849,7 @@ begin
 
     upsert_task(
         'task_cartilaginous_fin_line',
+        'Линия хрящевых рыб',
         'Требуется носительство генетических вариантов: «широкий плавник» и «хищное питание».',
         28,
         250,
@@ -843,6 +858,7 @@ begin
 
     upsert_task(
         'task_mollusk_sharp_profile',
+        'Моллюск с острым профилем',
         'Требуется носительство генетических вариантов: «острый клюв» и «зелёный окрас».',
         26,
         230,
@@ -851,6 +867,7 @@ begin
 
     upsert_task(
         'task_large_specimen',
+        'Крупное существо',
         'Требуется носительство генетического варианта «крупный размер».',
         14,
         140,
@@ -859,6 +876,7 @@ begin
 
     upsert_task(
         'task_herbivore_line',
+        'Травоядная линия',
         'Требуется носительство генетического варианта «травоядное питание».',
         16,
         160,
@@ -867,6 +885,7 @@ begin
 
     upsert_task(
         'task_spiked_turtle',
+        'Шипастая черепаха',
         'Требуется носительство генетических вариантов: «шипастый панцирь» и «быстрая скорость».',
         24,
         220,
@@ -875,6 +894,7 @@ begin
 
     upsert_task(
         'task_mammal_short_fur',
+        'Короткошёрстное млекопитающее',
         'Требуется носительство генетических вариантов: «короткая шерсть» и «компактный размер».',
         22,
         210,
@@ -882,6 +902,7 @@ begin
     );
     upsert_task(
         'task_red_specimen',
+        'Красное существо',
         'Требуется носительство генетического варианта «красный окрас».',
         18,
         170,
@@ -890,6 +911,7 @@ begin
 
     upsert_task(
         'task_medium_specimen',
+        'Существо среднего размера',
         'Требуется носительство генетического варианта «средний размер».',
         18,
         170,
@@ -898,6 +920,7 @@ begin
 
     upsert_task(
         'task_winged_red_specimen',
+        'Носитель аллелей крыльев и красного окраса',
         'Требуется носительство обоих генетических вариантов: «крылья» и «красный окрас». Внешние крылья могут не проявиться.',
         26,
         240,
@@ -906,6 +929,7 @@ begin
 
     upsert_task(
         'task_crescent_fin_cartilaginous',
+        'Хрящевая рыба с серповидным плавником',
         'Требуется носительство генетических вариантов: «серповидный плавник» и «хищное питание».',
         32,
         280,
@@ -914,6 +938,7 @@ begin
 
     upsert_task(
         'task_ribbon_fin_bony',
+        'Костная рыба с ленточным плавником',
         'Требуется носительство генетических вариантов: «ленточный плавник» и «крупный размер».',
         30,
         260,
@@ -922,6 +947,7 @@ begin
 
     upsert_task(
         'task_hooked_crustacean',
+        'Ракообразное с крючковатыми клешнями',
         'Требуется носительство генетических вариантов: «крючковатые клешни» и «ребристый панцирь».',
         34,
         300,
@@ -930,6 +956,7 @@ begin
 
     upsert_task(
         'task_spiral_mollusk',
+        'Моллюск со спиральным профилем',
         'Требуется носительство генетических вариантов: «спиральный профиль» и «фиолетовый окрас».',
         30,
         270,
@@ -938,6 +965,7 @@ begin
 
     upsert_task(
         'task_plated_turtle',
+        'Черепаха с пластинчатым панцирем',
         'Требуется носительство генетических вариантов: «пластинчатый панцирь» и «быстрая скорость».',
         32,
         290,
@@ -946,6 +974,7 @@ begin
 
     upsert_task(
         'task_soft_fur_mammal',
+        'Млекопитающее с мягкой шерстью',
         'Требуется носительство генетических вариантов: «мягкая шерсть» и «белый окрас».',
         30,
         270,

@@ -183,109 +183,6 @@ DOMINANCE_LABELS = {
     "linked": "сцепленное наследование",
 }
 
-TASK_LABELS = {
-    "task_green_specimen": "Зелёное существо",
-    "task_winged_specimen": "Носитель аллеля крыльев",
-    "task_fast_turtle": "Быстрая черепаха",
-    "task_predator_fish_line": "Линия хищных рыб",
-    "task_armored_crustacean": "Бронированный ракообразный",
-    "task_dense_fur_mammal": "Млекопитающее с густой шерстью",
-    "task_cartilaginous_fin_line": "Линия хрящевых рыб",
-    "task_mollusk_sharp_profile": "Моллюск с острым профилем",
-    "task_large_specimen": "Крупное существо",
-    "task_herbivore_line": "Травоядная линия",
-    "task_spiked_turtle": "Шипастая черепаха",
-    "task_mammal_short_fur": "Короткошёрстное млекопитающее",
-    "task_red_specimen": "Красное существо",
-    "task_medium_specimen": "Существо среднего размера",
-    "task_winged_red_specimen": "Носитель аллелей крыльев и красного окраса",
-    "task_crescent_fin_cartilaginous": "Хрящевая рыба с серповидным плавником",
-    "task_ribbon_fin_bony": "Костная рыба с ленточным плавником",
-    "task_hooked_crustacean": "Ракообразное с крючковатыми клешнями",
-    "task_spiral_mollusk": "Моллюск со спиральным профилем",
-    "task_plated_turtle": "Черепаха с пластинчатым панцирем",
-    "task_soft_fur_mammal": "Млекопитающее с мягкой шерстью",
-}
-
-V3_TASK_LABELS = {
-    "task_v3_disc_saw": "Скат с пилообразным рылом",
-    "task_v3_eel_yellow": "Жёлтое угреобразное существо",
-    "task_v3_shrimp_claws": "Креветкообразное существо с клешнями",
-    "task_v3_cephalopod_shell": "Головоногое с раковиной",
-    "task_v3_snake_shell": "Морская змея с панцирем",
-    "task_v3_cetacean_broad": "Китообразное с широким телом",
-    "task_v3_brown_cetacean": "Бурое китообразное",
-    "task_v3_giant_pinniped": "Гигантское ластоногое",
-    "task_v3_disc_fish_tail": "Дискообразное существо с рыбным хвостом",
-    "task_v3_cetacean_rear_flippers": "Китообразное с задними ластами",
-    "task_v3_white_broad_cephalopod": "Белое широкотелое головоногое",
-    "task_v3_long_tailed_pointed": "Длиннохвостое существо с заострённой мордой",
-}
-
-TASK_DESCRIPTIONS = {
-    "task_green_specimen": "Требуется носительство генетического варианта «зелёный окрас».",
-    "task_winged_specimen": "Требуется носительство генетического варианта «крылья». Внешние крылья могут не проявиться.",
-    "task_fast_turtle": "Требуется носительство обоих генетических вариантов: «быстрая скорость» и «гладкий панцирь».",
-    "task_predator_fish_line": "Требуется носительство обоих генетических вариантов: «хищное питание» и «раздвоенный плавник».",
-    "task_armored_crustacean": "Требуется носительство генетических вариантов: «толстый панцирь», «длинные клешни» и «крупный размер».",
-    "task_dense_fur_mammal": "Требуется носительство генетических вариантов: «густая шерсть» и «зелёный окрас».",
-    "task_cartilaginous_fin_line": "Требуется носительство генетических вариантов: «широкий плавник» и «хищное питание».",
-    "task_mollusk_sharp_profile": "Требуется носительство генетических вариантов: «острый клюв» и «зелёный окрас».",
-    "task_large_specimen": "Требуется носительство генетического варианта «крупный размер».",
-    "task_herbivore_line": "Требуется носительство генетического варианта «травоядное питание».",
-    "task_spiked_turtle": "Требуется носительство генетических вариантов: «шипастый панцирь» и «быстрая скорость».",
-    "task_mammal_short_fur": "Требуется носительство генетических вариантов: «короткая шерсть» и «компактный размер».",
-    "task_red_specimen": "Требуется носительство генетического варианта «красный окрас».",
-    "task_medium_specimen": "Требуется носительство генетического варианта «средний размер».",
-    "task_winged_red_specimen": "Требуется носительство обоих генетических вариантов: «крылья» и «красный окрас». Внешние крылья могут не проявиться.",
-    "task_crescent_fin_cartilaginous": "Требуется носительство генетических вариантов: «серповидный плавник» и «хищное питание».",
-    "task_ribbon_fin_bony": "Требуется носительство генетических вариантов: «ленточный плавник» и «крупный размер».",
-    "task_hooked_crustacean": "Требуется носительство генетических вариантов: «крючковатые клешни» и «ребристый панцирь».",
-    "task_spiral_mollusk": "Требуется носительство генетических вариантов: «спиральный профиль» и «фиолетовый окрас».",
-    "task_plated_turtle": "Требуется носительство генетических вариантов: «пластинчатый панцирь» и «быстрая скорость».",
-    "task_soft_fur_mammal": "Требуется носительство генетических вариантов: «мягкая шерсть» и «белый окрас».",
-}
-
-MUTATION_LABELS = {
-    "chemical mutation": "Химическая мутация",
-    "radiation mutation": "Радиационная мутация",
-    "nutrition shift mutation": "Сдвиг типа питания",
-    "wing activation mutation": "Активация крыльев",
-    "size shift mutation": "Изменение размера",
-    "red mutation": "Красная окраска",
-    "blue mutation": "Синяя окраска",
-    "green mutation": "Зелёная окраска",
-    "yellow mutation": "Жёлтая окраска",
-    "purple mutation": "Фиолетовая окраска",
-    "orange mutation": "Оранжевая окраска",
-    "white mutation": "Белая окраска",
-    "black mutation": "Чёрная окраска",
-    "medium mutation": "Средний размер",
-    "aquatic form mutation": "Водная форма",
-    "nutrition_shift_mutation": "Сдвиг типа питания",
-    "radiation_mutation": "Радиационная мутация",
-    "chemical_mutation": "Химическая мутация",
-    "medium_mutation": "Средний размер",
-    "red_mutation": "Красная окраска",
-    "aquatic_form_mutation": "Водная форма",
-    "enhanced_color_mutation": "Усиленная окраска",
-    "size_shift_mutation": "Изменение размера",
-    "wing_activation_mutation": "Активация крыльев",
-    "aquatic_form_bony_mutation": "Водная форма костной рыбы",
-    "aquatic_form_turtle_shell_mutation": "Панцирь черепахи",
-    "morphology_refine_mutation": "Форма клешней",
-    "morphology_refine_mollusk_mutation": "Профиль моллюска",
-    "morphology_refine_mammal_mutation": "Покров млекопитающего",
-    "red_color_mutation": "Красная окраска",
-    "medium_size_mutation": "Средний размер",
-    "cartilaginous_crescent_fin_mutation": "Серповидный плавник",
-    "bony_ribbon_fin_mutation": "Ленточный плавник",
-    "hooked_claws_mutation": "Крючковатые клешни",
-    "spiral_profile_mutation": "Спиральный профиль",
-    "plated_shell_mutation": "Пластинчатый панцирь",
-    "soft_fur_mutation": "Мягкая шерсть",
-}
-
 EVENT_LABELS = {
     "TASK_REWARD": "Награда за задание",
     "MUTATION_PURCHASE": "Покупка мутации",
@@ -450,8 +347,6 @@ def translate_free_text(value: Any) -> str:
     # would corrupt ordinary values such as 123.45 or 60 in free-form history.
     replacements.update({code: label for code, label in SPECIES_LABELS.items() if not code.isdigit()})
     replacements.update(TRAIT_LABELS)
-    replacements.update(TASK_LABELS)
-    replacements.update(MUTATION_LABELS)
     replacements.update(EVENT_LABELS)
     replacements.update(USER_TEXT_REPLACEMENTS)
     for raw, label in sorted(replacements.items(), key=lambda item: len(item[0]), reverse=True):
@@ -597,11 +492,11 @@ def humanize_code(value: Any) -> str:
 
 def species_label(row: dict[str, Any]) -> str:
     code = _clean_code(row.get("species_type") or row.get("species_code"))
-    if code in SPECIES_LABELS:
-        return SPECIES_LABELS[code]
     display = _strip_mojibake(_text(row.get("species_display_name") or row.get("species_label")))
     if display:
         return display
+    if code in SPECIES_LABELS:
+        return SPECIES_LABELS[code]
     return humanize_code(code)
 
 
@@ -1208,19 +1103,15 @@ def task_view(row: dict[str, Any]) -> dict[str, Any]:
     supplied_name = _strip_mojibake(_text(row.get("task_display_name")))
     supplied_code = _clean_code(supplied_name)
     is_internal_name = supplied_code.startswith("task_")
-    name = V3_TASK_LABELS.get(code) or (TASK_LABELS.get(code) if genetics_version == 1 else None)
-    if not name and supplied_name and not is_internal_name:
-        name = supplied_name
-    if not name:
-        name = "Специальное задание"
-    known_task_codes = set(TASK_LABELS) | set(V3_TASK_LABELS)
-    unknown_task_code = code if code.startswith("task_") and code not in known_task_codes else None
+    name = supplied_name if supplied_name and not is_internal_name else "Специальное задание"
+    unknown_task_code = code if code.startswith("task_") and is_internal_name else None
     description = _text(row.get("description") or row.get("task_description") or row.get("goal_description"))
-    if not description or (genetics_version == 1 and code in TASK_DESCRIPTIONS):
-        description = TASK_DESCRIPTIONS.get(code, f"Цель задания: получить организм «{name.lower()}».")
+    if not description:
+        description = f"Цель задания: получить организм «{name.lower()}»."
     money_reward = row.get("money_reward") or row.get("reward_money") or 0
     rating_reward = row.get("rating_reward") or row.get("reward_rating") or 0
-    return {**row, "display_name": name, "unknown_task_code": unknown_task_code, "description_text": description, "requirement_label": "Проявляющийся признак" if genetics_version == 3 else "Генетическое условие" if code in TASK_DESCRIPTIONS else "Условие задания", "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status), "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral", "difficulty_label": humanize_code(difficulty), "money_reward_label": number_label(money_reward), "rating_reward_label": number_label(rating_reward), "genetics_version": genetics_version}
+    requirement_label = "Проявляющийся признак" if genetics_version == 3 else "Условие задания" if unknown_task_code else "Генетическое условие"
+    return {**row, "display_name": name, "unknown_task_code": unknown_task_code, "description_text": description, "requirement_label": requirement_label, "status_label": "Выполнен" if status == "COMPLETED" else "Активен" if status == "ACTIVE" else humanize_code(status), "status_class": "status-completed" if status == "COMPLETED" else "status-active" if status == "ACTIVE" else "status-neutral", "difficulty_label": humanize_code(difficulty), "money_reward_label": number_label(money_reward), "rating_reward_label": number_label(rating_reward), "genetics_version": genetics_version}
 
 
 def task_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1230,16 +1121,13 @@ def task_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _mutation_label(value: Any) -> str:
     text = _text(value)
     code = _clean_code(text)
-    if code in MUTATION_LABELS:
-        return MUTATION_LABELS[code]
-    spaced = code.replace("_", " ")
-    if spaced in MUTATION_LABELS:
-        return MUTATION_LABELS[spaced]
-    return humanize_code(code)
+    if not text or code.startswith("mutation_") or code.endswith("_mutation"):
+        return "Мутация"
+    return text
 
 
 def mutation_view(row: dict[str, Any]) -> dict[str, Any]:
-    name = row.get("mutation_name") or row.get("display_name") or row.get("mutation_code") or f"mutation {row.get('mutation_id')}"
+    name = row.get("mutation_display_name") or row.get("display_name") or row.get("mutation_name") or row.get("mutation_code")
     target = row.get("target_trait") or row.get("trait_value") or row.get("gene_type") or row.get("gene_name")
     rating_effect = None
     for key in ("rating_effect", "rating_delta", "rating_change", "rating_reward"):
@@ -1310,7 +1198,7 @@ def experiment_view(row: dict[str, Any]) -> dict[str, Any]:
     return {
         **row,
         "result_creature_id": result_creature_id,
-        "type_label": EXPERIMENT_LABELS.get(kind, humanize_code(kind)),
+        "type_label": _text(row.get("experiment_type_display_name")) or EXPERIMENT_LABELS.get(kind, humanize_code(kind)),
         "type_class": f"event-{kind.lower()}" if kind else "event-neutral",
         "mutagen_label": mutagen_label,
         "description_text": description,
@@ -1328,7 +1216,7 @@ def rating_event_view(row: dict[str, Any]) -> dict[str, Any]:
     wallet_delta = row.get("wallet_delta")
     return {
         **row,
-        "type_label": EVENT_LABELS.get(kind, humanize_code(kind)),
+        "type_label": _text(row.get("event_type_display_name")) or EVENT_LABELS.get(kind, humanize_code(kind)),
         "event_class": f"event-{kind.lower()}" if kind else "event-neutral",
         "rating_class": _delta_class(rating_delta),
         "wallet_class": _delta_class(wallet_delta),

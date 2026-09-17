@@ -41,6 +41,7 @@ declare
 
     procedure upsert_task(
         p_task_name       in varchar2,
+        p_display_name    in varchar2,
         p_description     in varchar2,
         p_rating_reward   in number,
         p_money_reward    in number,
@@ -52,6 +53,7 @@ declare
            on (target.task_name = source.task_name)
         when matched then
             update set
+                target.display_name = p_display_name,
                 target.description = p_description,
                 target.rating_reward = p_rating_reward,
                 target.money_reward = p_money_reward,
@@ -61,6 +63,7 @@ declare
             insert (
                 task_id,
                 task_name,
+                display_name,
                 description,
                 rating_reward,
                 money_reward,
@@ -71,6 +74,7 @@ declare
             values (
                 tasks_seq.nextval,
                 p_task_name,
+                p_display_name,
                 p_description,
                 p_rating_reward,
                 p_money_reward,
@@ -155,18 +159,18 @@ declare
 begin
     remove_obsolete_predator_task;
 
-    upsert_task('task_v3_disc_saw', 'Требуется дискообразная форма тела и пилообразное рыло.', 30, 900, 'MEDIUM');
-    upsert_task('task_v3_eel_yellow', 'Требуется угреобразная форма тела и жёлтый окрас.', 30, 900, 'MEDIUM');
-    upsert_task('task_v3_shrimp_claws', 'Требуется креветкообразная форма тела и клешни.', 35, 1100, 'HARD');
-    upsert_task('task_v3_cephalopod_shell', 'Требуется головоногая форма тела и раковина на спине.', 40, 1300, 'HARD');
-    upsert_task('task_v3_snake_shell', 'Требуется змеевидная форма тела и панцирь на спине.', 40, 1200, 'HARD');
-    upsert_task('task_v3_cetacean_broad', 'Требуется китообразная форма тела и широкие пропорции.', 35, 1000, 'HARD');
-    upsert_task('task_v3_brown_cetacean', 'Требуется китообразная форма тела и коричневый окрас.', 45, 1400, 'HARD');
-    upsert_task('task_v3_giant_pinniped', 'Требуется ластоногая форма тела и гигантский размер.', 50, 1600, 'HARD');
-    upsert_task('task_v3_disc_fish_tail', 'Требуется дискообразная форма тела и рыбный хвост.', 55, 1800, 'HARD');
-    upsert_task('task_v3_cetacean_rear_flippers', 'Требуется китообразная форма тела и задние ласты.', 50, 1500, 'HARD');
-    upsert_task('task_v3_white_broad_cephalopod', 'Требуется белая головоногая форма тела с широкими пропорциями.', 55, 1700, 'HARD');
-    upsert_task('task_v3_long_tailed_pointed', 'Требуется вытянутый хвост, крупный размер и заострённая морда.', 60, 2000, 'HARD');
+    upsert_task('task_v3_disc_saw', 'Скат с пилообразным рылом', 'Требуется дискообразная форма тела и пилообразное рыло.', 30, 900, 'MEDIUM');
+    upsert_task('task_v3_eel_yellow', 'Жёлтое угреобразное существо', 'Требуется угреобразная форма тела и жёлтый окрас.', 30, 900, 'MEDIUM');
+    upsert_task('task_v3_shrimp_claws', 'Креветкообразное существо с клешнями', 'Требуется креветкообразная форма тела и клешни.', 35, 1100, 'HARD');
+    upsert_task('task_v3_cephalopod_shell', 'Головоногое с раковиной', 'Требуется головоногая форма тела и раковина на спине.', 40, 1300, 'HARD');
+    upsert_task('task_v3_snake_shell', 'Морская змея с панцирем', 'Требуется змеевидная форма тела и панцирь на спине.', 40, 1200, 'HARD');
+    upsert_task('task_v3_cetacean_broad', 'Китообразное с широким телом', 'Требуется китообразная форма тела и широкие пропорции.', 35, 1000, 'HARD');
+    upsert_task('task_v3_brown_cetacean', 'Бурое китообразное', 'Требуется китообразная форма тела и коричневый окрас.', 45, 1400, 'HARD');
+    upsert_task('task_v3_giant_pinniped', 'Гигантское ластоногое', 'Требуется ластоногая форма тела и гигантский размер.', 50, 1600, 'HARD');
+    upsert_task('task_v3_disc_fish_tail', 'Дискообразное существо с рыбным хвостом', 'Требуется дискообразная форма тела и рыбный хвост.', 55, 1800, 'HARD');
+    upsert_task('task_v3_cetacean_rear_flippers', 'Китообразное с задними ластами', 'Требуется китообразная форма тела и задние ласты.', 50, 1500, 'HARD');
+    upsert_task('task_v3_white_broad_cephalopod', 'Белое широкотелое головоногое', 'Требуется белая головоногая форма тела с широкими пропорциями.', 55, 1700, 'HARD');
+    upsert_task('task_v3_long_tailed_pointed', 'Длиннохвостое существо с заострённой мордой', 'Требуется вытянутый хвост, крупный размер и заострённая морда.', 60, 2000, 'HARD');
 
     upsert_marker('task_v3_disc_saw', 'body_shape', 'disc');
     upsert_marker('task_v3_disc_saw', 'snout_type', 'saw');

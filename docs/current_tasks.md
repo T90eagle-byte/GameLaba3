@@ -2,7 +2,7 @@
 
 ## READY
 
-- versioned Oracle schema с marker `14` и migrations `01..14`;
+- versioned Oracle schema с marker `15` и migrations `01..15`;
 - v1 compatibility для исторических лабораторий;
 - v3 canonical genetics: 19 genes, 18 archetypes и materialized morphology;
 - phenotype-aware v3 Задания;

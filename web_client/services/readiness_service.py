@@ -198,6 +198,7 @@ class SchemaSnapshot:
     experiment_types: frozenset[str]
     rating_event_types: frozenset[str]
     hybrid_economics_ready: bool
+    catalog_display_names_ready: bool
     install_version: int | None
     schema_columns: frozenset[str]
     archetype_codes: frozenset[str]
@@ -271,7 +272,8 @@ def collect_schema_snapshot(connection: oracledb.Connection) -> SchemaSnapshot:
         schema_columns: frozenset[str] = frozenset()
         tracked_columns = {
             "LABS": {"SESSION_ID", "LAB_NAME", "GENETICS_VERSION"},
-            "TASKS": {"GENETICS_VERSION"},
+            "TASKS": {"GENETICS_VERSION", "DISPLAY_NAME"},
+            "MUTATIONS": {"DISPLAY_NAME"},
             "EXPERIMENTS": {"MUTAGEN_TYPE"},
             "CREATURES": {"ARCHETYPE_ID"},
             "GENES": {"GAMEPLAY_ENABLED"},
@@ -281,7 +283,7 @@ def collect_schema_snapshot(connection: oracledb.Connection) -> SchemaSnapshot:
             """
             select table_name, column_name
               from user_tab_columns
-             where table_name in ('LABS', 'TASKS', 'EXPERIMENTS', 'CREATURES', 'GENES', 'ALLELES')
+             where table_name in ('LABS', 'TASKS', 'MUTATIONS', 'EXPERIMENTS', 'CREATURES', 'GENES', 'ALLELES')
             """
         )
         schema_columns = frozenset(
@@ -394,6 +396,22 @@ def collect_schema_snapshot(connection: oracledb.Connection) -> SchemaSnapshot:
             )
             hybrid_economics_ready = int(cursor.fetchone()[0] or 0) == 1
 
+        catalog_display_names_ready = False
+        if {"TASKS.DISPLAY_NAME", "MUTATIONS.DISPLAY_NAME"}.issubset(schema_columns):
+            cursor.execute(
+                """
+                select count(*)
+                  from (
+                      select display_name from tasks
+                      union all
+                      select display_name from mutations
+                  )
+                 where display_name is null
+                    or trim(display_name) is null
+                """
+            )
+            catalog_display_names_ready = int(cursor.fetchone()[0] or 0) == 0
+
         install_version: int | None = None
         if "APP_INSTALL_STATE" in tables:
             cursor.execute(
@@ -502,6 +520,7 @@ def collect_schema_snapshot(connection: oracledb.Connection) -> SchemaSnapshot:
         experiment_types=experiment_types,
         rating_event_types=rating_event_types,
         hybrid_economics_ready=hybrid_economics_ready,
+        catalog_display_names_ready=catalog_display_names_ready,
         install_version=install_version,
         schema_columns=schema_columns,
         archetype_codes=frozenset(code.lower() for code in archetype_codes),
@@ -537,12 +556,13 @@ def schema_report(snapshot: SchemaSnapshot) -> dict[str, Any]:
         "hybridization_experiment_type": "HYBRIDIZATION" in snapshot.experiment_types,
         "hybridization_rating_event_type": "HYBRIDIZATION_PENALTY" in snapshot.rating_event_types,
         "hybridization_economics": snapshot.hybrid_economics_ready,
+        "catalog_display_names": snapshot.catalog_display_names_ready,
     }
     seed_ready = all(item["count"] >= item["minimum"] for item in seed_report.values()) and all(seed_integrity.values())
     expected_columns = frozenset(
         {
             "LABS.SESSION_ID", "LABS.LAB_NAME", "LABS.GENETICS_VERSION",
-            "TASKS.GENETICS_VERSION", "EXPERIMENTS.MUTAGEN_TYPE",
+            "TASKS.GENETICS_VERSION", "TASKS.DISPLAY_NAME", "MUTATIONS.DISPLAY_NAME", "EXPERIMENTS.MUTAGEN_TYPE",
             "CREATURES.ARCHETYPE_ID", "GENES.GAMEPLAY_ENABLED", "ALLELES.DISPLAY_NAME",
         }
     )

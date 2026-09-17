@@ -130,6 +130,13 @@ begin
        );
     assert_true(v_value = 8, 'Required content expansion mutations exist', 'covered=' || v_value);
 
+    select count(*)
+      into v_value
+      from mutations
+     where display_name is null
+        or trim(display_name) is null;
+    assert_true(v_value = 0, 'Mutation catalogue has player-facing names', 'missing=' || v_value);
+
     -- 5) mutation_rules reference existing mutation_id/gene_id/target_allele_id
     select count(*)
       into v_value
@@ -212,6 +219,13 @@ begin
             'task_soft_fur_mammal'
        );
     assert_true(v_value = 9, 'Required content expansion tasks exist', 'covered=' || v_value);
+
+    select count(*)
+      into v_value
+      from tasks
+     where display_name is null
+        or trim(display_name) is null;
+    assert_true(v_value = 0, 'Task catalogue has player-facing names', 'missing=' || v_value);
 
     -- 12) Each task has at least one task_marker
     select count(*)

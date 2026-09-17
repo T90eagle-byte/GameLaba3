@@ -4,7 +4,7 @@
 
 - Репозиторий: `C:\GameLR3`.
 - Основная ветка: `main`.
-- Текущий schema/install marker: **14**.
+- Текущий schema/install marker: **15**.
 - Backend truth: Oracle package `pkg_genetics_game`.
 - Клиенты: PySide6 и Flask/Jinja — только display/API clients.
 
@@ -47,8 +47,8 @@ Runtime validation на Oracle 12.2 должна быть выполнена н�
 
 - Fresh assigned schema: `database/installers/university_existing_schema_install.sql`.
 - Existing BioSborka schema: `database/installers/university_existing_schema_update.sql`.
-- Оба entry points приводят recognised schema к marker 14, применяют
-  migrations `01..14`, seeds `01..05`, package и validation. Update сохраняет
+- Оба entry points приводят recognised schema к marker 15, применяют
+  migrations `01..15`, seeds `01..05`, package и validation. Update сохраняет
   пользователей и игровой прогресс.
 - Docker `db-init` использует тот же versioned contract; не заменять его
   destructive fallback.

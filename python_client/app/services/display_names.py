@@ -73,53 +73,6 @@ TRAIT_LABELS = {
 
 
 
-MUTATION_NAME_LABELS = {
-    "radiation_mutation": "Радиационная мутация",
-    "chemical_mutation": "Химическая мутация",
-    "enhanced_color_mutation": "Усиленная мутация окраски",
-    "size_shift_mutation": "Мутация размера",
-    "nutrition_shift_mutation": "Мутация типа питания",
-    "wing_activation_mutation": "Мутация активации крыльев",
-    "aquatic_form_mutation": "Мутация формы плавника (хрящевые рыбы)",
-    "aquatic_form_bony_mutation": "Мутация формы плавника (костные рыбы)",
-    "aquatic_form_turtle_shell_mutation": "Мутация панциря (черепахи)",
-    "morphology_refine_mutation": "Мутация клешней (ракообразные)",
-    "morphology_refine_mollusk_mutation": "Мутация профиля (моллюски)",
-    "morphology_refine_mammal_mutation": "Мутация шерсти (млекопитающие)",
-    "red_color_mutation": "Мутация красной окраски",
-    "medium_size_mutation": "Мутация среднего размера",
-    "cartilaginous_crescent_fin_mutation": "Мутация серповидного плавника (хрящевые рыбы)",
-    "bony_ribbon_fin_mutation": "Мутация ленточного плавника (костные рыбы)",
-    "hooked_claws_mutation": "Мутация крючковатых клешней",
-    "spiral_profile_mutation": "Мутация спирального профиля",
-    "plated_shell_mutation": "Мутация пластинчатого панциря",
-    "soft_fur_mutation": "Мутация мягкой шерсти",
-}
-
-TASK_NAME_LABELS = {
-    "task_green_specimen": "Зелёный образец",
-    "task_winged_specimen": "Крылатый образец",
-    "task_fast_turtle": "Быстрая черепаха",
-    "task_predator_fish_line": "Хищная рыбная линия",
-    "task_armored_crustacean": "Панцирное ракообразное",
-    "task_dense_fur_mammal": "Млекопитающее с густой шерстью",
-    "task_cartilaginous_fin_line": "Линия хрящевых рыб с развитым плавником",
-    "task_mollusk_sharp_profile": "Моллюск с острым профилем",
-    "task_large_specimen": "Крупный образец",
-    "task_herbivore_line": "Травоядная линия",
-    "task_spiked_turtle": "Шипастая черепаха",
-    "task_mammal_short_fur": "Млекопитающее с короткой шерстью",
-    "task_red_specimen": "Красный образец",
-    "task_medium_specimen": "Средний образец",
-    "task_winged_red_specimen": "Крылатый красный образец",
-    "task_crescent_fin_cartilaginous": "Хрящевая рыба с серповидным плавником",
-    "task_ribbon_fin_bony": "Костная рыба с ленточным плавником",
-    "task_hooked_crustacean": "Ракообразное с крючковатыми клешнями",
-    "task_spiral_mollusk": "Моллюск со спиральным профилем",
-    "task_plated_turtle": "Черепаха с пластинчатым панцирем",
-    "task_soft_fur_mammal": "Млекопитающее с мягкой шерстью",
-}
-
 
 
 CREATURE_PREFIX_LABELS = {
@@ -304,13 +257,13 @@ def mutation_type_label(value: Any) -> str:
 
 def mutation_name_label(value: Any, *, with_code: bool = False) -> str:
     code = display_value(value)
-    label = MUTATION_NAME_LABELS.get(code.lower(), code.replace("_", " "))
+    label = "Мутация" if code.endswith("_mutation") else code
     return f"{label} ({code})" if with_code and code != "Не указано" else label
 
 
 def task_name_label(value: Any, *, with_code: bool = False) -> str:
     code = display_value(value)
-    label = TASK_NAME_LABELS.get(code.lower(), code.replace("_", " "))
+    label = "Специальное задание" if code.lower().startswith("task_") else code
     return f"{label} ({code})" if with_code and code != "Не указано" else label
 
 
@@ -326,23 +279,7 @@ def task_difficulty_label(value: Any) -> str:
         return "Среднее"
     if normalized in ("hard", "сложное"):
         return "Сложное"
-    easy_tasks = ("task_green_specimen", "task_winged_specimen", "task_large_specimen", "task_herbivore_line")
-    medium_tasks = (
-        "task_fast_turtle",
-        "task_predator_fish_line",
-        "task_cartilaginous_fin_line",
-        "task_mollusk_sharp_profile",
-        "task_mammal_short_fur",
-        "task_spiked_turtle",
-    )
-    hard_tasks = ("task_armored_crustacean", "task_dense_fur_mammal")
-    if normalized in easy_tasks:
-        return "Лёгкое"
-    if normalized in medium_tasks:
-        return "Среднее"
-    if normalized in hard_tasks:
-        return "Сложное"
-    return "Среднее"
+    return code
 
 def creature_name_label(value: Any) -> str:
     text = display_value(value)

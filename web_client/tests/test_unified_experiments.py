@@ -199,6 +199,7 @@ class UnifiedExperimentsRouteTests(unittest.TestCase):
     @patch.object(app_module.task_service, "get_tasks", side_effect=[[], [{
         "task_id": 3,
         "task_name": "task_v3_disc_saw",
+        "task_display_name": "Скат с пилообразным рылом",
         "task_status": "COMPLETED",
         "reward_money": 200,
         "reward_rating": 30,

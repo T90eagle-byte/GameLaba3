@@ -350,7 +350,7 @@ class MutationsTab(QWidget):
         for row_idx, row in enumerate(self._shop_rows):
             self.shop_table.insertRow(row_idx)
             self._set_shop_item(row_idx, 0, row.get("mutation_id"), center=True)
-            self._set_shop_item(row_idx, 1, display_mutation_name(row.get("mutation_name")))
+            self._set_shop_item(row_idx, 1, display_mutation_name(row.get("mutation_display_name") or row.get("mutation_name")))
             self._set_shop_item(row_idx, 2, row.get("mutation_type_display_name") or mutation_type_label(row.get("mutation_type")), center=True)
             self._set_shop_item(row_idx, 3, row.get("description"))
             self._set_shop_item(row_idx, 4, row.get("price"), center=True)
@@ -551,7 +551,7 @@ class MutationsTab(QWidget):
 
         mutation_id = self._to_int(mutation.get("mutation_id"))
         self.selected_mutation_id_label.setText(self._display(mutation.get("mutation_id")))
-        self.selected_mutation_name_label.setText(display_mutation_name(mutation.get("mutation_name")))
+        self.selected_mutation_name_label.setText(display_mutation_name(mutation.get("mutation_display_name") or mutation.get("mutation_name")))
         self.selected_mutation_price_label.setText(self._display(mutation.get("price")))
 
         self._load_mutation_targets_and_compatibility(mutation_id)

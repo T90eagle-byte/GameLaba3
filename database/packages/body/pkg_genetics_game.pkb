@@ -2459,7 +2459,8 @@ end hash_password_sha256;
                 rmt.display_name as mutation_type_display_name,
                 m.description,
                 m.cost as price,
-                m.rating_effect
+                m.rating_effect,
+                m.display_name as mutation_display_name
               from mutations m
               left join ref_mutation_types rmt
                 on rmt.mutation_type = m.mutation_type
@@ -2485,7 +2486,8 @@ end hash_password_sha256;
                 rmt.display_name as mutation_type_display_name,
                 m.description,
                 m.cost as price,
-                m.rating_effect
+                m.rating_effect,
+                m.display_name as mutation_display_name
               from mutations m
               left join ref_mutation_types rmt
                 on rmt.mutation_type = m.mutation_type
@@ -2515,7 +2517,7 @@ end hash_password_sha256;
                 mr.target_slot,
                 a.trait_value,
                 a.description as target_allele_description,
-                a.description as target_allele_display_name
+                coalesce(a.display_name, a.description) as target_allele_display_name
               from mutation_rules mr
               join genes g
                 on g.gene_id = mr.gene_id
@@ -2603,14 +2605,15 @@ end hash_password_sha256;
         v_lab_wallet      number(12, 2);
         v_mutation_cost   number(12, 2);
         v_mutation_name   mutations.mutation_name%type;
+        v_mutation_display_name mutations.display_name%type;
         v_genetics_version labs.genetics_version%type;
         v_exists_count    number;
     begin
         assert_lab_access(p_lab_id => p_lab_id);
 
         begin
-            select m.cost, m.mutation_name
-              into v_mutation_cost, v_mutation_name
+            select m.cost, m.mutation_name, m.display_name
+              into v_mutation_cost, v_mutation_name, v_mutation_display_name
               from mutations m
              where m.mutation_id = p_mutation_id;
         exception
@@ -2665,7 +2668,7 @@ end hash_password_sha256;
                 p_event_type   => 'MUTATION_PURCHASE',
                 p_rating_delta => 0,
                 p_wallet_delta => -v_mutation_cost,
-                p_description  => 'Покупка мутации: ' || v_mutation_name
+                p_description  => 'Покупка мутации: ' || coalesce(v_mutation_display_name, v_mutation_name)
             );
         end if;
 
@@ -3770,7 +3773,8 @@ end hash_password_sha256;
                 e.mutation_id,
                 m.mutation_name,
                 e.created_at as created_at,
-                e.mutagen_type
+                e.mutagen_type,
+                m.display_name as mutation_display_name
               from experiments e
               join ref_experiment_types ret
                 on ret.experiment_type = e.experiment_type
@@ -3804,7 +3808,7 @@ end hash_password_sha256;
                 lt.lab_task_id,
                 lt.task_id,
                 t.task_name,
-                t.task_name as task_display_name,
+                coalesce(t.display_name, t.description, t.task_name) as task_display_name,
                 t.description,
                 t.money_reward as reward_money,
                 t.rating_reward as reward_rating,
@@ -4510,6 +4514,7 @@ end hash_password_sha256;
         v_offspring_name             varchar2(4000);
         v_mutation_id                number;
         v_mutation_name              varchar2(4000);
+        v_mutation_display_name      varchar2(4000);
         v_created_at                 timestamp;
         v_mutagen_type               varchar2(30);
     begin
@@ -4531,7 +4536,8 @@ end hash_password_sha256;
                 v_mutation_id,
                 v_mutation_name,
                 v_created_at,
-                v_mutagen_type;
+                v_mutagen_type,
+                v_mutation_display_name;
             exit when v_cursor%notfound;
 
             dbms_output.put_line(
@@ -4539,7 +4545,7 @@ end hash_password_sha256;
                 ': ' || nvl(v_parent1_name, '?') ||
                 case when v_parent2_name is null then '' else ' + ' || v_parent2_name end ||
                 case when v_offspring_name is null then '' else ' -> ' || v_offspring_name end ||
-                case when v_mutation_name is null then '' else ' [' || v_mutation_name || ']' end
+                case when v_mutation_name is null then '' else ' [' || coalesce(v_mutation_display_name, v_mutation_name) || ']' end
             );
         end loop;
 

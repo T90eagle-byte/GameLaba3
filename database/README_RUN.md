@@ -1,6 +1,6 @@
 # Oracle schema: запуск и обновление
 
-Текущий marker схемы — **14**. Этот документ описывает рабочие entry points,
+Текущий marker схемы — **15**. Этот документ описывает рабочие entry points,
 а не историю отдельных этапов разработки.
 
 Новые SQL/PLSQL изменения статически проверены на совместимость с Oracle 12.2.
@@ -31,11 +31,11 @@ path не создаёт и не удаляет Oracle user, не использ
 Оба path используют общий порядок:
 
 1. DDL для fresh schema, если он нужен;
-2. migrations `01..14`;
+2. migrations `01..15`;
 3. production seeds `01..05`;
 4. current package spec/body;
 5. readiness validation;
-6. запись marker `14` только после успешной validation.
+6. запись marker `15` только после успешной validation.
 
 Для диагностики существует общий файл
 `database/installers/apply_current_schema_update.sql`; не заменяйте им

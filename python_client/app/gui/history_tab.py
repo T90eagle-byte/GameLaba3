@@ -238,7 +238,7 @@ class HistoryTab(QWidget):
         self.lbl_offspring.setText(self._entity_text(row.get("offspring_id"), row.get("offspring_name")))
 
         mutation_id = self._to_int(row.get("mutation_id"))
-        mutation_name = display_mutation_name(row.get("mutation_name"))
+        mutation_name = display_mutation_name(row.get("mutation_display_name") or row.get("mutation_name"))
         if mutation_id is None:
             self.lbl_mutation.setText("Без мутации")
         else:
@@ -289,7 +289,7 @@ class HistoryTab(QWidget):
         return "Нет данных" if name == "Не указано" else name
 
     def _mutation_brief_text(self, row: dict[str, Any]) -> str:
-        mutation_name = display_mutation_name(row.get("mutation_name"))
+        mutation_name = display_mutation_name(row.get("mutation_display_name") or row.get("mutation_name"))
         if mutation_name != "Не указано":
             return mutation_name
 
@@ -306,7 +306,7 @@ class HistoryTab(QWidget):
 
     def _mutation_detail_text(self, row: dict[str, Any]) -> str:
         mutation_id = self._display(row.get("mutation_id"))
-        mutation_name = display_mutation_name(row.get("mutation_name"))
+        mutation_name = display_mutation_name(row.get("mutation_display_name") or row.get("mutation_name"))
         if mutation_name == "Не указано":
             mutation_name = self._mutation_brief_text(row)
         return f"ID мутации: {mutation_id}\nОписание: {mutation_name}"
