@@ -114,7 +114,7 @@ class UnifiedExperimentsRouteTests(unittest.TestCase):
 
     @patch.object(app_module.lab_service, "get_lab_stats", side_effect=[{"wallet": 1000, "rating": 10}, {"wallet": 950, "rating": 5}])
     @patch.object(app_module.task_service, "get_tasks", side_effect=[[], []])
-    @patch.object(app_module.crossbreed_service, "crossbreed_with_mutagen", return_value=42)
+    @patch.object(app_module.crossbreed_service, "crossbreed_with_mutagen_details", return_value=(42, [{"gene_code": "body_size", "gene_display_name": "Размер тела", "allele_slot": 1, "old_allele_display_name": "средний", "new_allele_display_name": "крупный", "phenotype_before": "body_size=medium", "phenotype_after": "body_size=large", "phenotype_changed": "Y"}]))
     def test_combined_mode_uses_one_service_call_and_one_shot_feedback(
         self, combined, _tasks, _stats
     ) -> None:
@@ -139,7 +139,7 @@ class UnifiedExperimentsRouteTests(unittest.TestCase):
         self.assertEqual(feedback["result_creature_id"], 42)
         self.assertEqual(feedback["mutagen_label"], "Облучение")
 
-    @patch.object(app_module.crossbreed_service, "crossbreed_with_mutagen", side_effect=ServiceError("Эти родители несовместимы."))
+    @patch.object(app_module.crossbreed_service, "crossbreed_with_mutagen_details", side_effect=ServiceError("Эти родители несовместимы."))
     @patch.object(app_module.lab_service, "get_lab_stats", return_value={"wallet": 1000, "rating": 10})
     @patch.object(app_module.task_service, "get_tasks", return_value=[])
     @patch.object(app_module.creature_service, "get_creatures", return_value=[creature(10), creature(11, 2)])
@@ -198,7 +198,7 @@ class UnifiedExperimentsRouteTests(unittest.TestCase):
         "reward_money": 200,
         "reward_rating": 30,
     }]])
-    @patch.object(app_module.crossbreed_service, "hybridize", return_value=42)
+    @patch.object(app_module.crossbreed_service, "hybridize_details", return_value=(42, [{"gene_code": "body_size", "gene_display_name": "Размер тела", "allele_slot": 1, "old_allele_display_name": "средний", "new_allele_display_name": "крупный", "phenotype_before": "body_size=medium", "phenotype_after": "body_size=large", "phenotype_changed": "Y"}]))
     def test_hybridization_uses_one_service_call_and_records_actual_penalty(
         self, hybridize, _tasks, _stats, _events
     ) -> None:
@@ -223,7 +223,7 @@ class UnifiedExperimentsRouteTests(unittest.TestCase):
         self.assertEqual(feedback["rating_penalty_label"], "-20")
         self.assertEqual(len(feedback["completed_tasks"]), 1)
 
-    @patch.object(app_module.crossbreed_service, "hybridize", side_effect=ServiceError("Для гибридизации выберите существ двух разных видов."))
+    @patch.object(app_module.crossbreed_service, "hybridize_details", side_effect=ServiceError("Для гибридизации выберите существ двух разных видов."))
     @patch.object(app_module.lab_service, "get_lab_stats", return_value={"wallet": 1000, "rating": 10})
     @patch.object(app_module.task_service, "get_tasks", return_value=[])
     @patch.object(app_module.rating_service, "get_rating_events", return_value=[])

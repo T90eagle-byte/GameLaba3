@@ -307,6 +307,17 @@ class DeploymentSafetyTests(unittest.TestCase):
         for number in range(1, 6):
             self.assertIn(f"../seeds/{number:02d}_", update_script)
 
+    def test_db_init_refreshes_runtime_objects_when_schema_version_is_current(self) -> None:
+        script = (WEB_ROOT.parent / "docker" / "db-init.sh").read_text(encoding="utf-8")
+        current_version_branch = script.index("if (( install_version == CURRENT_SCHEMA_VERSION )); then")
+        refresh = script.index("apply_current_schema_files", current_version_branch)
+        validate = script.index("validate_schema", refresh)
+        success = script.index("runtime objects were refreshed, and validation passed", validate)
+
+        self.assertLess(current_version_branch, refresh)
+        self.assertLess(refresh, validate)
+        self.assertLess(validate, success)
+
     def test_schema_version_has_one_installer_source(self) -> None:
         version_file = WEB_ROOT.parent / "database" / "installers" / "mark_current_schema_version.sql"
         self.assertEqual(readiness_service.CURRENT_SCHEMA_VERSION, 15)

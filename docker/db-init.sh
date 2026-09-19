@@ -132,8 +132,10 @@ SQL
         fail "Schema install version ${install_version} is newer than supported version ${CURRENT_SCHEMA_VERSION}. Refusing to alter the existing schema."
     fi
     if (( install_version == CURRENT_SCHEMA_VERSION )); then
+        log "Schema is already at version ${CURRENT_SCHEMA_VERSION}; refreshing canonical runtime objects."
+        apply_current_schema_files
         validate_schema
-        log "Schema is already at version ${CURRENT_SCHEMA_VERSION} and passed validation."
+        log "Schema is already at version ${CURRENT_SCHEMA_VERSION}, runtime objects were refreshed, and validation passed."
         exit 0
     fi
     log "Upgrading recognized BioSborka schema from version ${install_version} to ${CURRENT_SCHEMA_VERSION}."

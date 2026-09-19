@@ -6,6 +6,12 @@ create or replace package body pkg_genetics_game as
     g_current_lab_id        number;
     g_gameplay_gate_present  number := null;
     g_lab_genetics_version_present number := null;
+    g_last_mutagen_metadata clob;
+
+    function get_last_mutagen_metadata return clob is
+    begin
+        return g_last_mutagen_metadata;
+    end get_last_mutagen_metadata;
 
     function gameplay_gate_is_present
     return boolean is
@@ -2906,7 +2912,8 @@ end hash_password_sha256;
         p_creature_id      in number,
         p_mutagen_type     in varchar2,
         p_genetics_version in number,
-        p_species_type     in number
+        p_species_type     in number,
+        p_mutation_metadata out clob
     ) is
         v_target_gene_id        number;
         v_current_allele1_id    number;
@@ -2915,6 +2922,17 @@ end hash_password_sha256;
         v_selected_slot         pls_integer;
         v_mutation_rounds       pls_integer := 1;
         v_summary               varchar2(1000);
+        v_before_summary        varchar2(1000);
+        v_after_summary         varchar2(1000);
+        v_old_allele_id         number;
+        v_gene_code             genes.gene_name%type;
+        v_gene_display_name     genes.description%type;
+        v_old_allele_display    alleles.display_name%type;
+        v_old_allele_code       alleles.description%type;
+        v_new_allele_display    alleles.display_name%type;
+        v_new_allele_code       alleles.description%type;
+        v_changes               json_array_t := json_array_t();
+        v_change                json_object_t;
     begin
         if p_mutagen_type not in ('RADIATION', 'CHEMICAL') then
             raise_application_error(-20070, 'Unsupported mutagen type. Use RADIATION or CHEMICAL.');
@@ -2925,6 +2943,7 @@ end hash_password_sha256;
         end if;
 
         for mutation_round in 1 .. v_mutation_rounds loop
+            v_before_summary := get_phenotype(p_creature_id => p_creature_id);
             if p_mutagen_type = 'CHEMICAL' then
                 begin
                     select gt.gene_id, gt.allele1_id, gt.allele2_id
@@ -3002,6 +3021,7 @@ end hash_password_sha256;
             end if;
 
             if v_selected_slot = 1 then
+                v_old_allele_id := v_current_allele1_id;
                 begin
                     select a.allele_id
                       into v_new_allele_id
@@ -3035,6 +3055,7 @@ end hash_password_sha256;
                  where g.creature_id = p_creature_id
                    and g.gene_id = v_target_gene_id;
             else
+                v_old_allele_id := v_current_allele2_id;
                 begin
                     select a.allele_id
                       into v_new_allele_id
@@ -3068,9 +3089,39 @@ end hash_password_sha256;
                  where g.creature_id = p_creature_id
                    and g.gene_id = v_target_gene_id;
             end if;
+
+            v_after_summary := get_phenotype(p_creature_id => p_creature_id);
+            select g.gene_name,
+                   nvl(g.description, g.gene_name),
+                   nvl(a_old.display_name, a_old.description), a_old.description,
+                   nvl(a_new.display_name, a_new.description), a_new.description
+              into v_gene_code, v_gene_display_name,
+                   v_old_allele_display, v_old_allele_code,
+                   v_new_allele_display, v_new_allele_code
+              from genes g
+              join alleles a_old on a_old.allele_id = v_old_allele_id
+              join alleles a_new on a_new.allele_id = v_new_allele_id
+             where g.gene_id = v_target_gene_id;
+            v_change := json_object_t();
+            v_change.put('gene_id', v_target_gene_id);
+            v_change.put('gene_code', v_gene_code);
+            v_change.put('gene_display_name', v_gene_display_name);
+            v_change.put('allele_slot', v_selected_slot);
+            v_change.put('old_allele_id', v_old_allele_id);
+            v_change.put('old_allele_display_name', v_old_allele_display);
+            v_change.put('old_allele_code', v_old_allele_code);
+            v_change.put('new_allele_id', v_new_allele_id);
+            v_change.put('new_allele_display_name', v_new_allele_display);
+            v_change.put('new_allele_code', v_new_allele_code);
+            v_change.put('phenotype_before', v_before_summary);
+            v_change.put('phenotype_after', v_after_summary);
+            v_change.put('phenotype_changed', case when v_before_summary <> v_after_summary then 'Y' else 'N' end);
+            v_changes.append(v_change);
         end loop;
 
         v_summary := get_phenotype(p_creature_id => p_creature_id);
+        p_mutation_metadata := v_changes.to_clob;
+        g_last_mutagen_metadata := p_mutation_metadata;
     end apply_mutagen_genetics_core;
 
     procedure hybridize_core(
@@ -3200,7 +3251,8 @@ end hash_password_sha256;
         p_normalized_type  out varchar2,
         p_wallet_cost      out number,
         p_rating_delta     out number,
-        p_display_name     out varchar2
+        p_display_name     out varchar2,
+        p_mutation_metadata out clob
     ) is
         v_lab_id                number;
         v_genetics_version      labs.genetics_version%type;
@@ -3344,7 +3396,8 @@ end hash_password_sha256;
             p_creature_id      => p_new_creature_id,
             p_mutagen_type     => v_mutagen_mode,
             p_genetics_version => v_genetics_version,
-            p_species_type     => v_species_type
+            p_species_type     => v_species_type,
+            p_mutation_metadata => p_mutation_metadata
         );
 
         if p_record_side_effects then
@@ -3411,6 +3464,7 @@ end hash_password_sha256;
         v_wallet_cost     number(12, 2);
         v_rating_delta    number(12, 2);
         v_display_name    varchar2(100);
+        v_mutation_metadata clob;
     begin
         mutagen_core(
             p_creature_id        => p_creature_id,
@@ -3421,7 +3475,8 @@ end hash_password_sha256;
             p_normalized_type    => v_normalized_type,
             p_wallet_cost        => v_wallet_cost,
             p_rating_delta       => v_rating_delta,
-            p_display_name       => v_display_name
+            p_display_name       => v_display_name,
+            p_mutation_metadata  => v_mutation_metadata
         );
     end apply_mutagen;
 
@@ -3494,6 +3549,7 @@ end hash_password_sha256;
         v_rating_delta        number(12, 2);
         v_display_name        varchar2(100);
         v_experiment_id       number;
+        v_mutation_metadata   clob;
     begin
         savepoint combined_experiment_savepoint;
 
@@ -3518,7 +3574,8 @@ end hash_password_sha256;
             p_normalized_type     => v_normalized_type,
             p_wallet_cost         => v_wallet_cost,
             p_rating_delta        => v_rating_delta,
-            p_display_name        => v_display_name
+            p_display_name        => v_display_name,
+            p_mutation_metadata   => v_mutation_metadata
         );
 
         if v_mutated_creature_id <> p_offspring_id then
@@ -3591,6 +3648,7 @@ end hash_password_sha256;
         v_morphology_count     number;
         v_nutrition_count      number;
         v_normalized_mutagen   varchar2(30);
+        v_mutation_metadata    clob;
     begin
         savepoint hybridization_savepoint;
         p_offspring_id := null;
@@ -3677,7 +3735,8 @@ end hash_password_sha256;
             p_creature_id      => p_offspring_id,
             p_mutagen_type     => v_normalized_mutagen,
             p_genetics_version => 3,
-            p_species_type     => 7
+            p_species_type     => 7,
+            p_mutation_metadata => v_mutation_metadata
         );
 
         select

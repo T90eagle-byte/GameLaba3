@@ -289,10 +289,18 @@ def create_app() -> Flask:
     ) -> int:
         before_tasks = task_service.get_tasks(token, lab_id)
         before_stats = lab_service.get_lab_stats(token, lab_id)
-        offspring_id = crossbreed_service.crossbreed_with_mutagen(
+        offspring_id, mutation_metadata = crossbreed_service.crossbreed_with_mutagen_details(
             token, lab_id, parent1_id, parent2_id, mutagen_type, offspring_name
         )
         if offspring_id:
+            changes = display_service.mutation_metadata_views(mutation_metadata)
+            session["genotype_highlight"] = {
+                "creature_id": offspring_id,
+                "changed_slots": {
+                    change["gene_code"]: ["allele" + change["slot_label"].split()[-1]]
+                    for change in changes
+                },
+            }
             session["action_feedback"] = action_feedback(
                 "combined",
                 offspring_id,
@@ -300,7 +308,9 @@ def create_app() -> Flask:
                 lab_service.get_lab_stats(token, lab_id),
                 before_tasks,
                 task_service.get_tasks(token, lab_id),
-                morphology_changes=None,
+                morphology_changes=changes,
+                genotype_changes=changes,
+                phenotype_changed=any(change["phenotype_changed"] for change in changes),
                 mutagen_label=display_service.MUTAGEN_LABELS.get(mutagen_type),
             )
         return offspring_id
@@ -318,10 +328,18 @@ def create_app() -> Flask:
             int(row.get("rating_event_id") or 0)
             for row in rating_service.get_rating_events(token, lab_id)
         }
-        offspring_id = crossbreed_service.hybridize(
+        offspring_id, mutation_metadata = crossbreed_service.hybridize_details(
             token, lab_id, parent1_id, parent2_id, offspring_name
         )
         if offspring_id:
+            changes = display_service.mutation_metadata_views(mutation_metadata)
+            session["genotype_highlight"] = {
+                "creature_id": offspring_id,
+                "changed_slots": {
+                    change["gene_code"]: ["allele" + change["slot_label"].split()[-1]]
+                    for change in changes
+                },
+            }
             penalty = next(
                 (
                     float(row.get("rating_delta") or 0)
@@ -339,7 +357,9 @@ def create_app() -> Flask:
                 lab_service.get_lab_stats(token, lab_id),
                 before_tasks,
                 task_service.get_tasks(token, lab_id),
-                morphology_changes=None,
+                morphology_changes=changes,
+                genotype_changes=changes,
+                phenotype_changed=any(change["phenotype_changed"] for change in changes),
                 mutagen_label=display_service.MUTAGEN_LABELS["RADIATION"],
                 rating_penalty=penalty,
             )

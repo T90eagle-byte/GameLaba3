@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import oracledb
@@ -104,6 +105,21 @@ def crossbreed_with_mutagen(
     return run_db(action)
 
 
+def crossbreed_with_mutagen_details(
+    session_token: str, lab_id: int, parent1_id: int, parent2_id: int,
+    mutagen_type: str, offspring_name: str,
+) -> tuple[int, list[dict[str, object]]]:
+    def action(connection: oracledb.Connection) -> tuple[int, list[dict[str, object]]]:
+        with connection.cursor() as cursor:
+            cursor.callproc("pkg_genetics_game.load_lab", [session_token, lab_id])
+            out_id = cursor.var(oracledb.DB_TYPE_NUMBER)
+            cursor.callproc("pkg_genetics_game.make_experiment", [lab_id, parent1_id, parent2_id, mutagen_type, offspring_name, out_id])
+            raw = cursor.callfunc("pkg_genetics_game.get_last_mutagen_metadata", oracledb.DB_TYPE_CLOB)
+            text = raw.read() if hasattr(raw, "read") else str(raw or "[]")
+            return int(out_id.getvalue() or 0), json.loads(text or "[]")
+    return run_db(action)
+
+
 def hybridize(
     session_token: str,
     lab_id: int,
@@ -122,4 +138,18 @@ def hybridize(
             value = out_offspring_id.getvalue()
             return 0 if value is None else int(value)
 
+    return run_db(action)
+
+
+def hybridize_details(
+    session_token: str, lab_id: int, parent1_id: int, parent2_id: int, offspring_name: str,
+) -> tuple[int, list[dict[str, object]]]:
+    def action(connection: oracledb.Connection) -> tuple[int, list[dict[str, object]]]:
+        with connection.cursor() as cursor:
+            cursor.callproc("pkg_genetics_game.load_lab", [session_token, lab_id])
+            out_id = cursor.var(oracledb.DB_TYPE_NUMBER)
+            cursor.callproc("pkg_genetics_game.hybridize", [lab_id, parent1_id, parent2_id, "RADIATION", offspring_name, out_id])
+            raw = cursor.callfunc("pkg_genetics_game.get_last_mutagen_metadata", oracledb.DB_TYPE_CLOB)
+            text = raw.read() if hasattr(raw, "read") else str(raw or "[]")
+            return int(out_id.getvalue() or 0), json.loads(text or "[]")
     return run_db(action)

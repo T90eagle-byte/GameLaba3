@@ -1028,6 +1028,26 @@ def genotype_change_details(
     return details
 
 
+def mutation_metadata_views(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Present package-captured mutagen changes without reconstructing genetics."""
+    views: list[dict[str, Any]] = []
+    for row in rows:
+        gene_code = _clean_code(row.get("gene_code"))
+        before = next((item for item in parse_phenotype(row.get("phenotype_before")) if _clean_code(item["key"]) == gene_code), {})
+        after = next((item for item in parse_phenotype(row.get("phenotype_after")) if _clean_code(item["key"]) == gene_code), {})
+        views.append({
+            "gene_code": gene_code,
+            "gene_label": _text(row.get("gene_display_name")) or gene_label(gene_code),
+            "slot_label": f"Аллель {row.get('allele_slot')}",
+            "before": _text(row.get("old_allele_display_name")) or trait_label(row.get("old_allele_code")),
+            "after": _text(row.get("new_allele_display_name")) or trait_label(row.get("new_allele_code")),
+            "phenotype_before": morphology_trait_label(gene_code, before.get("raw")) if before else "не указан",
+            "phenotype_after": morphology_trait_label(gene_code, after.get("raw")) if after else "не указан",
+            "phenotype_changed": _text(row.get("phenotype_changed")).upper() == "Y",
+        })
+    return views
+
+
 def genotype_view(
     rows: list[dict[str, Any]],
     phenotype: list[dict[str, str]] | None = None,

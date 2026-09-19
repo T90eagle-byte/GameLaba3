@@ -241,6 +241,7 @@ create or replace package pkg_genetics_game as
         p_offspring_id    out number
     );
 
+
     procedure make_experiment(
         p_lab_id          in number,
         p_parent1_id      in number,
@@ -258,6 +259,8 @@ create or replace package pkg_genetics_game as
         p_offspring_name  in varchar2,
         p_offspring_id    out number
     );
+
+    function get_last_mutagen_metadata return clob;
 
     function get_experiment_history(
         p_lab_id           in number,
