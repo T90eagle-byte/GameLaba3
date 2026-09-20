@@ -1,6 +1,6 @@
--- Shared seed for the lr3-v3 universal morphology dictionary.
--- It is invoked from the core seed for fresh schemas and from migration 05
--- for existing schemas after GENES.GAMEPLAY_ENABLED is available.
+-- Общие seed-данные для словаря универсальной морфологии lr3-v3.
+-- Они вызываются из основных seed-данных для чистых схем и из migration 05
+-- для существующих схем после появления GENES.GAMEPLAY_ENABLED.
 
 set define off;
 

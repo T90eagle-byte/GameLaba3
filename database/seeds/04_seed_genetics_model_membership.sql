@@ -1,5 +1,5 @@
--- Explicit canonical gene membership for laboratory genetics versions.
--- This is reference data only: it does not alter GENES, GENOTYPES, or LABS.
+-- Явный канонический состав генов для версий генетической модели лабораторий.
+-- Это только справочные данные: они не изменяют GENES, GENOTYPES или LABS.
 
 set define off;
 
@@ -53,7 +53,7 @@ declare
         end loop;
     end resolve_expected_genes;
 begin
-    -- v1: exact legacy runtime model as it existed before universal morphology.
+    -- v1: точная legacy-модель исполнения до универсальной морфологии.
     expect_gene(1, 0, 'color');
     expect_gene(1, 0, 'size');
     expect_gene(1, 0, 'nutrition_type');
@@ -67,7 +67,7 @@ begin
     expect_gene(1, 5, 'speed_level');
     expect_gene(1, 6, 'fur_density');
 
-    -- v3: universal morphology core plus the retained nutrition gameplay trait.
+    -- v3: основа универсальной морфологии и сохранённый игровой признак питания.
     expect_gene(3, 0, 'body_shape');
     expect_gene(3, 0, 'body_proportion');
     expect_gene(3, 0, 'body_size');

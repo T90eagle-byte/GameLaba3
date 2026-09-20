@@ -1,4 +1,4 @@
--- Run only after university_readiness_validation.sql has succeeded.
+-- Запускайте только после успешного university_readiness_validation.sql.
 set define off;
 set serveroutput on size unlimited;
 set verify off;

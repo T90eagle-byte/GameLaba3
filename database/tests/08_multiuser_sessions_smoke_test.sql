@@ -142,7 +142,6 @@ declare
     end;
 
 begin
-    -- bootstrap users/sessions/labs
     pkg_genetics_game.register_user(
         p_username => 'multi_user1_' || v_suffix,
         p_login    => v_login1,
@@ -203,7 +202,6 @@ begin
       into v_mutation_id
       from mutations m;
 
-    -- user2 cannot open user1 lab
     begin
         pkg_genetics_game.load_lab(v_session2, v_lab1_id);
         expect_error('user2 load_lab user1 lab blocked', -20023);
@@ -228,7 +226,6 @@ begin
             end if;
     end;
 
-    -- user2 cannot read foreign lab
     begin
         v_cursor := pkg_genetics_game.get_creatures_cursor(v_lab1_id);
         safe_close_cursor;
@@ -271,7 +268,6 @@ begin
             end if;
     end;
 
-    -- user2 cannot run gameplay on foreign objects
     begin
         v_tmp := pkg_genetics_game.buy_mutation(v_lab1_id, v_mutation_id);
         expect_error('user2 buy_mutation foreign lab blocked', -20068);
@@ -345,7 +341,7 @@ begin
             end if;
     end;
 
-    -- same user, second active session lock
+    -- Вторая активная сессия того же пользователя должна удерживать отдельную блокировку.
     v_session1b := pkg_genetics_game.login_user(
         p_login    => v_login1,
         p_password => 'Multi_user1_123'

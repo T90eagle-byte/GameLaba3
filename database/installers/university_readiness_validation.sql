@@ -1,4 +1,4 @@
--- Common non-destructive validation for Docker and university schema flows.
+-- Общая неразрушающая проверка для Docker и университетской схемы.
 set define off;
 set serveroutput on size unlimited;
 set verify off;

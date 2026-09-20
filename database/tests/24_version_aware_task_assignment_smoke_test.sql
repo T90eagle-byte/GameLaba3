@@ -1,6 +1,6 @@
--- Validates version-aware runtime assignment without changing existing data.
--- Private assignment helpers are exercised through their public callers:
--- start_new_lab for v3 and complete_task/refill for a controlled v1 fixture.
+-- Проверяет назначение с учётом версии без изменения существующих данных.
+-- Закрытые вспомогательные процедуры назначения вызываются через публичные точки:
+-- start_new_lab для v3 и complete_task/refill для контролируемых тестовых данных v1.
 
 @@../packages/spec/pkg_genetics_game.pks
 @@../migrations/04_add_creature_archetypes.sql
@@ -148,7 +148,7 @@ begin
     pkg_genetics_game.register_user('Version aware assignment owner', v_login, v_password, v_user_id);
     v_token := pkg_genetics_game.login_user(v_login, v_password);
 
-    -- start_new_lab is the normal assignment entry point and must select v3 only.
+    -- start_new_lab является обычной точкой назначения и должен выбирать только задания v3.
     pkg_genetics_game.start_new_lab(v_token, v_v3_lab_id);
     select min(creature_id) into v_v3_creature_id from creatures where lab_id = v_v3_lab_id;
     select count(*) into v_value from lab_tasks where lab_id = v_v3_lab_id and task_status = 'ACTIVE';
@@ -174,7 +174,7 @@ begin
     end loop;
     assert_true(v_value = 0, 'V3 starters do not auto-satisfy assigned tasks', 'matches=' || v_value);
 
-    -- Completing an assigned v3 task refills from the v3 catalogue only.
+    -- Завершение назначенного задания v3 пополняет список только из каталога v3.
     select min(task_id) into v_v3_task_id from lab_tasks where lab_id = v_v3_lab_id and task_status = 'ACTIVE';
     complete_matching_task(v_v3_lab_id, v_v3_creature_id, v_v3_task_id);
     select count(*) into v_value from lab_tasks where lab_id = v_v3_lab_id and task_status = 'ACTIVE';
@@ -185,7 +185,7 @@ begin
     select count(*) into v_value from lab_tasks where lab_id = v_v3_lab_id and task_id = v_v3_task_id and task_status = 'COMPLETED';
     assert_true(v_value = 1, 'Completed v3 task is retained and not reassigned', 'completed=' || v_value);
 
-    -- A controlled v1 fixture reaches the same private selector through complete_task/refill.
+    -- Контролируемые тестовые данные v1 достигают того же закрытого селектора через complete_task/refill.
     pkg_genetics_game.start_new_lab(v_token, v_v1_lab_id);
     select min(creature_id) into v_v1_creature_id from creatures where lab_id = v_v1_lab_id;
     delete from lab_tasks where lab_id = v_v1_lab_id;
@@ -200,7 +200,7 @@ begin
     select count(*) into v_value from lab_tasks where lab_id = v_v1_lab_id and task_id = v_v1_task_id and task_status = 'COMPLETED';
     assert_true(v_value = 1, 'Completed v1 task is not reassigned', 'completed=' || v_value);
 
-    -- Exhaust the v3 catalogue in an isolated fixture. Refill must be a no-op.
+    -- В изолированных тестовых данных исчерпывается каталог v3; пополнение должно быть бездействием.
     pkg_genetics_game.start_new_lab(v_token, v_transition_lab_id);
     select min(creature_id) into v_transition_creature_id from creatures where lab_id = v_transition_lab_id;
     delete from lab_tasks where lab_id = v_transition_lab_id;
@@ -220,7 +220,7 @@ begin
     assert_true(v_value = 0, 'Exhausted v3 catalogue leaves no active fallback task', 'active=' || v_value);
     assert_lab_task_versions(v_transition_lab_id, 3, 'Exhaustion never falls back to v1 tasks');
 
-    -- The evaluator remains task-version-aware for a deliberately manual transition row.
+    -- Оценщик учитывает версию задания и для намеренно вручную созданной переходной строки.
     delete from lab_tasks where lab_id = v_transition_lab_id;
     add_active_task(v_transition_lab_id, v_v1_task_id);
     make_task_match(v_transition_creature_id, v_v1_task_id);

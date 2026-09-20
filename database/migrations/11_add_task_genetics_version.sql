@@ -1,5 +1,5 @@
--- Run this migration with the application stopped.
--- Existing tasks are historical v1 entries. This migration does not touch LAB_TASKS.
+-- Запускайте миграцию при остановленном приложении.
+-- Существующие задания являются историческими записями v1; миграция не затрагивает LAB_TASKS.
 
 set define off;
 set serveroutput on size unlimited;

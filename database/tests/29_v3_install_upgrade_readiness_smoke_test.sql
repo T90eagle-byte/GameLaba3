@@ -1,4 +1,4 @@
--- Validates the reproducible v3 installation target without changing data.
+-- Проверяет воспроизводимое целевое состояние установки v3 без изменения данных.
 set serveroutput on size unlimited;
 set verify off;
 

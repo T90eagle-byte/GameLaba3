@@ -1,5 +1,5 @@
--- Verifies the read-only, lab-wide morphology cursor used by v3 card rendering.
--- It creates and removes only its own temporary user and laboratory.
+-- Проверяет курсор морфологии лаборатории только для чтения, используемый карточками v3.
+-- Тест создаёт и удаляет только собственные временные лабораторию и пользователя.
 
 set serveroutput on size unlimited;
 set verify off;
@@ -53,9 +53,9 @@ declare
         close_cursor;
         if v_lab_id is not null then
             begin
-                -- Re-authenticate because a failed test can leave this anonymous
-                -- block after a package-state reset.  Recovery is scoped to this
-                -- fixture laboratory only.
+                -- Повторная аутентификация нужна, поскольку неуспешный тест может оставить
+                -- этот анонимный блок после сброса состояния пакета. Восстановление
+                -- ограничено только лабораторией тестовых данных.
                 v_cleanup_token := pkg_genetics_game.login_user(v_login, v_password);
                 pkg_genetics_game.recover_lab_access(v_cleanup_token, v_lab_id);
                 pkg_genetics_game.delete_lab(v_cleanup_token, v_lab_id);

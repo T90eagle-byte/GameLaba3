@@ -1,13 +1,3 @@
--- ============================================================================
--- BioAssembly / Oracle DDL
--- File: 01_create_tables.sql
--- Purpose: create base schema objects for MVP (tables, constraints, sequences)
--- ============================================================================
-
--- ============================================================================
--- SECTION 1. SEQUENCES FOR PRIMARY KEYS
--- ============================================================================
-
 create sequence users_seq start with 1 increment by 1 nocache nocycle;
 create sequence sessions_seq start with 1 increment by 1 nocache nocycle;
 create sequence labs_seq start with 1 increment by 1 nocache nocycle;
@@ -24,10 +14,6 @@ create sequence lab_tasks_seq start with 1 increment by 1 nocache nocycle;
 create sequence task_markers_seq start with 1 increment by 1 nocache nocycle;
 create sequence rating_events_seq start with 1 increment by 1 nocache nocycle;
 create sequence ref_creature_archetypes_seq start with 1 increment by 1 nocache nocycle;
-
--- ============================================================================
--- SECTION 2. AUTHORIZATION AND SESSION TABLES
--- ============================================================================
 
 create table users (
     user_id          number not null,
@@ -71,10 +57,6 @@ comment on column sessions.session_id is 'Primary key.';
 comment on column sessions.session_token is 'Opaque token used by client for session context.';
 comment on column sessions.status is 'Session status: ACTIVE or CLOSED.';
 
-
--- ============================================================================
--- SECTION 3. DOMAIN REFERENCE TABLES
--- ============================================================================
 
 create table ref_species_types (
     species_type       number not null,
@@ -172,10 +154,6 @@ create table ref_creature_archetypes (
 comment on table ref_creature_archetypes is 'Data-only morphology archetypes; no gameplay behavior is assigned yet.';
 comment on column ref_creature_archetypes.species_type is 'Existing species type code from ref_species_types.';
 comment on column ref_creature_archetypes.active_flag is 'Y for an available reference archetype, N for retired reference data.';
-
--- ============================================================================
--- SECTION 4. CORE GAME STATE TABLES
--- ============================================================================
 
 create table labs (
     lab_id                number not null,
@@ -365,10 +343,6 @@ comment on column creatures.creature_id is 'Primary key.';
 comment on column creatures.species_type is 'Persisted species type code from 1 to 7; type 7 is created only by controlled hybridization.';
 comment on column creatures.archetype_id is 'Nullable reference archetype for starter creatures; crossbred and historical creatures may have no single archetype.';
 comment on column creatures.phenotype_summary is 'Compact phenotype text for collection screens.';
-
--- ============================================================================
--- SECTION 5. RELATIONAL GAMEPLAY TABLES
--- ============================================================================
 
 create table genotypes (
     genotype_id         number not null,

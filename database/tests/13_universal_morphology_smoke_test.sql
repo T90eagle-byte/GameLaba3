@@ -1,5 +1,5 @@
--- Validates the lr3-v3 universal morphology dictionary and the gameplay gate.
--- The migration is deliberately invoked twice to prove idempotency.
+-- Проверяет словарь универсальной морфологии lr3-v3 и признак включения в игру.
+-- Миграция намеренно вызывается дважды для проверки идемпотентности.
 
 @@../migrations/05_add_universal_morphology.sql
 @@../migrations/05_add_universal_morphology.sql

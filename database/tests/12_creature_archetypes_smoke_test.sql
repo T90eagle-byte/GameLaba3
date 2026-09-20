@@ -1,5 +1,5 @@
--- This smoke test intentionally runs the idempotent migration twice.
--- It verifies that the reference archetype seed remains unique.
+-- Smoke-test намеренно дважды запускает идемпотентную миграцию.
+-- Он проверяет уникальность справочных seed-данных архетипов.
 
 @../migrations/04_add_creature_archetypes.sql
 @../migrations/04_add_creature_archetypes.sql

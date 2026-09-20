@@ -1,5 +1,5 @@
--- Run this migration with the application stopped.
--- It fills reference-only archetype templates and leaves runtime game state unchanged.
+-- Запускайте миграцию при остановленном приложении.
+-- Она заполняет только справочные шаблоны архетипов, не меняя игровое состояние.
 
 set define off;
 set serveroutput on size unlimited;

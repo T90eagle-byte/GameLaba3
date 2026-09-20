@@ -1,5 +1,5 @@
--- Validates nullable archetype metadata for future starter creatures only.
--- It intentionally reruns the optional migrations to prove idempotency.
+-- Проверяет необязательные метаданные архетипа только для будущих стартовых существ.
+-- Необязательные миграции намеренно запускаются повторно для проверки идемпотентности.
 
 @@../migrations/04_add_creature_archetypes.sql
 @@../migrations/05_add_universal_morphology.sql

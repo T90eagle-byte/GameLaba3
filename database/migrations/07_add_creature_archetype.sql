@@ -1,6 +1,6 @@
--- Run this migration with the application stopped.
--- It records the reference archetype only for future starter creatures.
--- Historical and crossbred creatures intentionally remain without an archetype.
+-- Запускайте миграцию при остановленном приложении.
+-- Она записывает справочный архетип только для будущих стартовых существ.
+-- Исторические и полученные скрещиванием существа намеренно остаются без архетипа.
 
 set define off;
 set serveroutput on size unlimited;

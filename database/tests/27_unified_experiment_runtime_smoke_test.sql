@@ -1,5 +1,5 @@
--- Unified experiment runtime smoke test.
--- Fixtures are isolated and removed before completion.
+-- Проверка единого исполнения экспериментов.
+-- Тестовые данные изолированы и удаляются до завершения теста.
 
 set serveroutput on size unlimited;
 set verify off;
@@ -180,7 +180,7 @@ begin
      where lab_id = v_lab_v3_id
        and species_type <> v_species_type;
 
-    -- Standalone public operations keep their established orchestration.
+    -- Самостоятельные публичные операции сохраняют установленную оркестрацию.
     insert into mutations (mutation_id, mutation_name, mutation_type, description, cost, rating_effect, created_at)
     values (mutations_seq.nextval, 'task20_cover_' || lower(substr(rawtohex(sys_guid()), 1, 12)), null, 'Task 20 fixture.', 0, 0, systimestamp)
     returning mutation_id into v_mutation_id;
@@ -217,7 +217,7 @@ begin
     select count(*) into v_value from experiments where lab_id = v_lab_v3_id;
     assert_true(v_value = v_before_experiments + 1, 'Standalone MUTAGEN history delta is one');
 
-    -- Combined operation mutates the crossbred creature itself and records one logical experiment.
+    -- Комбинированная операция изменяет самого потомка и записывает один логический эксперимент.
     update genotypes
        set allele1_id = v_white_allele_id,
            allele2_id = v_white_allele_id
@@ -225,7 +225,7 @@ begin
        and gene_id = v_body_color_gene_id;
     delete from lab_tasks where lab_id = v_lab_v3_id;
 
-    -- Predict the deterministic post-mutagen color inside a rollback-only trial.
+    -- Детерминированный окрас после мутагена определяется внутри проверочного блока с последующим ROLLBACK.
     savepoint final_state_prediction;
     dbms_random.seed(202003);
     pkg_genetics_game.make_experiment(
@@ -330,7 +330,7 @@ begin
     select wallet into v_wallet_after from labs where lab_id = v_lab_v3_id;
     assert_true(v_wallet_after = v_wallet_before - 100 + 222, 'Combined wallet applies mutagen cost and final reward once');
 
-    -- A failure after offspring creation rolls back every partial gameplay effect.
+    -- Ошибка после создания потомка откатывает каждый частичный игровой эффект.
     delete from lab_tasks where lab_id = v_lab_v3_id;
     update labs set wallet = 0 where lab_id = v_lab_v3_id;
     snapshot_lab_counts;
@@ -382,7 +382,7 @@ begin
     select count(*) into v_value from experiments where lab_id = v_lab_v3_id;
     assert_true(v_value = v_before_experiments, 'Cross-species rejection leaves no history');
 
-    -- Existing rows may keep NULL mutagen_type, while new combined constraints stay strict.
+    -- Существующие строки могут сохранять NULL в mutagen_type, а новые комбинированные ограничения остаются строгими.
     savepoint constraint_compatibility;
     insert into experiments (experiment_id, lab_id, parent1_id, parent2_id, mutation_id, mutagen_type, offspring_id, experiment_type)
     values (experiments_seq.nextval, v_lab_v3_id, v_parent1_id, null, null, null, v_mutagen_child_id, 'MUTAGEN');
@@ -406,7 +406,7 @@ begin
             assert_true(sqlcode = -2290, 'MUTATION still rejects parent2_id', 'actual=' || sqlcode);
     end;
 
-    -- V1 uses the same combined orchestration with its established mutagen targets.
+    -- V1 использует ту же комбинированную оркестрацию со своими установленными целями мутагенов.
     pkg_genetics_game.register_user('Unified experiment v1', v_login_v1, v_password, v_user_v1_id);
     v_token_v1 := pkg_genetics_game.login_user(v_login_v1, v_password);
     pkg_genetics_game.start_new_lab(v_token_v1, v_lab_v1_id);

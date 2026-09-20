@@ -1,4 +1,4 @@
--- Connected v3 lifecycle acceptance test. All fixtures are removed exactly.
+-- Приёмочная проверка полного цикла v3 с подключением к Oracle. Все тестовые данные удаляются полностью.
 
 set serveroutput on size unlimited;
 set verify off;

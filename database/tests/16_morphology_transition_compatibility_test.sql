@@ -1,6 +1,6 @@
--- Diagnostic-only lr3-v3 transition audit.
--- It creates temporary legacy and dual-schema creatures, reports real blockers,
--- and always removes its laboratory. It does not change production runtime data.
+-- Диагностическая проверка перехода lr3-v3.
+-- Она создаёт временных legacy-существ и существ обеих схем, сообщает реальные блокеры
+-- и всегда удаляет свою лабораторию, не меняя рабочие данные.
 
 @@../migrations/04_add_creature_archetypes.sql
 @@../migrations/05_add_universal_morphology.sql

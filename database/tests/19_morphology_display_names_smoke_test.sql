@@ -1,5 +1,5 @@
--- Validates additive Russian display names for universal morphology alleles.
--- The test creates and removes only its own laboratory and user.
+-- Проверяет аддитивные русские отображаемые названия аллелей универсальной морфологии.
+-- Тест создаёт и удаляет только собственные лабораторию и пользователя.
 
 @@../packages/spec/pkg_genetics_game.pks
 @@../migrations/04_add_creature_archetypes.sql

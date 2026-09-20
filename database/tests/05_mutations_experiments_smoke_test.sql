@@ -231,7 +231,7 @@ begin
     end if;
 
     if v_lab_id is not null then
-        -- This historical mutation regression deliberately exercises the v1 path.
+        -- Историческая проверка мутаций намеренно использует путь v1.
         update labs
            set genetics_version = 1
          where lab_id = v_lab_id;
@@ -253,7 +253,6 @@ begin
         end;
     end if;
 
-    -- 5) show_mutation_shop
     begin
         v_shop_row_count := 0;
         v_shop_cursor := pkg_genetics_game.show_mutation_shop();
@@ -283,7 +282,6 @@ begin
             fail_test('show_mutation_shop', sqlerrm);
     end;
 
-    -- 6/8) select mutation with rules and compatible creature in lab
     if v_lab_id is not null then
         begin
             select
@@ -318,7 +316,6 @@ begin
         end;
     end if;
 
-    -- 7) buy_mutation success path
     if v_lab_id is not null and v_mutation_id is not null then
         begin
             select l.wallet
@@ -356,7 +353,6 @@ begin
                 fail_test('buy_mutation success path', sqlerrm);
         end;
     end if;
-    -- 9) apply_mutation success path
     if v_target_creature_id is not null and v_mutation_id is not null then
         begin
             select nvl(m.rating_effect, 0)
@@ -425,7 +421,6 @@ begin
                 fail_test('apply_mutation success path', sqlerrm);
         end;
     end if;
-    -- 10) apply_mutagen path
     if v_target_creature_id is not null then
         begin
             select c.species_type
@@ -507,7 +502,6 @@ begin
         end;
     end if;
 
-    -- 11) make_experiment CROSS branch
 if v_lab_id is not null then
         begin
             select species_type
@@ -573,7 +567,6 @@ if v_lab_id is not null then
         end;
     end if;
 
-    -- 12) make_experiment MUTATION branch
     if v_lab_id is not null and v_mutation_id is not null then
         begin
             v_buy_result_for_make_mut := pkg_genetics_game.buy_mutation(
@@ -647,7 +640,6 @@ if v_lab_id is not null then
         end if;
     end if;
 
-    -- 13) get_experiment_history
     if v_lab_id is not null then
         begin
             v_history_row_count := 0;
@@ -707,7 +699,6 @@ if v_lab_id is not null then
         end;
     end if;
 
-    -- 14) get_lab_stats
     if v_lab_id is not null then
         begin
             pkg_genetics_game.get_lab_stats(
@@ -728,7 +719,6 @@ if v_lab_id is not null then
         end;
     end if;
 
-    -- 15a) negative: buy_mutation with non-existing mutation id
     if v_lab_id is not null then
         begin
             v_invalid_buy_result := pkg_genetics_game.buy_mutation(
@@ -749,7 +739,6 @@ if v_lab_id is not null then
         end;
     end if;
 
-    -- 15b) negative: apply_mutation without inventory -> expect -20043
     if v_lab_id is not null then
         begin
             select t.mutation_id, t.creature_id
@@ -803,7 +792,6 @@ if v_lab_id is not null then
         end if;
     end if;
 
-    -- 15c) negative: apply_mutation with exhausted quantity -> expect -20044
     if v_make_mut_parent_id is not null and v_mutation_id is not null then
         begin
             pkg_genetics_game.apply_mutation(

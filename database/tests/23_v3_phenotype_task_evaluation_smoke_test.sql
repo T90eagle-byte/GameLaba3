@@ -1,5 +1,5 @@
--- Validates version-aware task evaluation without changing assignment runtime.
--- It creates isolated users and laboratories and removes every fixture row.
+-- Проверяет оценку заданий с учётом версии без изменения назначения при исполнении.
+-- Тест создаёт изолированных пользователей и лаборатории, затем удаляет все тестовые строки.
 
 @@../packages/spec/pkg_genetics_game.pks
 @@../migrations/04_add_creature_archetypes.sql
@@ -178,7 +178,7 @@ begin
     select genetics_version into v_value from labs where lab_id = v_lab1_id;
     assert_true(v_value = 3, 'Fixture laboratory uses genetics_version=3', 'actual=' || v_value);
 
-    -- The v1 marker is physically present but hidden by no_wings dominance.
+    -- Маркер v1 физически присутствует, но скрыт доминированием no_wings.
     set_genotype('has_wings', 'wings', 'no_wings');
     assert_true(pkg_genetics_game.get_dominant_allele(v_creature1_id, gene_id('has_wings')) = 'no_wings', 'V1 control marker is not expressed');
     add_active_task(v_v1_task_id);
@@ -197,10 +197,10 @@ begin
             assert_true(v_error_code = -20064, 'Completed v1 task cannot pay twice', 'actual=' || v_error_code);
     end;
 
-    -- complete_task refills active legacy tasks; isolate the v3 evaluator fixture.
+    -- complete_task пополняет активные legacy-задания, поэтому тестовые данные оценщика v3 изолированы.
     delete from lab_tasks where lab_id = v_lab1_id;
 
-    -- Multi-marker v3 task: tail marker is present but hidden; size and snout are expressed.
+    -- В задании v3 с несколькими маркерами tail присутствует, но скрыт; size и snout выражены.
     set_genotype('tail_type', 'elongated', 'fish');
     set_genotype('body_size', 'large', 'large');
     set_genotype('snout_type', 'pointed', 'pointed');
@@ -216,7 +216,7 @@ begin
     set_genotype('tail_type', 'elongated', 'elongated');
     assert_true(pkg_genetics_game.check_task(v_lab1_id, v_v3_task_id, v_creature1_id) = 1, 'V3 multi-marker task matches only when every marker is expressed');
 
-    -- Return to the hidden state and use a normal mutation path to prove auto-complete shares the evaluator.
+    -- Возврат к скрытому состоянию и обычная мутация подтверждают общий оценщик для автозавершения.
     set_genotype('tail_type', 'elongated', 'fish');
     set_genotype('body_color', 'blue', 'blue');
     assert_true(pkg_genetics_game.buy_mutation(v_lab1_id, v_mutation_id) = 1, 'Buy mutation for hidden-marker auto-complete check');

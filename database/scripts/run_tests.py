@@ -182,8 +182,8 @@ def iter_statements(path: Path) -> Iterable[tuple[str, int]]:
         current.append(raw_line)
 
         if not in_plsql and stripped.endswith(";") and not stripped.startswith("--"):
-            # python-oracledb accepts SQL text without SQL*Plus' statement
-            # terminator. PL/SQL stays intact and is emitted on its `/` line.
+            # python-oracledb принимает обычный SQL без разделителя SQL*Plus.
+            # PL/SQL сохраняется целиком и передаётся после строки `/`.
             statement = "\n".join(current).strip()[:-1].rstrip()
             if statement:
                 yield statement, statement_start_line

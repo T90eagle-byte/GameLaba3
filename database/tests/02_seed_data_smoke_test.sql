@@ -36,15 +36,12 @@ declare
 begin
     dbms_output.put_line('--- SEED DATA SMOKE TEST ---');
 
-    -- 1) Gene count >= 12
     select count(*) into v_value from genes;
     assert_true(v_value >= 12, 'Gene count >= 12', 'actual=' || v_value);
 
-    -- 2) Allele count >= 30
     select count(*) into v_value from alleles;
     assert_true(v_value >= 38, 'Allele count >= 38 after content expansion', 'actual=' || v_value);
 
-    -- 2a) Color gene has at least 8 configured alleles
     select count(*)
       into v_value
       from alleles a
@@ -54,7 +51,6 @@ begin
        and g.species_type = 0;
     assert_true(v_value >= 8, 'Color gene has >= 8 alleles', 'actual=' || v_value);
 
-    -- 2b) Required color allele codes exist
     select count(distinct lower(a.description))
       into v_value
       from alleles a
@@ -67,7 +63,6 @@ begin
             'purple_color', 'orange_color', 'white_color', 'black_color'
        );
     assert_true(v_value = 8, 'Required 8 color allele codes exist', 'covered=' || v_value);
-    -- 2c) First safe content expansion allele codes exist
     select count(distinct lower(a.description))
       into v_value
       from alleles a
@@ -84,7 +79,6 @@ begin
     assert_true(v_value = 8, 'Required content expansion allele codes exist', 'covered=' || v_value);
 
 
-    -- 2d) Rating/economy event type reference values exist
     select count(*)
       into v_value
       from ref_rating_event_types ret
@@ -98,7 +92,6 @@ begin
        );
     assert_true(v_value = 6, 'Rating event type ref contains 6 values', 'actual=' || v_value);
 
-    -- 3) Each gene has at least 2 alleles
     select count(*)
       into v_value
       from (
@@ -111,10 +104,8 @@ begin
      where allele_cnt < 2;
     assert_true(v_value = 0, 'Each gene has >= 2 alleles', 'genes with <2 alleles=' || v_value);
 
-    -- 4) Mutation count >= 8
     select count(*) into v_value from mutations;
     assert_true(v_value >= 20, 'Mutation count >= 20 after content expansion', 'actual=' || v_value);
-    -- 4a) First safe content expansion mutation codes exist
     select count(distinct lower(m.mutation_name))
       into v_value
       from mutations m
@@ -137,7 +128,6 @@ begin
         or trim(display_name) is null;
     assert_true(v_value = 0, 'Mutation catalogue has player-facing names', 'missing=' || v_value);
 
-    -- 5) mutation_rules reference existing mutation_id/gene_id/target_allele_id
     select count(*)
       into v_value
       from mutation_rules mr
@@ -152,7 +142,6 @@ begin
         or a.allele_id is null;
     assert_true(v_value = 0, 'mutation_rules FK references are valid', 'invalid rows=' || v_value);
 
-    -- 6) mutation_rules target_allele_id belongs to same gene_id
     select count(*)
       into v_value
       from mutation_rules mr
@@ -161,13 +150,11 @@ begin
      where a.gene_id <> mr.gene_id;
     assert_true(v_value = 0, 'mutation_rules allele belongs to same gene', 'mismatched rows=' || v_value);
 
-    -- 7) mutation_rules cover a broad gene set
     select count(distinct mr.gene_id)
       into v_value
       from mutation_rules mr;
     assert_true(v_value >= 10, 'mutation_rules cover >= 10 genes', 'distinct genes=' || v_value);
 
-    -- 8) mutation_rules include required universal genes
     select count(distinct g.gene_name)
       into v_value
       from mutation_rules mr
@@ -177,7 +164,6 @@ begin
        and g.gene_name in ('color', 'size', 'nutrition_type', 'has_wings');
     assert_true(v_value = 4, 'mutation_rules cover universal genes color/size/nutrition_type/has_wings', 'covered=' || v_value);
 
-    -- 9) mutation_rules include species-specific coverage for all 1..6
     select count(distinct g.species_type)
       into v_value
       from mutation_rules mr
@@ -186,7 +172,6 @@ begin
      where g.species_type between 1 and 6;
     assert_true(v_value = 6, 'mutation_rules cover species_type 1..6', 'covered species=' || v_value);
 
-    -- 10) mutation_rules are coherent per mutation (no mixed exclusive species-specific rule sets)
     select count(*)
       into v_value
       from (
@@ -200,10 +185,8 @@ begin
            );
     assert_true(v_value = 0, 'mutation_rules are coherent per mutation species scope', 'mixed mutations=' || v_value);
 
-    -- 11) Task count >= 12
     select count(*) into v_value from tasks;
     assert_true(v_value >= 21, 'Task count >= 21 after content expansion', 'actual=' || v_value);
-    -- 11a) First safe content expansion task codes exist
     select count(distinct lower(t.task_name))
       into v_value
       from tasks t
@@ -227,7 +210,6 @@ begin
         or trim(display_name) is null;
     assert_true(v_value = 0, 'Task catalogue has player-facing names', 'missing=' || v_value);
 
-    -- 12) Each task has at least one task_marker
     select count(*)
       into v_value
       from (
@@ -240,7 +222,6 @@ begin
            );
     assert_true(v_value = 0, 'Each task has >= 1 task_marker', 'tasks with no markers=' || v_value);
 
-    -- 13) task_markers reference existing task and allele
     select count(*)
       into v_value
       from task_markers tm
@@ -252,7 +233,6 @@ begin
         or a.allele_id is null;
     assert_true(v_value = 0, 'task_markers references are valid', 'invalid rows=' || v_value);
 
-    -- 14) Task markers cover all species_type 1..6
     select count(distinct g.species_type)
       into v_value
       from task_markers tm
@@ -263,7 +243,6 @@ begin
      where g.species_type between 1 and 6;
     assert_true(v_value = 6, 'task_markers cover species_type 1..6', 'covered species=' || v_value);
 
-    -- 15) Task markers include universal traits
     select count(distinct g.gene_name)
       into v_value
       from task_markers tm
@@ -275,7 +254,6 @@ begin
        and g.gene_name in ('color', 'size', 'nutrition_type', 'has_wings');
     assert_true(v_value = 4, 'task_markers cover universal traits color/size/nutrition_type/has_wings', 'covered=' || v_value);
 
-    -- 16) Required universal genes exist
     select count(*)
       into v_value
       from genes g
@@ -283,14 +261,12 @@ begin
        and g.gene_name in ('color', 'size', 'nutrition_type', 'has_wings');
     assert_true(v_value = 4, 'Universal genes set exists', 'actual=' || v_value);
 
-    -- 17) Data exists for all 6 species_type values
     select count(distinct g.species_type)
       into v_value
       from genes g
      where g.species_type between 1 and 6;
     assert_true(v_value = 6, 'All species_type 1..6 are present in genes', 'distinct species_type count=' || v_value);
 
-    -- 18) Task markers do not contain conflicting alleles of the same gene in one task
     select count(*)
       into v_value
       from (
@@ -304,7 +280,6 @@ begin
     assert_true(v_value = 0, 'No conflicting task_markers within one task gene', 'conflicting groups=' || v_value);
 
 
-    -- 19) Reference tables are populated
     select count(*)
       into v_value
       from ref_species_types
@@ -368,4 +343,3 @@ begin
     end if;
 end;
 /
-

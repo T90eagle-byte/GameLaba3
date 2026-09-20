@@ -1,5 +1,5 @@
--- Validates the reference-only v3 morphology task catalogue.
--- It never assigns tasks to laboratories or changes gameplay runtime.
+-- Проверяет справочный каталог заданий морфологии v3.
+-- Тест не назначает задания лабораториям и не меняет игровой runtime.
 
 @@../packages/spec/pkg_genetics_game.pks
 @@../migrations/04_add_creature_archetypes.sql

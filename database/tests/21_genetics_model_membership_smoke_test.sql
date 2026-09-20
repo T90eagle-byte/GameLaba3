@@ -1,5 +1,5 @@
--- Validates explicit reference-only canonical gene membership for lab models.
--- It creates no users, laboratories, creatures, or genotypes.
+-- Проверяет явный справочный состав канонических генов для моделей лабораторий.
+-- Тест не создаёт пользователей, лаборатории, существ или генотипы.
 
 @@../packages/spec/pkg_genetics_game.pks
 @@../migrations/04_add_creature_archetypes.sql

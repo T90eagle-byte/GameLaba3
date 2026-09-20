@@ -1,4 +1,4 @@
--- Ordered, non-destructive update of an existing BioSborka schema.
+-- Упорядоченное неразрушающее обновление существующей схемы BioSborka.
 -- Сохраняйте порядок зависимостей: аддитивные миграции, требуемые seed-данными,
 -- выполняются до этих seed-данных. Каждый шаг идемпотентен и сохраняет историю игры.
 
@@ -24,9 +24,9 @@ set verify off;
 @@../migrations/13_add_controlled_hybridization.sql
 @@../migrations/14_update_species_display_names.sql
 
--- Reapply the canonical reference seeds after all structures exist. Migrations
--- also invoke their prerequisite seeds, but this final pass makes the target
--- state explicit and repairs missing reference rows on recognized installs.
+-- После создания всех структур повторно применяются канонические справочные seed-данные.
+-- Миграции также вызывают необходимые seed-данные, но этот проход фиксирует целевое
+-- состояние и восстанавливает отсутствующие справочные строки в распознанной схеме.
 @@../seeds/02_seed_universal_morphology.sql
 @@../seeds/03_seed_archetype_templates.sql
 @@../seeds/04_seed_genetics_model_membership.sql

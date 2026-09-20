@@ -340,7 +340,6 @@ begin
         end;
     end if;
 
-    -- Find one ACTIVE task + creature that fully matches all task markers
     if v_lab_id is not null then
         begin
             select z.task_id, z.creature_id
@@ -383,7 +382,6 @@ begin
         end;
     end if;
 
-    -- Positive flow if completable pair exists
     if v_candidate_task_id is not null and v_candidate_creature_id is not null then
         begin
             v_check_result := pkg_genetics_game.check_task(
@@ -508,7 +506,6 @@ begin
         end;
     end if;
 
-    -- If no completable pair found, verify negative check_task = 0
     if v_candidate_task_id is null or v_candidate_creature_id is null then
         begin
             select y.task_id, y.creature_id
@@ -555,7 +552,6 @@ begin
         end;
     end if;
 
-    -- Repeated completion of already COMPLETED task should raise -20064
     if v_completion_done = 1 then
         begin
             pkg_genetics_game.complete_task(
@@ -582,7 +578,6 @@ begin
         dbms_output.put_line('[WARN] skip repeat complete_task check: no completed task in this run.');
     end if;
 
-    -- Negative case: non-existing lab_id -> -20057
     if v_any_task_id is null and v_lab_id is not null then
         begin
             select min(lt.task_id)
@@ -616,7 +611,6 @@ begin
         end;
     end if;
 
-    -- Negative case: non-existing task_id -> -20058
     if v_lab_id is not null and v_probe_creature_id is not null then
         begin
             v_check_result := pkg_genetics_game.check_task(
@@ -638,7 +632,7 @@ begin
         end;
     end if;
 
-    -- Controlled LR2 marker semantics: each required allele may be in either genotype slot.
+    -- По ЛР2 каждый требуемый аллель может находиться в любом слоте генотипа.
     if v_lab_id is not null and v_probe_creature_id is not null then
         begin
             select
@@ -787,7 +781,6 @@ begin
         end;
     end if;
 
-    -- Negative case: creature_id from another lab under session-bound access model
     if v_session_token is not null and v_lab_id is not null and v_probe_creature_id is not null then
         begin
             pkg_genetics_game.start_new_lab(

@@ -1,5 +1,5 @@
--- Run on an existing schema after stopping the application.
--- This data migration is idempotent and keeps task markers unchanged.
+-- Запускайте на существующей схеме после остановки приложения.
+-- Миграция данных идемпотентна и не изменяет маркеры заданий.
 set define off;
 
 update tasks

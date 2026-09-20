@@ -1,5 +1,5 @@
--- Controlled hybridization runtime smoke test.
--- All gameplay fixtures are isolated and removed before completion.
+-- Проверка исполнения контролируемой гибридизации.
+-- Все игровые тестовые данные изолированы и удаляются до завершения теста.
 
 @@../migrations/13_add_controlled_hybridization.sql
 
@@ -150,8 +150,8 @@ begin
     select max(creature_id) into v_parent1_peer_id from creatures where lab_id = v_lab_id and species_type = 1;
     select min(creature_id) into v_parent2_id from creatures where lab_id = v_lab_id and species_type = 2;
 
-    -- Make both parents homozygous for the least-dominant allele of every canonical gene.
-    -- One task per morphology gene then proves task evaluation sees the post-radiation state.
+    -- Оба родителя становятся гомозиготными по наименее доминантному аллелю каждого канонического гена.
+    -- Затем задание для каждого гена морфологии подтверждает, что оценщик видит состояние после облучения.
     for gene_rec in (
         select g.gene_id, g.gene_name, g.gene_type,
                min(a.allele_id) keep (dense_rank first order by a.dominance, a.allele_id) as base_allele_id

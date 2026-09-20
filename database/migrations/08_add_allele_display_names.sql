@@ -1,5 +1,5 @@
--- Run this migration with the application stopped.
--- It adds optional player-facing names without changing stable allele codes.
+-- Запускайте миграцию при остановленном приложении.
+-- Она добавляет необязательные пользовательские названия, не меняя стабильные коды аллелей.
 
 set define off;
 set serveroutput on size unlimited;

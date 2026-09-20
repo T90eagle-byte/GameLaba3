@@ -1,5 +1,5 @@
--- Validates the read-only universal morphology phenotype API.
--- The test creates and removes only its own laboratory and user.
+-- Проверяет API фенотипа универсальной морфологии только для чтения.
+-- Тест создаёт и удаляет только собственные лабораторию и пользователя.
 
 @@../packages/spec/pkg_genetics_game.pks
 @@../migrations/04_add_creature_archetypes.sql

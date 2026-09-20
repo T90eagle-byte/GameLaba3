@@ -1,5 +1,5 @@
--- Validates dual-schema materialization for new starter creatures.
--- The test creates one isolated laboratory and removes it at the end.
+-- Проверяет материализацию обеих схем для новых стартовых существ.
+-- Тест создаёт одну изолированную лабораторию и удаляет её в конце.
 
 @@../migrations/04_add_creature_archetypes.sql
 @@../migrations/05_add_universal_morphology.sql

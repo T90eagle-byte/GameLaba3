@@ -356,8 +356,8 @@ begin
     assert_true(v_session1_token is not null, 'user1 login');
 
     pkg_genetics_game.start_new_lab(v_session1_token, v_lab1_id);
-    -- The mutation and auto-task scenario below deliberately covers the
-    -- historical rule catalog, so it must exercise the unchanged v1 path.
+    -- Сценарий мутации и автоматического задания намеренно покрывает
+    -- исторический каталог правил и потому использует неизменённый путь v1.
     update labs
        set genetics_version = 1
      where lab_id = v_lab1_id;

@@ -1,6 +1,6 @@
--- Safe update for an existing BioSborka schema.
--- Run with SQL Developer F5 while connected as the assigned schema user.
--- This script preserves the assigned user and all existing game data.
+-- Безопасное обновление существующей схемы BioSborka.
+-- Запускайте через SQL Developer F5 под назначенным пользователем схемы.
+-- Скрипт сохраняет назначенного пользователя и все игровые данные.
 
 whenever sqlerror exit sql.sqlcode rollback;
 set define off;

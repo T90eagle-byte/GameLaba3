@@ -1,14 +1,14 @@
 set define off;
 
 declare
-    -- Species type mapping used in seed:
-    -- 1 = cartilaginous_fish
-    -- 2 = bony_fish
-    -- 3 = crustaceans
-    -- 4 = mollusks
-    -- 5 = turtles
-    -- 6 = mammals
-    -- 7 = hybrids (created only by controlled hybridization)
+    -- Соответствие кодов видов, используемое в seed-данных:
+    -- 1 = хрящевые рыбы
+    -- 2 = костные рыбы
+    -- 3 = ракообразные
+    -- 4 = моллюски
+    -- 5 = черепахи
+    -- 6 = млекопитающие
+    -- 7 = гибриды; создаются только контролируемой гибридизацией.
 
     function get_gene_id(
         p_gene_name    in varchar2,
@@ -348,9 +348,6 @@ declare
             );
     end upsert_task_marker;
 begin
-    -- -------------------------------------------------------------------------
-    -- 0) Domain reference tables
-    -- -------------------------------------------------------------------------
     merge into ref_species_types tgt
     using (select 0 as species_type, 'Универсальный признак' as display_name from dual) src
     on (tgt.species_type = src.species_type)
@@ -603,9 +600,9 @@ begin
     when matched then update set tgt.display_name = src.display_name
     when not matched then insert (event_type, display_name) values (src.event_type, src.display_name);
 
-    -- Legacy installations do not have this migration-13 table yet. Keep the
-    -- core seed usable during upgrade; migration 13 performs the canonical
-    -- upsert after creating the table.
+    -- В legacy-установках ещё нет таблицы migration 13. Основные seed-данные остаются
+    -- пригодным при обновлении, а migration 13 выполняет канонический upsert
+    -- после создания таблицы.
     declare
         v_economics_table_count number;
     begin
@@ -642,9 +639,6 @@ begin
             ]';
         end if;
     end;
-    -- -------------------------------------------------------------------------
-    -- 1) Genes (4 universal + species-specific genes)
-    -- -------------------------------------------------------------------------
     upsert_gene('trait', 0, 'FULL', null, 'color', 'Признак окраски тела');
     upsert_gene('trait', 0, 'INCOMPLETE', null, 'size', 'Общий размер тела');
     upsert_gene('trait', 0, 'CODOMINANT', null, 'nutrition_type', 'Тип питания');
@@ -659,9 +653,6 @@ begin
     upsert_gene('performance', 5, 'FULL', 501, 'speed_level', 'Скорость передвижения у черепах');
     upsert_gene('morphology', 6, 'FULL', null, 'fur_density', 'Плотность шерсти у млекопитающих');
 
-    -- -------------------------------------------------------------------------
-    -- 2) Alleles (minimum 2 per gene)
-    -- -------------------------------------------------------------------------
     upsert_allele('color', 0, 8, 'green_color', 10);
     upsert_allele('color', 0, 7, 'blue_color', 20);
     upsert_allele('color', 0, 6, 'red_color', 30);
@@ -712,9 +703,6 @@ begin
     upsert_allele('fur_density', 6, 1, 'dense_fur', 20);
     upsert_allele('fur_density', 6, 3, 'soft_fur', 30);
 
-    -- -------------------------------------------------------------------------
-    -- 3) Mutations
-    -- -------------------------------------------------------------------------
     upsert_mutation('radiation_mutation', 'Радиационная мутация', 1, 'Радиационное воздействие с высоким уровнем случайности.', 150, -5);
     upsert_mutation('chemical_mutation', 'Химическая мутация', 2, 'Химическое воздействие с более контролируемым результатом.', 130, -3);
     upsert_mutation('enhanced_color_mutation', 'Усиленная мутация окраски', 3, 'Усиливает проявление зелёной окраски.', 200, 2);
@@ -736,9 +724,6 @@ begin
     upsert_mutation('plated_shell_mutation', 'Мутация пластинчатого панциря', 8, 'Формирует пластинчатый панцирь у черепах.', 215, 2);
     upsert_mutation('soft_fur_mutation', 'Мутация мягкой шерсти', 8, 'Формирует мягкую шерсть у млекопитающих.', 215, 2);
 
-    -- -------------------------------------------------------------------------
-    -- 4) Mutation rules
-    -- -------------------------------------------------------------------------
     upsert_mutation_rule('radiation_mutation', 'speed_level', 5, 'fast_speed', 'ANY');
     upsert_mutation_rule('chemical_mutation', 'shell_armor', 3, 'thick_armor', '1');
     upsert_mutation_rule('enhanced_color_mutation', 'color', 0, 'green_color', 'ANY');
@@ -747,7 +732,7 @@ begin
     upsert_mutation_rule('nutrition_shift_mutation', 'nutrition_type', 0, 'carnivore', 'ANY');
     upsert_mutation_rule('wing_activation_mutation', 'has_wings', 0, 'wings', 'ANY');
 
-    -- cleanup legacy mixed rules so each mutation stays coherent for one creature type
+    -- Удаляются смешанные legacy-правила, чтобы каждая мутация оставалась согласованной с одним видом.
     delete from mutation_rules mr
      where mr.mutation_id = (
             select m.mutation_id
@@ -790,9 +775,6 @@ begin
     upsert_mutation_rule('plated_shell_mutation', 'shell_armor', 5, 'plated_shell', 'ANY');
     upsert_mutation_rule('soft_fur_mutation', 'fur_density', 6, 'soft_fur', 'ANY');
 
-    -- -------------------------------------------------------------------------
-    -- 5) Tasks
-    -- -------------------------------------------------------------------------
     upsert_task(
         'task_green_specimen',
         'Зелёное существо',
@@ -981,9 +963,6 @@ begin
         'MEDIUM'
     );
 
-    -- -------------------------------------------------------------------------
-    -- 6) Task markers
-    -- -------------------------------------------------------------------------
     upsert_task_marker('task_green_specimen', 'color', 0, 'green_color');
 
     upsert_task_marker('task_winged_specimen', 'has_wings', 0, 'wings');

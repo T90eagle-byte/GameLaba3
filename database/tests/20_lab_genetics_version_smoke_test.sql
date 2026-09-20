@@ -1,5 +1,5 @@
--- Validates the explicit legacy/v3 laboratory boundary without backfilling creatures.
--- The test creates one pre-migration laboratory and removes only its own data.
+-- Проверяет явную границу legacy/v3 лабораторий без заполнения существ задним числом.
+-- Тест создаёт одну лабораторию до миграции и удаляет только собственные данные.
 
 @@../packages/spec/pkg_genetics_game.pks
 @@../migrations/04_add_creature_archetypes.sql
@@ -42,8 +42,8 @@ begin
     pkg_genetics_game.start_new_lab(v_session_token, v_lab_id);
 
     if v_version_column_count = 1 then
-        -- A rerun against an already-upgraded schema uses an explicit legacy
-        -- fixture; this preserves the real pre-09 backfill test on a fresh schema.
+        -- Повторный запуск в уже обновлённой схеме использует явные legacy-тестовые данные,
+        -- сохраняя проверку заполнения до migration 09 для чистой схемы.
         update labs
            set genetics_version = 1
          where lab_id = v_lab_id;

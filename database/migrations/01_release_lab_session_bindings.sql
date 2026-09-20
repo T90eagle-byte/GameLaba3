@@ -1,6 +1,6 @@
--- Run this migration with the application stopped.
--- It converts labs.session_id from a permanent binding into an active lock
--- and releases bindings left by earlier application versions.
+-- Запускайте миграцию при остановленном приложении.
+-- Она превращает постоянную привязку labs.session_id в активную блокировку
+-- и освобождает привязки, оставленные ранними версиями приложения.
 
 set serveroutput on size unlimited;
 

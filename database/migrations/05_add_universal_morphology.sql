@@ -1,6 +1,6 @@
--- Run this migration with the application stopped.
--- It introduces a feature gate for reference-only morphology genes and keeps
--- all existing gameplay genes and genotype rows active and unchanged.
+-- Запускайте миграцию при остановленном приложении.
+-- Она добавляет признак включения для справочных генов морфологии и сохраняет
+-- активными и неизменными все существующие игровые гены и строки генотипов.
 
 set define off;
 set serveroutput on size unlimited;

@@ -1,5 +1,5 @@
--- Run with the application stopped. This migration is additive and preserves
--- existing creatures, experiments, and player progress.
+-- Запускайте при остановленном приложении. Миграция аддитивна и сохраняет
+-- существующих существ, эксперименты и игровой прогресс.
 
 set define off;
 set serveroutput on size unlimited;

@@ -1,6 +1,6 @@
--- Safe clean installation into an assigned existing Oracle schema.
--- Run with SQL Developer F5 while connected as the assigned schema user.
--- This script preserves the assigned user and all existing game data.
+-- Безопасная чистая установка в назначенную существующую схему Oracle.
+-- Запускайте через SQL Developer F5 под назначенным пользователем схемы.
+-- Скрипт сохраняет назначенного пользователя и все игровые данные.
 
 whenever sqlerror exit sql.sqlcode rollback;
 set define off;

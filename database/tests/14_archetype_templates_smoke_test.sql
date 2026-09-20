@@ -1,5 +1,5 @@
--- Validates the lr3-v3 reference-only archetype genotype templates.
--- The migrations are intentionally rerun to prove the template seed is idempotent.
+-- Проверяет справочные шаблоны генотипов архетипов lr3-v3.
+-- Миграции намеренно запускаются повторно для проверки идемпотентности seed-данных шаблонов.
 
 @@../migrations/04_add_creature_archetypes.sql
 @@../migrations/05_add_universal_morphology.sql

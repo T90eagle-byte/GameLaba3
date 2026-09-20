@@ -1,5 +1,5 @@
--- Run this migration with the application stopped.
--- It adds player-facing names without changing existing laboratory ownership.
+-- Запускайте миграцию при остановленном приложении.
+-- Она добавляет пользовательские названия, не меняя владельцев существующих лабораторий.
 
 set serveroutput on size unlimited;
 

@@ -1,5 +1,5 @@
--- Version 3 morphology task catalogue.
--- Reference data only: this script never inserts into LAB_TASKS and does not change task runtime.
+-- Каталог заданий морфологии версии 3.
+-- Только справочные данные: скрипт не добавляет строки в LAB_TASKS и не меняет исполнение заданий.
 
 set define off;
 

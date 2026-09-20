@@ -208,7 +208,6 @@ input, select { width: 100%; min-height: 42px; border: 1px solid var(--line); bo
   .button, button { width: 100%; }
 }
 
-/* Species silhouettes: display-only CSS portraits for the defense UI. */
 .creature-portrait > .head,
 .creature-portrait > .fin,
 .creature-portrait > .claw,
@@ -268,7 +267,6 @@ input, select { width: 100%; min-height: 42px; border: 1px solid var(--line); bo
 .creature-portrait.has-wings > .wing.right { transform: translate(70px,-20px) rotate(28deg) scaleX(-1); }
 .session-hint { padding: .75rem .9rem; border-radius: 14px; background: rgba(90,138,160,.12); color: var(--muted); }
 
-/* UI stabilization pass: full-hit buttons, safer cards, cleaner Russian layout. */
 .action-grid .button,
 .creature-card .button,
 .preview-card .button,
@@ -443,7 +441,6 @@ button.danger:hover,
   .hero-panel > a.button { width: 100%; }
 }
 
-/* UX pass: active lab controls, mutation inventory hints, readable SVG silhouettes. */
 .active-lab-panel {
   display: flex;
   align-items: center;
@@ -552,7 +549,6 @@ button.danger:hover,
 }
 
 
-/* Bugfix UX pass: working filters, calmer text wrapping, modular creature portraits. */
 .creature-card .summary,
 .preview-card .summary {
   display: -webkit-box;
@@ -707,7 +703,6 @@ select option[disabled] { color: #9a9a8e; }
 }
 
 
-/* Final UI hit-area and card stabilization. */
 .button,
 a.button,
 button,
@@ -837,7 +832,6 @@ button,
   }
 }
 
-/* Expressive modular SVG portraits. */
 .creature-portrait {
   --creature-scale: 1;
   --creature-tone-secondary: var(--creature-tone);
@@ -1051,8 +1045,8 @@ button,
   .creature-portrait.mini { min-height: 132px; }
 }
 
-/* Universal v3 morphology renderer.  It intentionally does not inherit the
-   legacy species, wing, nutrition, or feature selectors above. */
+/* Отрисовка универсальной морфологии v3 не наследует legacy-селекторы видов,
+   крыльев, питания и специальных признаков из предыдущих правил. */
 .morphology-portrait { overflow: hidden; isolation: isolate; }
 .morphology-svg > g,
 .morphology-svg .morph-creature,

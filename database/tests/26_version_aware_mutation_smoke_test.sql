@@ -1,5 +1,5 @@
--- Version-aware mutation runtime smoke test.
--- Fixtures are isolated and removed before completion.
+-- Проверка исполнения мутаций с учётом версии.
+-- Тестовые данные изолированы и удаляются до завершения теста.
 
 set serveroutput on size unlimited;
 set verify off;
@@ -171,7 +171,7 @@ begin
      where rownum = 1;
     select t.task_id into v_task_id from tasks t where t.task_name = 'task_v3_brown_cetacean' and t.genetics_version = 3;
 
-    -- V1 keeps the existing rule-driven mutation and mutagen paths.
+    -- V1 сохраняет существующие пути мутаций и мутагенов, управляемые правилами.
     pkg_genetics_game.register_user('Mutation v1 fixture', v_login_v1, v_password, v_user_v1_id);
     v_token_v1 := pkg_genetics_game.login_user(v_login_v1, v_password);
     pkg_genetics_game.start_new_lab(v_token_v1, v_lab_v1_id);
@@ -204,7 +204,7 @@ begin
     select count(*) into v_value from genotypes child join genotypes source on source.creature_id = v_creature_v1_id and source.gene_id = child.gene_id join genes g on g.gene_id = child.gene_id where child.creature_id = v_mutagen_child_id and g.gameplay_enabled = 'Y' and (child.allele1_id <> source.allele1_id or child.allele2_id <> source.allele2_id);
     assert_true(v_value > 0, 'V1 chemical mutagen keeps legacy candidate path', 'changed=' || v_value);
 
-    -- V3 uses canonical membership rather than gameplay_enabled.
+    -- V3 использует канонический состав генов вместо gameplay_enabled.
     pkg_genetics_game.register_user('Mutation v3 fixture', v_login_v3, v_password, v_user_v3_id);
     v_token_v3 := pkg_genetics_game.login_user(v_login_v3, v_password);
     pkg_genetics_game.start_new_lab(v_token_v3, v_lab_v3_id);
@@ -338,7 +338,7 @@ begin
     select count(*) into v_value from genotypes where creature_id = v_creature_v3_id and gene_id = v_body_color_gene_id and allele1_id = v_before_allele1_id and allele2_id = v_before_allele2_id;
     assert_true(v_value = 1, 'Rejected V3 mutation leaves allele values unchanged');
 
-    -- Chemical is deterministic, radiation exercises the random v3 candidate path 100 times.
+    -- CHEMICAL детерминирован; RADIATION 100 раз проверяет случайный выбор кандидатов v3.
     pkg_genetics_game.apply_mutagen(v_creature_v3_id, 'CHEMICAL', v_mutagen_child_id);
     select count(*) into v_value from genotypes child join genotypes source on source.creature_id = v_creature_v3_id and source.gene_id = child.gene_id join genes g on g.gene_id = child.gene_id where child.creature_id = v_mutagen_child_id and g.species_type = 0 and g.gene_type = 'morphology' and (child.allele1_id <> source.allele1_id or child.allele2_id <> source.allele2_id);
     assert_true(v_value > 0, 'V3 chemical mutagen changes canonical morphology', 'changed=' || v_value);

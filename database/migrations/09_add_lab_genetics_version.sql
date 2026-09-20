@@ -1,6 +1,6 @@
--- Run this migration with the application stopped.
--- Existing laboratories are historical legacy laboratories and stay untouched
--- except for their explicit genetics_version marker.
+-- Запускайте миграцию при остановленном приложении.
+-- Существующие лаборатории считаются историческими legacy-лабораториями и не изменяются,
+-- кроме явного маркера genetics_version.
 
 set define off;
 set serveroutput on size unlimited;

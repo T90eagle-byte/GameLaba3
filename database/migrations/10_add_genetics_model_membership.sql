@@ -1,5 +1,5 @@
--- Run this migration with the application stopped.
--- It introduces reference-only canonical gene membership for laboratory models.
+-- Запускайте миграцию при остановленном приложении.
+-- Она добавляет справочный состав канонических генов для моделей лабораторий.
 
 set define off;
 set serveroutput on size unlimited;

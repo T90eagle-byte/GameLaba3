@@ -1,5 +1,5 @@
--- Shared lr3-v3 reference-only morphology templates.
--- This seed deliberately writes only REF_ARCHETYPE_ALLELES. Runtime code does not read it yet.
+-- Общие справочные шаблоны морфологии lr3-v3.
+-- Seed намеренно заполняет только REF_ARCHETYPE_ALLELES; исполняемый код пока его не использует.
 
 set define off;
 

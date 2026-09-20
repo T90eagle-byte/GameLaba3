@@ -1,5 +1,5 @@
--- Version-aware terminology update for existing v13 schemas.
--- Only reference display names change; species IDs and gameplay rows remain intact.
+-- Обновление терминологии с учётом версии для существующих схем v13.
+-- Меняются только справочные отображаемые названия; идентификаторы видов и игровые строки сохраняются.
 set define off;
 set serveroutput on size unlimited;
 set verify off;

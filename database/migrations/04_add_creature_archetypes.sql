@@ -1,6 +1,6 @@
--- Run this migration with the application stopped.
--- It adds data-only morphology archetypes and leaves all existing game state unchanged.
--- The migration is safe to rerun: existing archetypes are matched by archetype_code.
+-- Запускайте миграцию при остановленном приложении.
+-- Она добавляет только справочные морфологические архетипы, не меняя существующее игровое состояние.
+-- Повторный запуск безопасен: существующие архетипы сопоставляются по archetype_code.
 
 set define off;
 set serveroutput on size unlimited;

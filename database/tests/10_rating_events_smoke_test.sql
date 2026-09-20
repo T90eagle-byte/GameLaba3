@@ -224,8 +224,8 @@ begin
       from labs l
      where l.lab_id = v_lab1_id;
 
-    -- A v3 lab accepts only canonical morphology-directed rules.  The rating
-    -- event assertions need a purchasable rule, so use an isolated fixture.
+    -- Лаборатория v3 принимает только правила для канонической морфологии.
+    -- Для проверки событий рейтинга нужна доступная для покупки мутация, поэтому используется изолированный fixture.
     select g.gene_id
       into v_body_color_gene_id
       from genes g
