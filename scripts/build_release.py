@@ -25,6 +25,7 @@ EXCLUDED_NAMES = {
     ".idea", ".vscode", "tests", "tmp", "dist",
 }
 EXCLUDED_SUFFIXES = {".pyc", ".pyo", ".log", ".dmp", ".dump", ".zip"}
+WEB_CLIENT_EXCLUDES = frozenset({"Dockerfile", "requirements.txt", "README.md", ".gitkeep"})
 
 
 def should_copy(path: Path) -> bool:
@@ -39,6 +40,8 @@ def copy_path(relative: str) -> None:
         shutil.copy2(source, target)
         return
     for item in source.rglob("*"):
+        if relative == "web_client" and item.relative_to(source).as_posix() in WEB_CLIENT_EXCLUDES:
+            continue
         if item.is_file() and should_copy(item.relative_to(source)):
             destination = target / item.relative_to(source)
             destination.parent.mkdir(parents=True, exist_ok=True)

@@ -10,7 +10,9 @@ Developer и DBeaver для установки не нужны.
 2. Выполните `powershell -ExecutionPolicy Bypass -File deployment\windows\setup.ps1`.
 3. Для пустой schema выполните `install_fresh.ps1`; для существующей BioSborka — `update_game.ps1`.
 4. Выполните `start_game.ps1`.
-5. Откройте `http://127.0.0.1:8000`.
+5. Откройте адрес, заданный `FLASK_HOST` и `FLASK_PORT` в `.env`.
+
+Пример для университетского стенда: `FLASK_HOST=127.0.0.1`, `FLASK_PORT=14550`, адрес `http://127.0.0.1:14550/`.
 
 Все команды используют `.venv\Scripts\python.exe` напрямую и не требуют
 `Activate.ps1`. Полная ПИМ находится в корневом `README_RELEASE.md`.

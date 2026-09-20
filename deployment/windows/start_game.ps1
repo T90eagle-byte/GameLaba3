@@ -8,5 +8,5 @@ if (-not (Test-Path $python)) { throw 'Не найдена .venv. Сначала
 if (-not (Test-Path $envFile)) { throw 'Не найден deployment\windows\.env. Скопируйте .env.example и заполните параметры Oracle.' }
 
 $env:BIOSBORKA_ENV_FILE = $envFile
-Write-Host 'Игра будет доступна по адресу http://127.0.0.1:8000'
+Write-Host 'Адрес игры задаётся параметрами FLASK_HOST и FLASK_PORT в deployment\windows\.env.'
 & $python (Join-Path $PSScriptRoot 'run_waitress.py')

@@ -15,7 +15,9 @@ SQL Developer и DBeaver для работы не требуются.
 2. Скопируйте `deployment\windows\.env.example` в `deployment\windows\.env` и заполните только `ORACLE_*` и `FLASK_SECRET_KEY`.
 3. Выполните `powershell -ExecutionPolicy Bypass -File deployment\windows\setup.ps1`.
 4. Выполните `powershell -ExecutionPolicy Bypass -File deployment\windows\install_fresh.ps1`.
-5. Выполните `powershell -ExecutionPolicy Bypass -File deployment\windows\start_game.ps1` и откройте `http://127.0.0.1:8000`.
+5. Выполните `powershell -ExecutionPolicy Bypass -File deployment\windows\start_game.ps1` и откройте адрес, заданный `FLASK_HOST` и `FLASK_PORT` в `.env`.
+
+Например, на университетском стенде: `FLASK_HOST=127.0.0.1`, `FLASK_PORT=14550`; адрес игры — `http://127.0.0.1:14550/`. При развёртывании на другом компьютере можно указать другой свободный порт.
 
 `install_fresh.ps1` работает только с пустой выделенной schema. Он не удаляет
 объекты: при найденной BioSborka или посторонних объектах установка остановится.
